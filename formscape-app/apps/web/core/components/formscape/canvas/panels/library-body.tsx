@@ -4,7 +4,7 @@
  * - 生态库：产品库管理（单品等，落点到画布）
  * - 技能库：封装的 AIGC 工作流 / 提示词
  */
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Image as ImageIcon, Package, Search, Sparkles, Upload } from "@/icons";
 import { cn } from "@plane/utils";
 import {
@@ -13,6 +13,15 @@ import {
   type EcoProduct,
 } from "../../ecology-mock";
 import type { CanvasSkillDef } from "../skills/registry";
+import { SKILLS_BY_ID } from "../skills/registry";
+import { listMockGallerySamples } from "../skills/mock-skill-assets";
+import {
+  CANVAS_DND_MIME,
+  clearGenHistory,
+  encodeDndPayload,
+  loadGenHistory,
+  pushGenHistory,
+} from "../skills/gen-history";
 import type { LibSection } from "../canvas-library-context";
 import type { FsCanvasNode } from "../use-canvas-document";
 import type { ImageGenNodeData, ImageNodeData, VideoGenNodeData } from "../types";
@@ -38,7 +47,7 @@ export const LIB_TABS_NORMAL = LIB_CONTENT_TABS.filter((t) => t.id === "images")
 export const LIB_TABS_NODE = LIB_CONTENT_TABS.filter((t) => t.id === "skills" || t.id === "ecology");
 export const LIB_TABS = LIB_CONTENT_TABS;
 
-type GalleryFilter = "all" | "upload" | "generate";
+type GalleryFilter = "all" | "upload" | "generate" | "sample" | "history";
 
 type GalleryItem = {
   id: string;
@@ -54,7 +63,7 @@ function isGeneratedImageSource(source?: ImageNodeData["source"]): boolean {
   return source === "generate" || source === "agent" || source === "skill" || source === "video-frame";
 }
 
-/** 图库 = 上传图 + 生成图（不含生态/纯灵感 library 落点） */
+/** 图库 = 上传图 + 生成图 + 样例/库图 */
 function collectGallery(nodes: FsCanvasNode[]): GalleryItem[] {
   const out: GalleryItem[] = [];
   for (const n of nodes) {
@@ -62,15 +71,16 @@ function collectGallery(nodes: FsCanvasNode[]): GalleryItem[] {
       const d = n.data as ImageNodeData;
       const isUpload = d.source === "upload";
       const isGen = isGeneratedImageSource(d.source);
-      if (!isUpload && !isGen) continue;
+      const isLib = d.source === "library" || d.source === "moodboard";
+      if (!isUpload && !isGen && !isLib) continue;
       out.push({
         id: n.id,
         nodeId: n.id,
         title: d.title || "未命名图像",
-        source: isUpload ? "upload" : "generate",
+        source: isUpload ? "upload" : isLib ? "library" : "generate",
         colors: d.colors?.length ? d.colors : ["#E8E4DC", "#C9B8A0", "#5C5346"],
         src: d.src,
-        subtitle: isUpload ? "上传" : "生成",
+        subtitle: isUpload ? "上传" : isLib ? "样例" : "生成",
       });
     }
     if (n.type === "imagegen") {
@@ -154,6 +164,7 @@ export function LibraryBody({
   nodes = [],
   selectedIds = [],
   onSelectNode,
+  onAddImage,
   onAddProduct,
   onPickSkill,
   onUpload,
@@ -161,8 +172,26 @@ export function LibraryBody({
 }: Props) {
   const [q, setQ] = useState("");
   const [galleryFilter, setGalleryFilter] = useState<GalleryFilter>("all");
+  const [historyTick, setHistoryTick] = useState(0);
+
+  useEffect(() => {
+    if (galleryFilter === "history") setHistoryTick((t) => t + 1);
+  }, [galleryFilter]);
+
+  const history = useMemo(() => {
+    void historyTick;
+    const list = loadGenHistory();
+    if (!q.trim()) return list;
+    const qq = q.trim().toLowerCase();
+    return list.filter(
+      (h) =>
+        h.title.toLowerCase().includes(qq) ||
+        (h.skillId && h.skillId.toLowerCase().includes(qq))
+    );
+  }, [q, historyTick]);
 
   const gallery = useMemo(() => {
+    if (galleryFilter === "sample" || galleryFilter === "history") return [] as GalleryItem[];
     let list = collectGallery(nodes);
     if (galleryFilter === "upload") list = list.filter((i) => i.source === "upload");
     if (galleryFilter === "generate") list = list.filter((i) => i.source === "generate");
@@ -174,6 +203,22 @@ export function LibraryBody({
     }
     return list;
   }, [nodes, galleryFilter, q]);
+
+  const samples = useMemo(() => {
+    const list = listMockGallerySamples().map((s) => {
+      const skill = SKILLS_BY_ID[s.skillId];
+      return {
+        ...s,
+        title: skill?.name ?? s.skillId,
+        colors: skill?.colors ?? s.colors,
+      };
+    });
+    if (!q.trim()) return list;
+    const qq = q.trim().toLowerCase();
+    return list.filter(
+      (s) => s.title.toLowerCase().includes(qq) || s.skillId.toLowerCase().includes(qq)
+    );
+  }, [q]);
 
   const products = useMemo(() => {
     const qq = q.trim().toLowerCase();
@@ -226,6 +271,8 @@ export function LibraryBody({
               ["all", "全部"],
               ["upload", "上传"],
               ["generate", "生成"],
+              ["sample", "样例"],
+              ["history", "历史"],
             ] as const
           ).map(([id, label]) => (
             <button
@@ -274,44 +321,152 @@ export function LibraryBody({
       >
         {section === "images" && (
           <>
-            <div className="grid grid-cols-2 gap-1.5">
-              {gallery.map((item) => {
-                const selected = selectedIds.includes(item.nodeId);
-                return (
-                  <button
+            {galleryFilter === "sample" ? (
+              <div className="grid grid-cols-2 gap-1.5">
+                {samples.map((item) => (
+                  <LibThumb
                     key={item.id}
-                    type="button"
-                    onClick={() => onSelectNode?.(item.nodeId)}
-                    className={cn(
-                      "overflow-hidden rounded-md border text-left transition-colors",
-                      selected
-                        ? "border-accent-primary ring-1 ring-accent-primary/30"
-                        : "border-subtle hover:border-accent-primary"
-                    )}
-                  >
-                    {item.src ? (
-                      <img src={item.src} alt="" className="h-14 w-full object-cover" loading="lazy" />
-                    ) : (
-                      <div
-                        className="h-14"
-                        style={{ background: `linear-gradient(135deg, ${item.colors.join(",")})` }}
-                      />
-                    )}
-                    <div className="px-1.5 py-1">
-                      <div className="truncate text-[10px] font-medium text-primary">{item.title}</div>
-                      <div className="text-[9px] text-tertiary">{item.subtitle}</div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-            {gallery.length === 0 && (
-              <Empty>
-                暂无图像
-                <div className="mt-1 text-[10px] text-placeholder">
-                  上传图片或用 A 生成后，会出现在图库
+                    title={item.title}
+                    subtitle="样例 · 拖/点落图"
+                    src={item.src}
+                    colors={item.colors}
+                    onClick={() => {
+                      onAddImage({
+                        title: item.title,
+                        tags: ["sample", item.skillId],
+                        colors: item.colors,
+                        source: "library",
+                        src: item.src,
+                      });
+                      pushGenHistory({
+                        title: item.title,
+                        src: item.src,
+                        colors: item.colors,
+                        skillId: item.skillId,
+                        source: "sample",
+                      });
+                      setHistoryTick((t) => t + 1);
+                    }}
+                    dnd={{
+                      title: item.title,
+                      tags: ["sample", item.skillId],
+                      colors: item.colors,
+                      source: "library",
+                      skillId: item.skillId,
+                      src: item.src,
+                    }}
+                  />
+                ))}
+                {samples.length === 0 && <Empty>无样例（检查 formscape-skill-mocks）</Empty>}
+              </div>
+            ) : galleryFilter === "history" ? (
+              <>
+                <div className="mb-1.5 flex items-center justify-between px-0.5">
+                  <span className="text-[9px] text-placeholder">{history.length} 条</span>
+                  {history.length > 0 && (
+                    <button
+                      type="button"
+                      className="text-[9px] text-tertiary hover:text-danger-primary"
+                      onClick={() => {
+                        clearGenHistory();
+                        setHistoryTick((t) => t + 1);
+                      }}
+                    >
+                      清空
+                    </button>
+                  )}
                 </div>
-              </Empty>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {history.map((item) => (
+                    <LibThumb
+                      key={item.id}
+                      title={item.title}
+                      subtitle={
+                        item.skillId
+                          ? SKILLS_BY_ID[item.skillId]?.name || item.source
+                          : item.source
+                      }
+                      src={item.src}
+                      colors={item.colors}
+                      onClick={() =>
+                        onAddImage({
+                          title: item.title,
+                          tags: ["history", item.skillId].filter(Boolean) as string[],
+                          colors: item.colors,
+                          source: item.source === "upload" ? "upload" : "generate",
+                          src: item.src,
+                        })
+                      }
+                      dnd={{
+                        title: item.title,
+                        tags: ["history", item.skillId].filter(Boolean) as string[],
+                        colors: item.colors,
+                        source: item.source === "upload" ? "upload" : "generate",
+                        skillId: item.skillId,
+                        src: item.src,
+                      }}
+                    />
+                  ))}
+                </div>
+                {history.length === 0 && (
+                  <Empty>
+                    暂无生成历史
+                    <div className="mt-1 text-[10px] text-placeholder">
+                      一键落图 / 样例导入后会出现在这里
+                    </div>
+                  </Empty>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {gallery.map((item) => {
+                    const selected = selectedIds.includes(item.nodeId);
+                    return (
+                      <LibThumb
+                        key={item.id}
+                        title={item.title}
+                        subtitle={item.subtitle}
+                        src={item.src}
+                        colors={item.colors}
+                        selected={selected}
+                        onClick={() => onSelectNode?.(item.nodeId)}
+                        dnd={
+                          item.src
+                            ? {
+                                title: item.title,
+                                tags: [item.source],
+                                colors: item.colors,
+                                source:
+                                  item.source === "upload"
+                                    ? "upload"
+                                    : item.source === "library"
+                                      ? "library"
+                                      : "generate",
+                                src: item.src,
+                              }
+                            : undefined
+                        }
+                      />
+                    );
+                  })}
+                </div>
+                {gallery.length === 0 && (
+                  <Empty>
+                    暂无图像
+                    <div className="mt-1 text-[10px] text-placeholder">
+                      上传 / 生成后会出现在此；也可切到「样例」先体验
+                    </div>
+                    <button
+                      type="button"
+                      className="mt-2 text-[10px] font-medium text-accent-primary hover:underline"
+                      onClick={() => setGalleryFilter("sample")}
+                    >
+                      查看 14 技能样例图
+                    </button>
+                  </Empty>
+                )}
+              </>
             )}
           </>
         )}
@@ -381,6 +536,65 @@ function EcoProductRow({ product, onAdd }: { product: EcoProduct; onAdd: () => v
             ¥{product.price.toLocaleString()}
           </div>
         )}
+      </div>
+    </button>
+  );
+}
+
+function LibThumb({
+  title,
+  subtitle,
+  src,
+  colors,
+  selected,
+  onClick,
+  dnd,
+}: {
+  title: string;
+  subtitle: string;
+  src?: string;
+  colors: string[];
+  selected?: boolean;
+  onClick: () => void;
+  dnd?: {
+    title: string;
+    tags: string[];
+    colors: string[];
+    source: "library" | "upload" | "agent" | "generate";
+    skillId?: string;
+    src?: string;
+  };
+}) {
+  return (
+    <button
+      type="button"
+      title={`${title} · 拖到画布或点击`}
+      draggable={!!dnd}
+      onDragStart={(e) => {
+        if (!dnd) return;
+        e.dataTransfer.setData(CANVAS_DND_MIME, encodeDndPayload(dnd));
+        e.dataTransfer.setData("text/plain", encodeDndPayload(dnd));
+        e.dataTransfer.effectAllowed = "copy";
+      }}
+      onClick={onClick}
+      className={cn(
+        "overflow-hidden rounded-md border text-left transition-colors",
+        selected
+          ? "border-accent-primary ring-1 ring-accent-primary/30"
+          : "border-subtle hover:border-accent-primary"
+      )}
+    >
+      {src ? (
+        <img src={src} alt="" className="h-14 w-full object-cover" loading="lazy" draggable={false} />
+      ) : (
+        <div
+          className="h-14"
+          style={{ background: `linear-gradient(135deg, ${colors.join(",")})` }}
+        />
+      )}
+      <div className="px-1.5 py-1">
+        <div className="truncate text-[10px] font-medium text-primary">{title}</div>
+        <div className="text-[9px] text-tertiary">{subtitle}</div>
       </div>
     </button>
   );

@@ -18,6 +18,7 @@ import {
 } from "../purchase-store";
 import { projectById } from "../pm-mock";
 import { STAGES } from "../types";
+import { getCanvasAiBridge } from "../canvas/canvas-ai-bridge-registry";
 import type { HarnessTool, ProjectHarnessContext, ToolResult } from "./types";
 
 function needProject(ctx: ProjectHarnessContext): ToolResult | null {
@@ -155,6 +156,85 @@ export const HARNESS_TOOLS: HarnessTool[] = [
         ok: true,
         summary: actions.map((a, i) => `${i + 1}. ${a}`).join(" "),
         data: { actions },
+      };
+    },
+  },
+  {
+    name: "canvas_snapshot",
+    description: "读取画布节点数与当前选中（画布 Agent）",
+    run: (ctx) => {
+      if (!ctx.canvasActive) {
+        return { ok: false, summary: "当前不在画布页。请打开意向画布后再问画布相关问题。" };
+      }
+      const b = getCanvasAiBridge();
+      const snap = b?.getSnapshot?.();
+      if (!snap) return { ok: false, summary: "画布桥未就绪。" };
+      return {
+        ok: true,
+        summary: `画布共 ${snap.nodeCount} 节点 · 选中 ${snap.selectedCount}：${
+          snap.selectedTitles.slice(0, 4).join("、") || "无"
+        }`,
+        data: snap,
+      };
+    },
+  },
+  {
+    name: "canvas_place_image",
+    description: "在画布中心放一张 Agent 建议图节点",
+    run: (ctx, args) => {
+      if (!ctx.canvasActive) {
+        return { ok: false, summary: "需在画布页使用。" };
+      }
+      const b = getCanvasAiBridge();
+      if (!b) return { ok: false, summary: "画布桥未就绪。" };
+      const title = String(args.title ?? "AI 建议稿");
+      const src = args.src ? String(args.src) : undefined;
+      b.placeResult({
+        title,
+        tags: ["agent", "画布"],
+        colors: (args.colors as string[]) ?? ["#EDE9FE", "#C4B5FD", "#8B5CF6"],
+        src,
+      });
+      return { ok: true, summary: `已放到画布：${title}${src ? "（mock 图）" : ""}` };
+    },
+  },
+  {
+    name: "canvas_place_gen",
+    description: "在画布落图片生成器并按提示词跑生成（一键落图）",
+    run: (ctx, args) => {
+      if (!ctx.canvasActive) {
+        return { ok: false, summary: "需在画布页使用。" };
+      }
+      const b = getCanvasAiBridge();
+      if (!b?.placeImageGen) return { ok: false, summary: "画布生成桥未就绪。" };
+      const prompt = String(args.prompt ?? args.instruction ?? "空间效果图");
+      const skillId = args.skillId ? String(args.skillId) : undefined;
+      const count = typeof args.count === "number" ? args.count : undefined;
+      const id = b.placeImageGen({ prompt, skillId, count, autoRun: true });
+      return {
+        ok: !!id,
+        summary: id
+          ? `已创建生成任务并自动落图${skillId ? ` · 技能 ${skillId}` : ""}：${prompt.slice(0, 40)}`
+          : "创建生成节点失败",
+      };
+    },
+  },
+  {
+    name: "canvas_edit_selected",
+    description: "对当前选中图像做交互改图（再生成/风格延展）",
+    run: (ctx, args) => {
+      if (!ctx.canvasActive) {
+        return { ok: false, summary: "需在画布页使用。" };
+      }
+      const b = getCanvasAiBridge();
+      if (!b?.editSelected) return { ok: false, summary: "画布改图桥未就绪。" };
+      const instruction = String(args.instruction ?? args.prompt ?? "风格延展");
+      const ok = b.editSelected(instruction);
+      return {
+        ok,
+        summary: ok
+          ? `已对选中图像发起「${instruction}」，完成后自动落图。`
+          : "请先在画布选中一张图片或生成器节点。",
       };
     },
   },

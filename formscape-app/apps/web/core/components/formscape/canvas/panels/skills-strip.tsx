@@ -12,13 +12,17 @@ import {
 const PIN_KEY = "formscape.canvas.pinned.skills";
 
 function loadPinned(): string[] {
+  const defaults = () => CANVAS_SKILLS.filter((s) => s.popular).map((s) => s.id).slice(0, 4);
   try {
     const raw = localStorage.getItem(PIN_KEY);
-    if (!raw) return CANVAS_SKILLS.filter((s) => s.popular).map((s) => s.id).slice(0, 4);
+    if (!raw) return defaults();
     const arr = JSON.parse(raw) as string[];
-    return Array.isArray(arr) ? arr.slice(0, 4) : [];
+    if (!Array.isArray(arr)) return defaults();
+    // 过滤已删除的旧 skill id
+    const valid = arr.filter((id) => CANVAS_SKILLS.some((s) => s.id === id)).slice(0, 4);
+    return valid.length ? valid : defaults();
   } catch {
-    return [];
+    return defaults();
   }
 }
 
@@ -132,10 +136,14 @@ export function SkillsStrip({ open, onClose, onPick }: Props) {
               onClick={() => onPick(s)}
               className="group relative flex flex-col overflow-hidden rounded-md border border-subtle text-left hover:border-accent-primary"
             >
-              <div
-                className="h-16 w-full"
-                style={{ background: `linear-gradient(135deg, ${s.colors.join(",")})` }}
-              />
+              {s.coverSrc ? (
+                <img src={s.coverSrc} alt="" className="h-16 w-full object-cover" loading="lazy" />
+              ) : (
+                <div
+                  className="h-16 w-full"
+                  style={{ background: `linear-gradient(135deg, ${s.colors.join(",")})` }}
+                />
+              )}
               <div className="flex items-start justify-between gap-1 p-1.5">
                 <div className="min-w-0">
                   <div className="truncate text-11 font-medium text-primary">{s.name}</div>

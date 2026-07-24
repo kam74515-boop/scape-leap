@@ -1,0 +1,808 @@
+{
+  "architectural-multi-angle": {
+    "cases": [
+      {
+        "case": "case-01",
+        "inputs": [
+          "/formscape-skill-mocks/architectural-multi-angle/case-01/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/architectural-multi-angle/case-01/out0.jpg",
+          "/formscape-skill-mocks/architectural-multi-angle/case-01/out1.jpg"
+        ]
+      },
+      {
+        "case": "case-02",
+        "inputs": [
+          "/formscape-skill-mocks/architectural-multi-angle/case-02/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/architectural-multi-angle/case-02/out0.jpg",
+          "/formscape-skill-mocks/architectural-multi-angle/case-02/out1.jpg"
+        ]
+      },
+      {
+        "case": "case-03",
+        "inputs": [
+          "/formscape-skill-mocks/architectural-multi-angle/case-03/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/architectural-multi-angle/case-03/out0.jpg",
+          "/formscape-skill-mocks/architectural-multi-angle/case-03/out1.jpg"
+        ]
+      },
+      {
+        "case": "case-04",
+        "inputs": [
+          "/formscape-skill-mocks/architectural-multi-angle/case-04/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/architectural-multi-angle/case-04/out0.jpg",
+          "/formscape-skill-mocks/architectural-multi-angle/case-04/out1.jpg"
+        ]
+      }
+    ],
+    "outputs": [
+      "/formscape-skill-mocks/architectural-multi-angle/case-01/out0.jpg",
+      "/formscape-skill-mocks/architectural-multi-angle/case-01/out1.jpg",
+      "/formscape-skill-mocks/architectural-multi-angle/case-02/out0.jpg",
+      "/formscape-skill-mocks/architectural-multi-angle/case-02/out1.jpg",
+      "/formscape-skill-mocks/architectural-multi-angle/case-03/out0.jpg",
+      "/formscape-skill-mocks/architectural-multi-angle/case-03/out1.jpg",
+      "/formscape-skill-mocks/architectural-multi-angle/case-04/out0.jpg",
+      "/formscape-skill-mocks/architectural-multi-angle/case-04/out1.jpg"
+    ],
+    "inputs": [
+      "/formscape-skill-mocks/architectural-multi-angle/case-01/in0.jpg",
+      "/formscape-skill-mocks/architectural-multi-angle/case-02/in0.jpg",
+      "/formscape-skill-mocks/architectural-multi-angle/case-03/in0.jpg",
+      "/formscape-skill-mocks/architectural-multi-angle/case-04/in0.jpg"
+    ],
+    "outputCount": 8,
+    "inputCount": 4
+  },
+  "color-mood-analysis": {
+    "cases": [
+      {
+        "case": "case-01",
+        "inputs": [
+          "/formscape-skill-mocks/color-mood-analysis/case-01/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/color-mood-analysis/case-01/out0.jpg"
+        ]
+      },
+      {
+        "case": "case-02",
+        "inputs": [
+          "/formscape-skill-mocks/color-mood-analysis/case-02/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/color-mood-analysis/case-02/out0.jpg"
+        ]
+      },
+      {
+        "case": "case-03",
+        "inputs": [
+          "/formscape-skill-mocks/color-mood-analysis/case-03/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/color-mood-analysis/case-03/out0.jpg"
+        ]
+      },
+      {
+        "case": "case-04",
+        "inputs": [
+          "/formscape-skill-mocks/color-mood-analysis/case-04/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/color-mood-analysis/case-04/out0.jpg"
+        ]
+      }
+    ],
+    "outputs": [
+      "/formscape-skill-mocks/color-mood-analysis/case-01/out0.jpg",
+      "/formscape-skill-mocks/color-mood-analysis/case-02/out0.jpg",
+      "/formscape-skill-mocks/color-mood-analysis/case-03/out0.jpg",
+      "/formscape-skill-mocks/color-mood-analysis/case-04/out0.jpg"
+    ],
+    "inputs": [
+      "/formscape-skill-mocks/color-mood-analysis/case-01/in0.jpg",
+      "/formscape-skill-mocks/color-mood-analysis/case-02/in0.jpg",
+      "/formscape-skill-mocks/color-mood-analysis/case-03/in0.jpg",
+      "/formscape-skill-mocks/color-mood-analysis/case-04/in0.jpg"
+    ],
+    "outputCount": 4,
+    "inputCount": 4
+  },
+  "furniture-sketches": {
+    "cases": [
+      {
+        "case": "case-01",
+        "inputs": [
+          "/formscape-skill-mocks/furniture-sketches/case-01/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/furniture-sketches/case-01/out0.jpg"
+        ]
+      },
+      {
+        "case": "case-02",
+        "inputs": [
+          "/formscape-skill-mocks/furniture-sketches/case-02/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/furniture-sketches/case-02/out0.jpg"
+        ]
+      },
+      {
+        "case": "case-03",
+        "inputs": [
+          "/formscape-skill-mocks/furniture-sketches/case-03/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/furniture-sketches/case-03/out0.jpg"
+        ]
+      },
+      {
+        "case": "case-04",
+        "inputs": [
+          "/formscape-skill-mocks/furniture-sketches/case-04/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/furniture-sketches/case-04/out0.jpg"
+        ]
+      }
+    ],
+    "outputs": [
+      "/formscape-skill-mocks/furniture-sketches/case-01/out0.jpg",
+      "/formscape-skill-mocks/furniture-sketches/case-02/out0.jpg",
+      "/formscape-skill-mocks/furniture-sketches/case-03/out0.jpg",
+      "/formscape-skill-mocks/furniture-sketches/case-04/out0.jpg"
+    ],
+    "inputs": [
+      "/formscape-skill-mocks/furniture-sketches/case-01/in0.jpg",
+      "/formscape-skill-mocks/furniture-sketches/case-02/in0.jpg",
+      "/formscape-skill-mocks/furniture-sketches/case-03/in0.jpg",
+      "/formscape-skill-mocks/furniture-sketches/case-04/in0.jpg"
+    ],
+    "outputCount": 4,
+    "inputCount": 4
+  },
+  "material-extraction-analysis": {
+    "cases": [
+      {
+        "case": "case-01",
+        "inputs": [
+          "/formscape-skill-mocks/material-extraction-analysis/case-01/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/material-extraction-analysis/case-01/out0.jpg"
+        ]
+      },
+      {
+        "case": "case-02",
+        "inputs": [
+          "/formscape-skill-mocks/material-extraction-analysis/case-02/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/material-extraction-analysis/case-02/out0.jpg"
+        ]
+      },
+      {
+        "case": "case-03",
+        "inputs": [
+          "/formscape-skill-mocks/material-extraction-analysis/case-03/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/material-extraction-analysis/case-03/out0.jpg"
+        ]
+      },
+      {
+        "case": "case-04",
+        "inputs": [
+          "/formscape-skill-mocks/material-extraction-analysis/case-04/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/material-extraction-analysis/case-04/out0.jpg"
+        ]
+      }
+    ],
+    "outputs": [
+      "/formscape-skill-mocks/material-extraction-analysis/case-01/out0.jpg",
+      "/formscape-skill-mocks/material-extraction-analysis/case-02/out0.jpg",
+      "/formscape-skill-mocks/material-extraction-analysis/case-03/out0.jpg",
+      "/formscape-skill-mocks/material-extraction-analysis/case-04/out0.jpg"
+    ],
+    "inputs": [
+      "/formscape-skill-mocks/material-extraction-analysis/case-01/in0.jpg",
+      "/formscape-skill-mocks/material-extraction-analysis/case-02/in0.jpg",
+      "/formscape-skill-mocks/material-extraction-analysis/case-03/in0.jpg",
+      "/formscape-skill-mocks/material-extraction-analysis/case-04/in0.jpg"
+    ],
+    "outputCount": 4,
+    "inputCount": 4
+  },
+  "material-replacement": {
+    "cases": [
+      {
+        "case": "case-01",
+        "inputs": [
+          "/formscape-skill-mocks/material-replacement/case-01/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/material-replacement/case-01/out0.jpg",
+          "/formscape-skill-mocks/material-replacement/case-01/out1.jpg"
+        ]
+      },
+      {
+        "case": "case-02",
+        "inputs": [
+          "/formscape-skill-mocks/material-replacement/case-02/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/material-replacement/case-02/out0.jpg",
+          "/formscape-skill-mocks/material-replacement/case-02/out1.jpg"
+        ]
+      },
+      {
+        "case": "case-03",
+        "inputs": [
+          "/formscape-skill-mocks/material-replacement/case-03/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/material-replacement/case-03/out0.jpg",
+          "/formscape-skill-mocks/material-replacement/case-03/out1.jpg"
+        ]
+      },
+      {
+        "case": "case-04",
+        "inputs": [
+          "/formscape-skill-mocks/material-replacement/case-04/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/material-replacement/case-04/out0.jpg",
+          "/formscape-skill-mocks/material-replacement/case-04/out1.jpg"
+        ]
+      }
+    ],
+    "outputs": [
+      "/formscape-skill-mocks/material-replacement/case-01/out0.jpg",
+      "/formscape-skill-mocks/material-replacement/case-01/out1.jpg",
+      "/formscape-skill-mocks/material-replacement/case-02/out0.jpg",
+      "/formscape-skill-mocks/material-replacement/case-02/out1.jpg",
+      "/formscape-skill-mocks/material-replacement/case-03/out0.jpg",
+      "/formscape-skill-mocks/material-replacement/case-03/out1.jpg",
+      "/formscape-skill-mocks/material-replacement/case-04/out0.jpg",
+      "/formscape-skill-mocks/material-replacement/case-04/out1.jpg"
+    ],
+    "inputs": [
+      "/formscape-skill-mocks/material-replacement/case-01/in0.jpg",
+      "/formscape-skill-mocks/material-replacement/case-02/in0.jpg",
+      "/formscape-skill-mocks/material-replacement/case-03/in0.jpg",
+      "/formscape-skill-mocks/material-replacement/case-04/in0.jpg"
+    ],
+    "outputCount": 8,
+    "inputCount": 4
+  },
+  "model-generation": {
+    "cases": [
+      {
+        "case": "case-01",
+        "inputs": [
+          "/formscape-skill-mocks/model-generation/case-01/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/model-generation/case-01/out0.jpg"
+        ]
+      },
+      {
+        "case": "case-02",
+        "inputs": [
+          "/formscape-skill-mocks/model-generation/case-02/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/model-generation/case-02/out0.jpg"
+        ]
+      },
+      {
+        "case": "case-03",
+        "inputs": [
+          "/formscape-skill-mocks/model-generation/case-03/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/model-generation/case-03/out0.jpg"
+        ]
+      },
+      {
+        "case": "case-04",
+        "inputs": [
+          "/formscape-skill-mocks/model-generation/case-04/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/model-generation/case-04/out0.jpg"
+        ]
+      }
+    ],
+    "outputs": [
+      "/formscape-skill-mocks/model-generation/case-01/out0.jpg",
+      "/formscape-skill-mocks/model-generation/case-02/out0.jpg",
+      "/formscape-skill-mocks/model-generation/case-03/out0.jpg",
+      "/formscape-skill-mocks/model-generation/case-04/out0.jpg"
+    ],
+    "inputs": [
+      "/formscape-skill-mocks/model-generation/case-01/in0.jpg",
+      "/formscape-skill-mocks/model-generation/case-02/in0.jpg",
+      "/formscape-skill-mocks/model-generation/case-03/in0.jpg",
+      "/formscape-skill-mocks/model-generation/case-04/in0.jpg"
+    ],
+    "outputCount": 4,
+    "inputCount": 4
+  },
+  "multi-shot-storyboard": {
+    "cases": [
+      {
+        "case": "case-01",
+        "inputs": [
+          "/formscape-skill-mocks/multi-shot-storyboard/case-01/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/multi-shot-storyboard/case-01/out0.jpg"
+        ]
+      },
+      {
+        "case": "case-02",
+        "inputs": [
+          "/formscape-skill-mocks/multi-shot-storyboard/case-02/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/multi-shot-storyboard/case-02/out0.jpg"
+        ]
+      },
+      {
+        "case": "case-03",
+        "inputs": [
+          "/formscape-skill-mocks/multi-shot-storyboard/case-03/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/multi-shot-storyboard/case-03/out0.jpg"
+        ]
+      },
+      {
+        "case": "case-04",
+        "inputs": [
+          "/formscape-skill-mocks/multi-shot-storyboard/case-04/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/multi-shot-storyboard/case-04/out0.jpg"
+        ]
+      }
+    ],
+    "outputs": [
+      "/formscape-skill-mocks/multi-shot-storyboard/case-01/out0.jpg",
+      "/formscape-skill-mocks/multi-shot-storyboard/case-02/out0.jpg",
+      "/formscape-skill-mocks/multi-shot-storyboard/case-03/out0.jpg",
+      "/formscape-skill-mocks/multi-shot-storyboard/case-04/out0.jpg"
+    ],
+    "inputs": [
+      "/formscape-skill-mocks/multi-shot-storyboard/case-01/in0.jpg",
+      "/formscape-skill-mocks/multi-shot-storyboard/case-02/in0.jpg",
+      "/formscape-skill-mocks/multi-shot-storyboard/case-03/in0.jpg",
+      "/formscape-skill-mocks/multi-shot-storyboard/case-04/in0.jpg"
+    ],
+    "outputCount": 4,
+    "inputCount": 4
+  },
+  "old-house-renovation": {
+    "cases": [
+      {
+        "case": "case-01",
+        "inputs": [
+          "/formscape-skill-mocks/old-house-renovation/case-01/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/old-house-renovation/case-01/out0.jpg",
+          "/formscape-skill-mocks/old-house-renovation/case-01/out1.jpg"
+        ]
+      },
+      {
+        "case": "case-02",
+        "inputs": [
+          "/formscape-skill-mocks/old-house-renovation/case-02/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/old-house-renovation/case-02/out0.jpg",
+          "/formscape-skill-mocks/old-house-renovation/case-02/out1.jpg"
+        ]
+      },
+      {
+        "case": "case-03",
+        "inputs": [
+          "/formscape-skill-mocks/old-house-renovation/case-03/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/old-house-renovation/case-03/out0.jpg",
+          "/formscape-skill-mocks/old-house-renovation/case-03/out1.jpg"
+        ]
+      },
+      {
+        "case": "case-04",
+        "inputs": [
+          "/formscape-skill-mocks/old-house-renovation/case-04/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/old-house-renovation/case-04/out0.jpg",
+          "/formscape-skill-mocks/old-house-renovation/case-04/out1.jpg"
+        ]
+      }
+    ],
+    "outputs": [
+      "/formscape-skill-mocks/old-house-renovation/case-01/out0.jpg",
+      "/formscape-skill-mocks/old-house-renovation/case-01/out1.jpg",
+      "/formscape-skill-mocks/old-house-renovation/case-02/out0.jpg",
+      "/formscape-skill-mocks/old-house-renovation/case-02/out1.jpg",
+      "/formscape-skill-mocks/old-house-renovation/case-03/out0.jpg",
+      "/formscape-skill-mocks/old-house-renovation/case-03/out1.jpg",
+      "/formscape-skill-mocks/old-house-renovation/case-04/out0.jpg",
+      "/formscape-skill-mocks/old-house-renovation/case-04/out1.jpg"
+    ],
+    "inputs": [
+      "/formscape-skill-mocks/old-house-renovation/case-01/in0.jpg",
+      "/formscape-skill-mocks/old-house-renovation/case-02/in0.jpg",
+      "/formscape-skill-mocks/old-house-renovation/case-03/in0.jpg",
+      "/formscape-skill-mocks/old-house-renovation/case-04/in0.jpg"
+    ],
+    "outputCount": 8,
+    "inputCount": 4
+  },
+  "product-inspiration-expansion": {
+    "cases": [
+      {
+        "case": "case-01",
+        "inputs": [
+          "/formscape-skill-mocks/product-inspiration-expansion/case-01/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/product-inspiration-expansion/case-01/out0.jpg",
+          "/formscape-skill-mocks/product-inspiration-expansion/case-01/out1.jpg"
+        ]
+      },
+      {
+        "case": "case-02",
+        "inputs": [
+          "/formscape-skill-mocks/product-inspiration-expansion/case-02/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/product-inspiration-expansion/case-02/out0.jpg",
+          "/formscape-skill-mocks/product-inspiration-expansion/case-02/out1.jpg"
+        ]
+      },
+      {
+        "case": "case-03",
+        "inputs": [
+          "/formscape-skill-mocks/product-inspiration-expansion/case-03/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/product-inspiration-expansion/case-03/out0.jpg",
+          "/formscape-skill-mocks/product-inspiration-expansion/case-03/out1.jpg"
+        ]
+      },
+      {
+        "case": "case-04",
+        "inputs": [
+          "/formscape-skill-mocks/product-inspiration-expansion/case-04/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/product-inspiration-expansion/case-04/out0.jpg",
+          "/formscape-skill-mocks/product-inspiration-expansion/case-04/out1.jpg"
+        ]
+      }
+    ],
+    "outputs": [
+      "/formscape-skill-mocks/product-inspiration-expansion/case-01/out0.jpg",
+      "/formscape-skill-mocks/product-inspiration-expansion/case-01/out1.jpg",
+      "/formscape-skill-mocks/product-inspiration-expansion/case-02/out0.jpg",
+      "/formscape-skill-mocks/product-inspiration-expansion/case-02/out1.jpg",
+      "/formscape-skill-mocks/product-inspiration-expansion/case-03/out0.jpg",
+      "/formscape-skill-mocks/product-inspiration-expansion/case-03/out1.jpg",
+      "/formscape-skill-mocks/product-inspiration-expansion/case-04/out0.jpg",
+      "/formscape-skill-mocks/product-inspiration-expansion/case-04/out1.jpg"
+    ],
+    "inputs": [
+      "/formscape-skill-mocks/product-inspiration-expansion/case-01/in0.jpg",
+      "/formscape-skill-mocks/product-inspiration-expansion/case-02/in0.jpg",
+      "/formscape-skill-mocks/product-inspiration-expansion/case-03/in0.jpg",
+      "/formscape-skill-mocks/product-inspiration-expansion/case-04/in0.jpg"
+    ],
+    "outputCount": 8,
+    "inputCount": 4
+  },
+  "seasonal-changes": {
+    "cases": [
+      {
+        "case": "case-01",
+        "inputs": [
+          "/formscape-skill-mocks/seasonal-changes/case-01/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/seasonal-changes/case-01/out0.jpg",
+          "/formscape-skill-mocks/seasonal-changes/case-01/out1.jpg"
+        ]
+      },
+      {
+        "case": "case-02",
+        "inputs": [
+          "/formscape-skill-mocks/seasonal-changes/case-02/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/seasonal-changes/case-02/out0.jpg",
+          "/formscape-skill-mocks/seasonal-changes/case-02/out1.jpg"
+        ]
+      },
+      {
+        "case": "case-03",
+        "inputs": [
+          "/formscape-skill-mocks/seasonal-changes/case-03/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/seasonal-changes/case-03/out0.jpg",
+          "/formscape-skill-mocks/seasonal-changes/case-03/out1.jpg"
+        ]
+      },
+      {
+        "case": "case-04",
+        "inputs": [
+          "/formscape-skill-mocks/seasonal-changes/case-04/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/seasonal-changes/case-04/out0.jpg",
+          "/formscape-skill-mocks/seasonal-changes/case-04/out1.jpg"
+        ]
+      }
+    ],
+    "outputs": [
+      "/formscape-skill-mocks/seasonal-changes/case-01/out0.jpg",
+      "/formscape-skill-mocks/seasonal-changes/case-01/out1.jpg",
+      "/formscape-skill-mocks/seasonal-changes/case-02/out0.jpg",
+      "/formscape-skill-mocks/seasonal-changes/case-02/out1.jpg",
+      "/formscape-skill-mocks/seasonal-changes/case-03/out0.jpg",
+      "/formscape-skill-mocks/seasonal-changes/case-03/out1.jpg",
+      "/formscape-skill-mocks/seasonal-changes/case-04/out0.jpg",
+      "/formscape-skill-mocks/seasonal-changes/case-04/out1.jpg"
+    ],
+    "inputs": [
+      "/formscape-skill-mocks/seasonal-changes/case-01/in0.jpg",
+      "/formscape-skill-mocks/seasonal-changes/case-02/in0.jpg",
+      "/formscape-skill-mocks/seasonal-changes/case-03/in0.jpg",
+      "/formscape-skill-mocks/seasonal-changes/case-04/in0.jpg"
+    ],
+    "outputCount": 8,
+    "inputCount": 4
+  },
+  "space-atmosphere-transformation": {
+    "cases": [
+      {
+        "case": "case-01",
+        "inputs": [
+          "/formscape-skill-mocks/space-atmosphere-transformation/case-01/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/space-atmosphere-transformation/case-01/out0.jpg",
+          "/formscape-skill-mocks/space-atmosphere-transformation/case-01/out1.jpg"
+        ]
+      },
+      {
+        "case": "case-02",
+        "inputs": [
+          "/formscape-skill-mocks/space-atmosphere-transformation/case-02/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/space-atmosphere-transformation/case-02/out0.jpg",
+          "/formscape-skill-mocks/space-atmosphere-transformation/case-02/out1.jpg"
+        ]
+      },
+      {
+        "case": "case-03",
+        "inputs": [
+          "/formscape-skill-mocks/space-atmosphere-transformation/case-03/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/space-atmosphere-transformation/case-03/out0.jpg",
+          "/formscape-skill-mocks/space-atmosphere-transformation/case-03/out1.jpg"
+        ]
+      },
+      {
+        "case": "case-04",
+        "inputs": [
+          "/formscape-skill-mocks/space-atmosphere-transformation/case-04/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/space-atmosphere-transformation/case-04/out0.jpg",
+          "/formscape-skill-mocks/space-atmosphere-transformation/case-04/out1.jpg"
+        ]
+      }
+    ],
+    "outputs": [
+      "/formscape-skill-mocks/space-atmosphere-transformation/case-01/out0.jpg",
+      "/formscape-skill-mocks/space-atmosphere-transformation/case-01/out1.jpg",
+      "/formscape-skill-mocks/space-atmosphere-transformation/case-02/out0.jpg",
+      "/formscape-skill-mocks/space-atmosphere-transformation/case-02/out1.jpg",
+      "/formscape-skill-mocks/space-atmosphere-transformation/case-03/out0.jpg",
+      "/formscape-skill-mocks/space-atmosphere-transformation/case-03/out1.jpg",
+      "/formscape-skill-mocks/space-atmosphere-transformation/case-04/out0.jpg",
+      "/formscape-skill-mocks/space-atmosphere-transformation/case-04/out1.jpg"
+    ],
+    "inputs": [
+      "/formscape-skill-mocks/space-atmosphere-transformation/case-01/in0.jpg",
+      "/formscape-skill-mocks/space-atmosphere-transformation/case-02/in0.jpg",
+      "/formscape-skill-mocks/space-atmosphere-transformation/case-03/in0.jpg",
+      "/formscape-skill-mocks/space-atmosphere-transformation/case-04/in0.jpg"
+    ],
+    "outputCount": 8,
+    "inputCount": 4
+  },
+  "space-to-axonometric": {
+    "cases": [
+      {
+        "case": "case-01",
+        "inputs": [
+          "/formscape-skill-mocks/space-to-axonometric/case-01/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/space-to-axonometric/case-01/out0.jpg"
+        ]
+      },
+      {
+        "case": "case-02",
+        "inputs": [
+          "/formscape-skill-mocks/space-to-axonometric/case-02/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/space-to-axonometric/case-02/out0.jpg"
+        ]
+      },
+      {
+        "case": "case-03",
+        "inputs": [
+          "/formscape-skill-mocks/space-to-axonometric/case-03/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/space-to-axonometric/case-03/out0.jpg"
+        ]
+      },
+      {
+        "case": "case-04",
+        "inputs": [
+          "/formscape-skill-mocks/space-to-axonometric/case-04/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/space-to-axonometric/case-04/out0.jpg"
+        ]
+      }
+    ],
+    "outputs": [
+      "/formscape-skill-mocks/space-to-axonometric/case-01/out0.jpg",
+      "/formscape-skill-mocks/space-to-axonometric/case-02/out0.jpg",
+      "/formscape-skill-mocks/space-to-axonometric/case-03/out0.jpg",
+      "/formscape-skill-mocks/space-to-axonometric/case-04/out0.jpg"
+    ],
+    "inputs": [
+      "/formscape-skill-mocks/space-to-axonometric/case-01/in0.jpg",
+      "/formscape-skill-mocks/space-to-axonometric/case-02/in0.jpg",
+      "/formscape-skill-mocks/space-to-axonometric/case-03/in0.jpg",
+      "/formscape-skill-mocks/space-to-axonometric/case-04/in0.jpg"
+    ],
+    "outputCount": 4,
+    "inputCount": 4
+  },
+  "unfurnished-space-generation": {
+    "cases": [
+      {
+        "case": "case-01",
+        "inputs": [
+          "/formscape-skill-mocks/unfurnished-space-generation/case-01/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/unfurnished-space-generation/case-01/out0.jpg"
+        ]
+      },
+      {
+        "case": "case-02",
+        "inputs": [
+          "/formscape-skill-mocks/unfurnished-space-generation/case-02/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/unfurnished-space-generation/case-02/out0.jpg"
+        ]
+      },
+      {
+        "case": "case-03",
+        "inputs": [
+          "/formscape-skill-mocks/unfurnished-space-generation/case-03/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/unfurnished-space-generation/case-03/out0.jpg",
+          "/formscape-skill-mocks/unfurnished-space-generation/case-03/out1.jpg"
+        ]
+      },
+      {
+        "case": "case-04",
+        "inputs": [
+          "/formscape-skill-mocks/unfurnished-space-generation/case-04/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/unfurnished-space-generation/case-04/out0.jpg"
+        ]
+      }
+    ],
+    "outputs": [
+      "/formscape-skill-mocks/unfurnished-space-generation/case-01/out0.jpg",
+      "/formscape-skill-mocks/unfurnished-space-generation/case-02/out0.jpg",
+      "/formscape-skill-mocks/unfurnished-space-generation/case-03/out0.jpg",
+      "/formscape-skill-mocks/unfurnished-space-generation/case-03/out1.jpg",
+      "/formscape-skill-mocks/unfurnished-space-generation/case-04/out0.jpg"
+    ],
+    "inputs": [
+      "/formscape-skill-mocks/unfurnished-space-generation/case-01/in0.jpg",
+      "/formscape-skill-mocks/unfurnished-space-generation/case-02/in0.jpg",
+      "/formscape-skill-mocks/unfurnished-space-generation/case-03/in0.jpg",
+      "/formscape-skill-mocks/unfurnished-space-generation/case-04/in0.jpg"
+    ],
+    "outputCount": 5,
+    "inputCount": 4
+  },
+  "white-model-rendering": {
+    "cases": [
+      {
+        "case": "case-01",
+        "inputs": [
+          "/formscape-skill-mocks/white-model-rendering/case-01/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/white-model-rendering/case-01/out0.jpg"
+        ]
+      },
+      {
+        "case": "case-02",
+        "inputs": [
+          "/formscape-skill-mocks/white-model-rendering/case-02/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/white-model-rendering/case-02/out0.jpg"
+        ]
+      },
+      {
+        "case": "case-03",
+        "inputs": [
+          "/formscape-skill-mocks/white-model-rendering/case-03/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/white-model-rendering/case-03/out0.jpg"
+        ]
+      },
+      {
+        "case": "case-04",
+        "inputs": [
+          "/formscape-skill-mocks/white-model-rendering/case-04/in0.jpg"
+        ],
+        "outputs": [
+          "/formscape-skill-mocks/white-model-rendering/case-04/out0.jpg"
+        ]
+      }
+    ],
+    "outputs": [
+      "/formscape-skill-mocks/white-model-rendering/case-01/out0.jpg",
+      "/formscape-skill-mocks/white-model-rendering/case-02/out0.jpg",
+      "/formscape-skill-mocks/white-model-rendering/case-03/out0.jpg",
+      "/formscape-skill-mocks/white-model-rendering/case-04/out0.jpg"
+    ],
+    "inputs": [
+      "/formscape-skill-mocks/white-model-rendering/case-01/in0.jpg",
+      "/formscape-skill-mocks/white-model-rendering/case-02/in0.jpg",
+      "/formscape-skill-mocks/white-model-rendering/case-03/in0.jpg",
+      "/formscape-skill-mocks/white-model-rendering/case-04/in0.jpg"
+    ],
+    "outputCount": 4,
+    "inputCount": 4
+  }
+}

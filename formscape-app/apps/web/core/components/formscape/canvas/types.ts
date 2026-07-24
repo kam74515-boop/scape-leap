@@ -99,6 +99,10 @@ export type ImageGenNodeData = {
   /** 最近一次任务 token（用于取消） */
   jobId?: string;
   seed?: number;
+  /** 技能一键落图：生成完成后自动 promote 为 image 节点 */
+  autoPromoteOnDone?: boolean;
+  /** 完成后是否移除生成器节点（默认 true 当 autoPromote） */
+  removeAfterPromote?: boolean;
 };
 
 /** 视频生成器节点 */

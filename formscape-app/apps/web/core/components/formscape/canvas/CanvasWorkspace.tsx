@@ -33,6 +33,7 @@ import { SHAPE_FILLS, STICKY_COLORS } from "./constants";
 import { canvasNodeTypes } from "./nodes";
 import { CanvasContextMenu, type ContextMenuState } from "./panels/context-menu";
 import "./canvas-shell.css";
+import { MaskEditOverlay, type MaskEditTarget } from "./panels/mask-edit-overlay";
 import { SettingsModal } from "./panels/settings-modal";
 import { SkillRail } from "./panels/skill-rail";
 import type { CanvasSkillDef } from "./skills/registry";
@@ -49,6 +50,12 @@ import type {
 } from "./types";
 import { buildDemoImageResults } from "./gen-demo";
 import { sizeForAspect } from "./models/catalog";
+import {
+  CANVAS_DND_MIME,
+  decodeDndPayload,
+  pushGenHistoryMany,
+} from "./skills/gen-history";
+import { listMockGallerySamples } from "./skills/mock-skill-assets";
 import { newId, useCanvasDocument, type FsCanvasNode } from "./use-canvas-document";
 
 const DEFAULT_IMAGE_GEN = {
@@ -110,6 +117,14 @@ function CanvasInner({ project }: Props) {
   const [tool, setTool] = useState<CanvasTool>("select");
   const [activeSkill, setActiveSkill] = useState<CanvasSkillDef | null>(null);
   const [skillBusy, setSkillBusy] = useState(false);
+  /** 画布操作条提示（交互反馈，非真 API） */
+  const [canvasToast, setCanvasToast] = useState<string | null>(null);
+  const toastTimer = useRef<number | null>(null);
+  const showCanvasToast = useCallback((msg: string, ms = 2200) => {
+    setCanvasToast(msg);
+    if (toastTimer.current) window.clearTimeout(toastTimer.current);
+    toastTimer.current = window.setTimeout(() => setCanvasToast(null), ms);
+  }, []);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [spacePan, setSpacePan] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -117,6 +132,7 @@ function CanvasInner({ project }: Props) {
   const [history, setHistory] = useState<FsCanvasNode[][]>([]);
   const [future, setFuture] = useState<FsCanvasNode[][]>([]);
   const [ctxMenu, setCtxMenu] = useState<ContextMenuState>(null);
+  const [maskEdit, setMaskEdit] = useState<MaskEditTarget | null>(null);
   const [shapeKind, setShapeKind] = useState<ShapeKind>("rect");
   const skipHistory = useRef(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -269,19 +285,83 @@ function CanvasInner({ project }: Props) {
 
   const addImageAtRef = useRef(addImageAt);
   addImageAtRef.current = addImageAt;
-  useEffect(() => {
-    registerCanvasBridge({
-      projectName: project.name,
-      placeResult: (payload) =>
-        addImageAtRef.current({
-          title: payload.title,
-          tags: payload.tags,
-          colors: payload.colors,
-          source: "agent",
-        }),
-    });
-    return () => registerCanvasBridge(null);
-  }, [project.name, registerCanvasBridge]);
+
+  /** 生成器结果 → 图片节点（一键落图） */
+  const promoteImageGenResults = useCallback(
+    (
+      genNode: FsCanvasNode,
+      opts?: { mode?: "selected" | "all"; resultIndex?: number; removeGen?: boolean }
+    ): string[] => {
+      const d = genNode.data as ImageGenNodeData;
+      const all = d.results?.length
+        ? d.results
+        : [
+            {
+              id: newId("res"),
+              title: d.resultTitle || d.prompt || "生成图",
+              colors: d.resultColors || ["#EDE6D9", "#C4A574", "#6B5B4F"],
+            },
+          ];
+      const mode = opts?.mode ?? "all";
+      const idx = opts?.resultIndex ?? d.selectedResultIndex ?? 0;
+      const picked = mode === "all" ? all : [all[Math.min(idx, all.length - 1)] ?? all[0]];
+      const dim = sizeForAspect(d.aspect || "1:1", 200);
+      const nodeW = Number(genNode.style?.width) || dim.width;
+      // 一键落图：结果直接叠在生成器位置（移除生成器时不偏移）
+      // 多结果：水平并排对比（不折行）
+      const removeGen = opts?.removeGen ?? d.removeAfterPromote ?? !!d.autoPromoteOnDone;
+      const base = removeGen
+        ? { x: genNode.position.x, y: genNode.position.y }
+        : { x: genNode.position.x + nodeW + 40, y: genNode.position.y };
+      const gap = 20;
+      const addedIds: string[] = [];
+
+      applyNodes((prev) => {
+        let next = prev.map((n) => ({ ...n, selected: false }));
+        if (removeGen) next = next.filter((n) => n.id !== genNode.id);
+        const added: FsCanvasNode[] = picked.map((r, i) => {
+          const id = newId("img");
+          addedIds.push(id);
+          return {
+            id,
+            type: "image",
+            position: {
+              x: base.x + i * (dim.width + gap),
+              y: base.y,
+            },
+            selected: true,
+            data: {
+              kind: "image" as const,
+              title: r.title,
+              tags: ["generate", d.model, d.skillId, d.aspect].filter(Boolean) as string[],
+              colors: r.colors,
+              source: "generate" as const,
+              skillId: d.skillId,
+              src: r.src,
+            },
+            style: { width: dim.width, height: dim.height },
+          };
+        });
+        return [...next, ...added] as FsCanvasNode[];
+      });
+      if (addedIds.length) setSelectedIds(addedIds);
+      // 写入生成历史（图库「历史」）
+      pushGenHistoryMany(
+        picked.map((r) => ({
+          title: r.title,
+          src: r.src,
+          colors: r.colors,
+          skillId: d.skillId,
+          source: "generate" as const,
+        }))
+      );
+      return addedIds;
+    },
+    [applyNodes]
+  );
+
+  const promoteImageGenResultsRef = useRef(promoteImageGenResults);
+  promoteImageGenResultsRef.current = promoteImageGenResults;
 
   /** Lovspark：A / + 只「武装」工具，下一次点画布才落节点（普通模式可用） */
   const armImageGen = useCallback(
@@ -327,20 +407,34 @@ function CanvasInner({ project }: Props) {
   const placeImageGenAt = useCallback(
     (
       position: { x: number; y: number },
-      opts?: { model?: string; prompt?: string; skillId?: string; aspect?: string; count?: number }
+      opts?: {
+        model?: string;
+        prompt?: string;
+        skillId?: string;
+        aspect?: string;
+        count?: number;
+        refs?: ImageGenNodeData["refs"];
+        autoPromoteOnDone?: boolean;
+        removeAfterPromote?: boolean;
+      }
     ) => {
-      const aspect = opts?.aspect ?? DEFAULT_IMAGE_GEN.aspect;
+      const skill = opts?.skillId ? SKILLS_BY_ID[opts.skillId] : undefined;
+      const aspect = opts?.aspect ?? skill?.defaultAspect ?? DEFAULT_IMAGE_GEN.aspect;
       const dim = sizeForAspect(aspect, 240);
-      addNode({
+      return addNode({
         type: "imagegen",
         position,
         data: {
           ...DEFAULT_IMAGE_GEN,
-          prompt: opts?.prompt ?? DEFAULT_IMAGE_GEN.prompt,
-          model: opts?.model ?? DEFAULT_IMAGE_GEN.model,
+          prompt: opts?.prompt ?? skill?.name ?? DEFAULT_IMAGE_GEN.prompt,
+          model: opts?.model ?? skill?.model ?? DEFAULT_IMAGE_GEN.model,
           skillId: opts?.skillId,
           aspect,
-          count: opts?.count ?? DEFAULT_IMAGE_GEN.count,
+          count: opts?.count ?? skill?.defaultCount ?? DEFAULT_IMAGE_GEN.count,
+          refs: opts?.refs ?? [],
+          resultColors: skill?.colors,
+          autoPromoteOnDone: opts?.autoPromoteOnDone,
+          removeAfterPromote: opts?.removeAfterPromote,
         },
         style: { width: dim.width, height: dim.height },
       });
@@ -495,6 +589,8 @@ function CanvasInner({ project }: Props) {
         window.setTimeout(() => {
           if (!stillActive()) return;
           window.clearInterval(interval);
+          let finished: FsCanvasNode | null = null;
+          let shouldAutoPromote = false;
           setNodes((prev) =>
             prev.map((n) => {
               if (n.id !== id || n.type !== "imagegen") return n;
@@ -503,10 +599,11 @@ function CanvasInner({ project }: Props) {
               const { results, seed } = buildDemoImageResults({
                 prompt: d.prompt || skill?.name || "生成图",
                 count: d.count || 1,
+                skillId: d.skillId,
                 skillColors: skill?.colors,
               });
               const dim = sizeForAspect(d.aspect || "1:1", 240);
-              return {
+              const next: FsCanvasNode = {
                 ...n,
                 style: { ...n.style, width: dim.width, height: dim.height },
                 data: {
@@ -521,9 +618,18 @@ function CanvasInner({ project }: Props) {
                   resultTitle: results[0].title,
                 },
               };
+              finished = next;
+              shouldAutoPromote = !!d.autoPromoteOnDone;
+              return next;
             })
           );
           genJobsRef.current.delete(id);
+          // 一键落图：生成完成后自动 promote 为图片节点
+          if (shouldAutoPromote && finished) {
+            window.setTimeout(() => {
+              if (finished) promoteImageGenResultsRef.current(finished, { mode: "all" });
+            }, 40);
+          }
         }, delay)
       );
     },
@@ -628,43 +734,10 @@ function CanvasInner({ project }: Props) {
       const src = nodesRef.current.find((n) => n.id === detail.id);
       if (!src) return;
       if (src.type === "imagegen") {
-        const d = src.data as ImageGenNodeData;
-        const all = d.results?.length
-          ? d.results
-          : [
-              {
-                id: newId("res"),
-                title: d.resultTitle || "生成图",
-                colors: d.resultColors || ["#EDE6D9", "#C4A574", "#6B5B4F"],
-              },
-            ];
-        const mode = detail.mode ?? "selected";
-        const idx = detail.resultIndex ?? d.selectedResultIndex ?? 0;
-        const picked = mode === "all" ? all : [all[Math.min(idx, all.length - 1)] ?? all[0]];
-        const dim = sizeForAspect(d.aspect || "1:1", 200);
-        const nodeW = Number(src.style?.width) || dim.width;
-        const base = { x: src.position.x + nodeW + 40, y: src.position.y };
-        applyNodesRef.current((prev) => {
-          const added: FsCanvasNode[] = picked.map((r, i) => ({
-            id: newId("img"),
-            type: "image",
-            position: {
-              x: base.x + (i % 2) * (dim.width + 16),
-              y: base.y + Math.floor(i / 2) * (dim.height + 16),
-            },
-            selected: i === 0,
-            data: {
-              kind: "image",
-              title: r.title,
-              tags: ["generate", d.model, d.quality || "standard", d.aspect].filter(Boolean) as string[],
-              colors: r.colors,
-              source: "generate" as const,
-              skillId: d.skillId,
-              src: r.src,
-            },
-            style: { width: dim.width, height: dim.height },
-          }));
-          return [...prev.map((n) => ({ ...n, selected: false })), ...added] as FsCanvasNode[];
+        promoteImageGenResultsRef.current(src, {
+          mode: detail.mode ?? "selected",
+          resultIndex: detail.resultIndex,
+          removeGen: false,
         });
       } else if (src.type === "videogen") {
         const d = src.data as VideoGenNodeData;
@@ -880,41 +953,43 @@ function CanvasInner({ project }: Props) {
         return;
       }
 
-      for (let i = 0; i < payload.count; i++) {
-        const id = newId("imagegen");
-        ids.push(id);
-        const dim = sizeForAspect(aspect, 240);
-        newNodes.push({
-          id,
-          type: "imagegen",
-          position: {
-            x: base.x + (i % 2) * (dim.width + 40),
-            y: base.y + Math.floor(i / 2) * (dim.height + 48),
-          },
-          selected: i === 0,
-          data: {
-            ...DEFAULT_IMAGE_GEN,
-            prompt: payload.prompt,
-            model: payload.model,
-            skillId: payload.skill.id,
-            resultColors: payload.skill.colors,
-            count: 1,
-            aspect,
-          },
-          style: { width: dim.width, height: dim.height },
-        });
-      }
+      // 一键落图：单节点多结果 + 完成后自动 promote 为图片节点
+      const id = newId("imagegen");
+      ids.push(id);
+      const dim = sizeForAspect(aspect, 240);
+      newNodes.push({
+        id,
+        type: "imagegen",
+        position: { x: base.x - dim.width / 2, y: base.y - dim.height / 2 },
+        selected: true,
+        data: {
+          ...DEFAULT_IMAGE_GEN,
+          prompt: payload.prompt,
+          model: payload.model,
+          skillId: payload.skill.id,
+          resultColors: payload.skill.colors,
+          count: Math.min(4, Math.max(1, payload.count)),
+          aspect,
+          autoPromoteOnDone: true,
+          removeAfterPromote: true,
+        },
+        style: { width: dim.width, height: dim.height },
+      });
       applyNodes((prev) => [...prev.map((n) => ({ ...n, selected: false })), ...newNodes] as FsCanvasNode[]);
       setSelectedIds(ids.slice(0, 1));
       setActiveSkill(null);
-      setSkillBusy(false);
+      setSkillBusy(true);
+      showCanvasToast(`技能「${payload.skill.name}」生成中…`, 4000);
       window.setTimeout(() => {
-        ids.forEach((id, idx) => {
-          window.setTimeout(() => runImageGen(id), idx * 220);
-        });
+        runImageGen(id);
+        // Demo 完成后 toast（略晚于 gen delay）
+        window.setTimeout(() => {
+          setSkillBusy(false);
+          showCanvasToast("已一键落图到画布");
+        }, 2200);
       }, 80);
     },
-    [applyNodes, centerPosition, runImageGen, runVideoGen]
+    [applyNodes, centerPosition, runImageGen, runVideoGen, showCanvasToast]
   );
 
   const deleteSelected = useCallback(() => {
@@ -975,6 +1050,31 @@ function CanvasInner({ project }: Props) {
     },
     [selectedIds, nodes, applyNodes]
   );
+
+  /** 多选图像水平并排对比 */
+  const arrangeSelectedRow = useCallback(() => {
+    const selected = nodes
+      .filter((n) => selectedIds.includes(n.id) && (n.type === "image" || n.type === "imagegen"))
+      .sort((a, b) => a.position.x - b.position.x || a.position.y - b.position.y);
+    if (selected.length < 2) return;
+    const gap = 20;
+    const startX = Math.min(...selected.map((n) => n.position.x));
+    const startY = Math.min(...selected.map((n) => n.position.y));
+    let x = startX;
+    const posMap = new Map<string, { x: number; y: number }>();
+    for (const n of selected) {
+      const w = typeof n.style?.width === "number" ? n.style.width : 200;
+      posMap.set(n.id, { x, y: startY });
+      x += w + gap;
+    }
+    applyNodes((prev) =>
+      prev.map((n) => {
+        const p = posMap.get(n.id);
+        return p ? { ...n, position: p } : n;
+      })
+    );
+    showCanvasToast(`已并排 ${selected.length} 张`);
+  }, [nodes, selectedIds, applyNodes, showCanvasToast]);
 
   const duplicateSelected = useCallback(() => {
     if (selectedIds.length === 0) return;
@@ -1063,25 +1163,223 @@ function CanvasInner({ project }: Props) {
     );
   }, [applyNodes, selectedIds]);
 
+  /** 从节点取参考图（改图/技能复用源图） */
+  const refFromNode = useCallback((n: FsCanvasNode): ImageGenNodeData["refs"] => {
+    if (n.type === "image") {
+      const d = n.data as ImageNodeData;
+      if (!d.src && !d.colors?.length) return [];
+      return [
+        {
+          id: newId("ref"),
+          title: (d.title || "源图").slice(0, 16),
+          colors: d.colors?.length ? d.colors : ["#E8E4DC", "#C9B8A0", "#5C5346"],
+          src: d.src,
+        },
+      ];
+    }
+    if (n.type === "imagegen") {
+      const d = n.data as ImageGenNodeData;
+      const r = d.results?.[d.selectedResultIndex ?? 0];
+      if (r?.src || r?.colors) {
+        return [
+          {
+            id: newId("ref"),
+            title: (r.title || "源结果").slice(0, 16),
+            colors: r.colors,
+            src: r.src,
+          },
+        ];
+      }
+      if (d.refs?.length) return d.refs.slice(0, 1);
+    }
+    return [];
+  }, []);
+
+  /** 交互式改图：再生成 / 风格延展 / 变体 → 自动跑并一键落图 */
+  const editSelectedImage = useCallback(
+    (mode: "regen" | "style" | "variant" | "agent") => {
+      const img = nodes.find(
+        (n) =>
+          selectedIds.includes(n.id) &&
+          (n.type === "image" || n.type === "imagegen" || n.type === "videogen")
+      );
+      if (!img) return;
+      if (mode === "agent") {
+        setAiOpen(true);
+        return;
+      }
+      const at = { x: img.position.x + 260, y: img.position.y };
+      if (img.type === "videogen") {
+        const d = img.data as VideoGenNodeData;
+        placeVideoGenAt(at, { prompt: `再生成：${d.prompt || "空间视频"}`, model: d.model });
+        return;
+      }
+      if (img.type === "imagegen") {
+        const d = img.data as ImageGenNodeData;
+        if (mode === "regen" || mode === "variant") {
+          // 原地再跑并自动落图
+          applyNodes((prev) =>
+            prev.map((n) =>
+              n.id === img.id
+                ? {
+                    ...n,
+                    data: {
+                      ...(n.data as ImageGenNodeData),
+                      autoPromoteOnDone: true,
+                      removeAfterPromote: true,
+                      count: mode === "variant" ? 2 : d.count || 1,
+                      prompt:
+                        mode === "variant"
+                          ? `变体：${d.prompt || "图像"}`
+                          : d.prompt || "再生成",
+                    },
+                  }
+                : n
+            )
+          );
+          window.setTimeout(() => runImageGen(img.id), 30);
+          return;
+        }
+      }
+      const d = img.data as ImageNodeData | ImageGenNodeData;
+      const title = "title" in d ? d.title : d.prompt;
+      const prompt =
+        mode === "style"
+          ? `风格延展：${title}`
+          : mode === "variant"
+            ? `变体：${title}`
+            : `再生成：${title}`;
+      const skillId =
+        ("skillId" in d && d.skillId) ||
+        (mode === "style" ? "space-atmosphere-transformation" : undefined);
+      const id = placeImageGenAt(at, {
+        prompt,
+        model: "model" in d && d.model ? d.model : "formscape-style",
+        skillId,
+        count: mode === "variant" ? 2 : 1,
+        aspect: "aspect" in d ? d.aspect : undefined,
+        refs: refFromNode(img),
+        autoPromoteOnDone: true,
+        removeAfterPromote: true,
+      });
+      window.setTimeout(() => runImageGen(id), 40);
+      showCanvasToast(
+        mode === "variant" ? "变体生成中…" : mode === "style" ? "风格延展中…" : "再生成中…",
+        2500
+      );
+    },
+    [
+      nodes,
+      selectedIds,
+      placeImageGenAt,
+      placeVideoGenAt,
+      runImageGen,
+      setAiOpen,
+      applyNodes,
+      refFromNode,
+      showCanvasToast,
+    ]
+  );
+
+  /** 选中图 → 应用 14 技能之一（源图作 ref，mock 落图） */
+  const applySkillToSelected = useCallback(
+    (skillId: string) => {
+      const skill = SKILLS_BY_ID[skillId];
+      if (!skill) return;
+      const img = nodes.find(
+        (n) => selectedIds.includes(n.id) && (n.type === "image" || n.type === "imagegen")
+      );
+      const at = img
+        ? { x: img.position.x + 280, y: img.position.y }
+        : centerPosition();
+      const refs = img ? refFromNode(img) : [];
+      const id = placeImageGenAt(at, {
+        prompt: skill.name,
+        skillId: skill.id,
+        model: skill.model,
+        aspect: skill.defaultAspect,
+        count: skill.defaultCount,
+        refs,
+        autoPromoteOnDone: true,
+        removeAfterPromote: true,
+      });
+      showCanvasToast(`技能「${skill.name}」生成中…`, 3500);
+      window.setTimeout(() => runImageGen(id), 40);
+    },
+    [nodes, selectedIds, placeImageGenAt, centerPosition, refFromNode, runImageGen, showCanvasToast]
+  );
+
   const regenerateSelected = useCallback(() => {
+    editSelectedImage("regen");
+  }, [editSelectedImage]);
+
+  /** 打开局部改图蒙版壳 */
+  const openMaskEdit = useCallback(() => {
     const img = nodes.find(
-      (n) => selectedIds.includes(n.id) && (n.type === "image" || n.type === "imagegen" || n.type === "videogen")
+      (n) => selectedIds.includes(n.id) && (n.type === "image" || n.type === "imagegen")
     );
-    if (!img) return;
-    const at = { x: img.position.x + 260, y: img.position.y };
-    if (img.type === "videogen") {
-      const d = img.data as VideoGenNodeData;
-      placeVideoGenAt(at, { prompt: `再生成：${d.prompt || "空间视频"}`, model: d.model });
+    if (!img) {
+      showCanvasToast("请先选中一张图片");
       return;
     }
-    const d = img.data as ImageNodeData | ImageGenNodeData;
-    const title = "title" in d ? d.title : d.prompt;
-    placeImageGenAt(at, {
-      prompt: `风格延展：${title}`,
-      model: "formscape-style",
-      skillId: "skillId" in d ? d.skillId : undefined,
+    if (img.type === "image") {
+      const d = img.data as ImageNodeData;
+      setMaskEdit({
+        nodeId: img.id,
+        title: d.title || "图像",
+        src: d.src,
+        colors: d.colors?.length ? d.colors : ["#E8E4DC", "#C9B8A0", "#5C5346"],
+        skillId: d.skillId,
+      });
+      return;
+    }
+    const d = img.data as ImageGenNodeData;
+    const r = d.results?.[d.selectedResultIndex ?? 0];
+    setMaskEdit({
+      nodeId: img.id,
+      title: r?.title || d.prompt || "生成图",
+      src: r?.src,
+      colors: r?.colors || d.resultColors || ["#EDE9FE", "#C4B5FD", "#7C3AED"],
+      skillId: d.skillId,
     });
-  }, [nodes, selectedIds, placeImageGenAt, placeVideoGenAt]);
+  }, [nodes, selectedIds, showCanvasToast]);
+
+  /** 蒙版确认 → mock 落图（源图 + mask 作 ref） */
+  const onMaskEditConfirm = useCallback(
+    (payload: {
+      nodeId: string;
+      maskDataUrl: string;
+      instruction: string;
+      skillId?: string;
+    }) => {
+      const srcNode = nodes.find((n) => n.id === payload.nodeId);
+      const at = srcNode
+        ? { x: srcNode.position.x + 280, y: srcNode.position.y }
+        : centerPosition();
+      const baseRefs = srcNode ? refFromNode(srcNode) : [];
+      const maskRef = {
+        id: newId("ref"),
+        title: "蒙版",
+        colors: ["#111111", "#ef4444", "#ffffff"],
+        src: payload.maskDataUrl,
+      };
+      const skillId = payload.skillId || "space-atmosphere-transformation";
+      const skill = SKILLS_BY_ID[skillId];
+      const id = placeImageGenAt(at, {
+        prompt: `局部改图：${payload.instruction}`,
+        skillId,
+        model: skill?.model ?? "structure-safe",
+        count: 1,
+        refs: [...baseRefs, maskRef],
+        autoPromoteOnDone: true,
+        removeAfterPromote: true,
+      });
+      setMaskEdit(null);
+      showCanvasToast("局部改图生成中…", 3500);
+      window.setTimeout(() => runImageGen(id), 40);
+    },
+    [nodes, centerPosition, refFromNode, placeImageGenAt, runImageGen, showCanvasToast]
+  );
 
   const undo = useCallback(() => {
     setHistory((h) => {
@@ -1149,7 +1447,7 @@ function CanvasInner({ project }: Props) {
     focusL2Section("skills");
   }, [focusL2Section]);
 
-  // 注册 L2 库桥（节点变更时同步到侧栏图库等）
+  // 注册 L2 库桥 + 画布 Agent 桥
   useEffect(() => {
     const selectNode = (id: string) => {
       setNodes((ns) => ns.map((n) => ({ ...n, selected: n.id === id })));
@@ -1182,9 +1480,75 @@ function CanvasInner({ project }: Props) {
       onAddVideoGen: (model) => addVideoGen(model),
       onUpload: () => fileRef.current?.click(),
     });
-    return () => registerBridge(null);
+
+    registerCanvasBridge({
+      projectName: project.name,
+      placeResult: (payload) =>
+        addImageAtRef.current({
+          title: payload.title,
+          tags: payload.tags,
+          colors: payload.colors,
+          source: "agent",
+          src: payload.src,
+        }),
+      getSnapshot: () => {
+        const ns = nodesRef.current;
+        const sel = ns.filter((n) => n.selected);
+        return {
+          nodeCount: ns.length,
+          selectedCount: sel.length,
+          selectedTypes: sel.map((n) => n.type ?? "unknown"),
+          selectedTitles: sel.map((n) => {
+            const d = n.data as { title?: string; prompt?: string };
+            return d.title || d.prompt || n.type || n.id;
+          }),
+        };
+      },
+      placeImageGen: (opts) => {
+        const skill = opts?.skillId ? SKILLS_BY_ID[opts.skillId] : undefined;
+        const id = placeImageGenAt(centerPosition(), {
+          prompt: opts?.prompt ?? skill?.name ?? "生成",
+          model: opts?.model ?? skill?.model,
+          skillId: opts?.skillId,
+          count: opts?.count ?? skill?.defaultCount,
+          aspect: opts?.aspect ?? skill?.defaultAspect,
+          autoPromoteOnDone: true,
+          removeAfterPromote: true,
+        });
+        if (opts?.autoRun !== false) {
+          window.setTimeout(() => runImageGen(id), 60);
+        }
+        return id;
+      },
+      editSelected: (instruction) => {
+        const img = nodesRef.current.find(
+          (n) => n.selected && (n.type === "image" || n.type === "imagegen")
+        );
+        if (!img) return false;
+        const d = img.data as ImageNodeData | ImageGenNodeData;
+        const title = "title" in d ? d.title : d.prompt;
+        const at = { x: img.position.x + 260, y: img.position.y };
+        const id = placeImageGenAt(at, {
+          prompt: `${instruction}：${title || "选中图像"}`,
+          model: "formscape-style",
+          skillId: "skillId" in d ? d.skillId : "space-atmosphere-transformation",
+          refs: refFromNode(img),
+          autoPromoteOnDone: true,
+          removeAfterPromote: true,
+        });
+        window.setTimeout(() => runImageGen(id), 80);
+        return true;
+      },
+    });
+
+    return () => {
+      registerBridge(null);
+      registerCanvasBridge(null);
+    };
   }, [
     registerBridge,
+    registerCanvasBridge,
+    project.name,
     nodes,
     selectedIds,
     setNodes,
@@ -1194,6 +1558,11 @@ function CanvasInner({ project }: Props) {
     addImageGen,
     addVideoGen,
     onPickSkill,
+    applyNodes,
+    centerPosition,
+    placeImageGenAt,
+    runImageGen,
+    refFromNode,
   ]);
 
   /**
@@ -1486,21 +1855,114 @@ function CanvasInner({ project }: Props) {
   );
 
   const onNodeContextMenu = useCallback(
-    (e: ReactMouseEvent, node: { id: string }) => {
+    (e: ReactMouseEvent, node: { id: string; type?: string }) => {
       e.preventDefault();
       e.stopPropagation();
       const flow = screenToFlowPosition({ x: e.clientX, y: e.clientY });
       setNodes((ns) => ns.map((n) => ({ ...n, selected: n.id === node.id })));
       setSelectedIds([node.id]);
-      setCtxMenu({ x: e.clientX, y: e.clientY, flowX: flow.x, flowY: flow.y, nodeId: node.id });
+      setCtxMenu({
+        x: e.clientX,
+        y: e.clientY,
+        flowX: flow.x,
+        flowY: flow.y,
+        nodeId: node.id,
+        nodeType: node.type,
+      });
     },
     [screenToFlowPosition, setNodes]
+  );
+
+  /** 空白画布：导入 4 张 popular 技能样例并排 */
+  const seedMockSamples = useCallback(
+    (origin?: { x: number; y: number }) => {
+      const popular = listMockGallerySamples()
+        .map((s) => {
+          const skill = SKILLS_BY_ID[s.skillId];
+          return {
+            ...s,
+            title: skill?.name ?? s.title,
+            colors: skill?.colors ?? s.colors,
+            popular: !!skill?.popular,
+          };
+        })
+        .filter((s) => s.popular || s.src)
+        .slice(0, 4);
+      if (!popular.length) {
+        showCanvasToast("无可用样例（检查 formscape-skill-mocks）");
+        return;
+      }
+      const base = origin ?? centerPosition();
+      const w = 200;
+      const h = 160;
+      const gap = 24;
+      const startX = base.x - ((popular.length - 1) * (w + gap)) / 2;
+      const ids: string[] = [];
+      applyNodes((prev) => {
+        const cleared = prev.map((n) => ({ ...n, selected: false }));
+        const added: FsCanvasNode[] = popular.map((s, i) => {
+          const id = newId("img");
+          ids.push(id);
+          return {
+            id,
+            type: "image",
+            position: { x: startX + i * (w + gap), y: base.y - h / 2 },
+            selected: true,
+            data: {
+              kind: "image" as const,
+              title: s.title,
+              tags: ["sample", s.skillId],
+              colors: s.colors,
+              source: "library" as const,
+              skillId: s.skillId,
+              src: s.src,
+            },
+            style: { width: w, height: h },
+          };
+        });
+        return [...cleared, ...added] as FsCanvasNode[];
+      });
+      if (ids.length) setSelectedIds(ids);
+      pushGenHistoryMany(
+        popular.map((s) => ({
+          title: s.title,
+          src: s.src,
+          colors: s.colors,
+          skillId: s.skillId,
+          source: "sample" as const,
+        }))
+      );
+      showCanvasToast(`已导入 ${popular.length} 张样例`);
+      window.setTimeout(() => void fitView({ padding: 0.25 }), 80);
+    },
+    [applyNodes, centerPosition, showCanvasToast, fitView]
   );
 
   const onCtxAction = useCallback(
     (action: string) => {
       if (!ctxMenu) return;
       const at = { x: ctxMenu.flowX, y: ctxMenu.flowY };
+      if (action.startsWith("skill:")) {
+        applySkillToSelected(action.slice("skill:".length));
+        return;
+      }
+      if (action.startsWith("place-skill:")) {
+        const skillId = action.slice("place-skill:".length);
+        const skill = SKILLS_BY_ID[skillId];
+        if (!skill) return;
+        const id = placeImageGenAt(at, {
+          prompt: skill.name,
+          skillId: skill.id,
+          model: skill.model,
+          aspect: skill.defaultAspect,
+          count: skill.defaultCount,
+          autoPromoteOnDone: true,
+          removeAfterPromote: true,
+        });
+        showCanvasToast(`技能「${skill.name}」生成中…`, 3500);
+        window.setTimeout(() => runImageGen(id), 40);
+        return;
+      }
       switch (action) {
         case "paste":
           pasteClipboard(at);
@@ -1510,6 +1972,21 @@ function CanvasInner({ project }: Props) {
           break;
         case "delete":
           deleteSelected();
+          break;
+        case "regen":
+          editSelectedImage("regen");
+          break;
+        case "style-extend":
+          editSelectedImage("style");
+          break;
+        case "variant":
+          editSelectedImage("variant");
+          break;
+        case "mask-edit":
+          openMaskEdit();
+          break;
+        case "seed-samples":
+          seedMockSamples(at);
           break;
         case "fit":
           void fitView({ padding: 0.2 });
@@ -1571,6 +2048,12 @@ function CanvasInner({ project }: Props) {
       placeVideoGenAt,
       toggleLock,
       bringFront,
+      applySkillToSelected,
+      editSelectedImage,
+      openMaskEdit,
+      seedMockSamples,
+      runImageGen,
+      showCanvasToast,
       sendBack,
       isNodeMode,
     ]
@@ -1580,9 +2063,28 @@ function CanvasInner({ project }: Props) {
     (e: ReactDragEvent) => {
       e.preventDefault();
       e.stopPropagation();
+      const pos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+      // 图库 / 样例 / 历史 MIME 拖拽
+      const raw =
+        e.dataTransfer.getData(CANVAS_DND_MIME) || e.dataTransfer.getData("text/plain");
+      const payload = decodeDndPayload(raw);
+      if (payload) {
+        addImageAt(
+          {
+            title: payload.title,
+            tags: payload.tags,
+            colors: payload.colors,
+            source: payload.source,
+            skillId: payload.skillId,
+            src: payload.src,
+          },
+          { x: pos.x - 100, y: pos.y - 80 }
+        );
+        showCanvasToast("已从库落到画布");
+        return;
+      }
       const files = e.dataTransfer.files;
       if (!files?.length) return;
-      const pos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
       Array.from(files).forEach((file, i) => {
         if (!file.type.startsWith("image/")) return;
         const url = URL.createObjectURL(file);
@@ -1597,8 +2099,9 @@ function CanvasInner({ project }: Props) {
           { x: pos.x + i * 40, y: pos.y + i * 24 }
         );
       });
+      showCanvasToast("已上传到画布");
     },
-    [screenToFlowPosition, addImageAt]
+    [screenToFlowPosition, addImageAt, showCanvasToast]
   );
 
   return (
@@ -1663,6 +2166,14 @@ function CanvasInner({ project }: Props) {
         }}
         onPaneContextMenu={onPaneContextMenu}
         onNodeContextMenu={onNodeContextMenu}
+        onNodeDoubleClick={(_e, node) => {
+          if (node.type === "image" || node.type === "imagegen") {
+            setSelectedIds([node.id]);
+            setNodes((ns) => ns.map((n) => ({ ...n, selected: n.id === node.id })));
+            // 双击 = 风格延展（交互改图入口）
+            window.setTimeout(() => editSelectedImage("style"), 0);
+          }
+        }}
         nodeTypes={canvasNodeTypes}
         fitView={!savedViewport}
         fitViewOptions={{ padding: 0.2 }}
@@ -1729,8 +2240,22 @@ function CanvasInner({ project }: Props) {
         onBringFront={bringFront}
         onSendBack={sendBack}
         onRegenerate={regenerateSelected}
+        onStyleExtend={() => editSelectedImage("style")}
+        onVariant={() => editSelectedImage("variant")}
+        onAskAi={() => editSelectedImage("agent")}
+        onApplySkill={applySkillToSelected}
+        onMaskEdit={openMaskEdit}
+        onArrangeRow={arrangeSelectedRow}
         onAlign={alignSelected}
       />
+
+      {maskEdit && (
+        <MaskEditOverlay
+          target={maskEdit}
+          onClose={() => setMaskEdit(null)}
+          onConfirm={onMaskEditConfirm}
+        />
+      )}
 
       {!activeSkill && (
         <ZoomControls
@@ -1749,15 +2274,40 @@ function CanvasInner({ project }: Props) {
         />
       )}
 
-      {displayNodes.length === 0 && !isPlaceTool && (
+      {displayNodes.length === 0 && !isPlaceTool && !activeSkill && (
         <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
-          <div className="max-w-sm rounded-lg border border-dashed border-subtle bg-surface-1/90 px-6 py-8 text-center shadow-sm backdrop-blur-sm">
+          <div className="max-w-sm rounded-lg border border-dashed border-subtle bg-surface-1/95 px-6 py-8 text-center shadow-sm backdrop-blur-sm">
             <div className="text-13 font-semibold text-primary">空白画布</div>
             <p className="mt-1.5 text-11 text-tertiary">
-              按 <kbd className="rounded bg-surface-2 px-1">A</kbd> 生成 ·{" "}
-              <kbd className="rounded bg-surface-2 px-1">L</kbd> 图库 ·{" "}
-              <kbd className="rounded bg-surface-2 px-1">S</kbd> 技能库
+              <kbd className="rounded bg-surface-2 px-1">S</kbd> 技能 ·{" "}
+              <kbd className="rounded bg-surface-2 px-1">A</kbd> 生成 ·{" "}
+              <kbd className="rounded bg-surface-2 px-1">L</kbd> 图库 · Tab AI
             </p>
+            <div className="pointer-events-auto mt-4 flex flex-wrap items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => seedMockSamples()}
+                className="rounded-md bg-accent-primary px-3 py-1.5 text-11 font-medium text-on-color hover:opacity-90"
+              >
+                一键导入 4 张样例
+              </button>
+              <button
+                type="button"
+                onClick={() => openSection("skills")}
+                className="rounded-md border border-subtle bg-surface-1 px-3 py-1.5 text-11 font-medium text-secondary hover:bg-layer-transparent-hover"
+              >
+                打开技能库
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {canvasToast && (
+        <div className="pointer-events-none absolute left-1/2 top-14 z-40 -translate-x-1/2">
+          <div className="rounded-md border border-subtle bg-surface-1 px-3 py-1.5 text-11 font-medium text-primary shadow-md">
+            {canvasToast}
+            {skillBusy && <span className="ml-1.5 text-tertiary">Demo</span>}
           </div>
         </div>
       )}

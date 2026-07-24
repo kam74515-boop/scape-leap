@@ -31,11 +31,33 @@ export const HARNESS_SKILLS: HarnessSkill[] = [
   },
   {
     id: "canvas_ideate",
-    label: "意向画布",
-    description: "画布上下文创意辅助",
-    triggers: ["画布", "moodboard", "色板", "意向", "布局", "口播"],
-    tools: ["get_project_snapshot"],
-    systemHint: "在画布上下文中协助风格与布局草稿，可建议放到画布节点。",
+    label: "画布 Agent",
+    description: "画布落图 / 改图 / 快照（非全局 Agent）",
+    triggers: [
+      "画布",
+      "moodboard",
+      "色板",
+      "意向",
+      "布局",
+      "口播",
+      "落图",
+      "生成",
+      "改图",
+      "变体",
+      "延展",
+      "放到画布",
+      "再生成",
+      "节点",
+    ],
+    tools: [
+      "canvas_snapshot",
+      "canvas_place_gen",
+      "canvas_edit_selected",
+      "canvas_place_image",
+      "get_project_snapshot",
+    ],
+    systemHint:
+      "你是画布版 Agent：可读取画布选中、一键生成落图、对选中图改图。全局 Agent 能力尚未接入。",
   },
   {
     id: "general",
@@ -47,8 +69,16 @@ export const HARNESS_SKILLS: HarnessSkill[] = [
   },
 ];
 
-export function matchSkill(userText: string): HarnessSkill {
+export function matchSkill(userText: string, canvasActive?: boolean): HarnessSkill {
   const t = userText.toLowerCase();
+  // 画布页优先走画布 Agent（除非明显是经营/采购）
+  if (canvasActive) {
+    const ops = HARNESS_SKILLS.find((s) => s.id === "project_ops")!;
+    const purchase = HARNESS_SKILLS.find((s) => s.id === "furniture_purchase")!;
+    if (ops.triggers.some((k) => userText.includes(k))) return ops;
+    if (purchase.triggers.some((k) => userText.includes(k))) return purchase;
+    return HARNESS_SKILLS.find((s) => s.id === "canvas_ideate")!;
+  }
   for (const skill of HARNESS_SKILLS) {
     if (skill.id === "general") continue;
     if (skill.triggers.some((k) => t.includes(k.toLowerCase()) || userText.includes(k))) {

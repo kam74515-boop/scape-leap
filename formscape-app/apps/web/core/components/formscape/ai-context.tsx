@@ -30,11 +30,31 @@ export type CanvasPlacePayload = {
   title: string;
   colors: string[];
   tags: string[];
+  src?: string;
 };
 
+/** 画布 Agent 桥 — 全局 Agent 未做；画布页专用能力 */
 export type CanvasAiBridge = {
   projectName: string;
   placeResult: (payload: CanvasPlacePayload) => void;
+  /** 画布快照（节点/选中） */
+  getSnapshot?: () => {
+    nodeCount: number;
+    selectedCount: number;
+    selectedTypes: string[];
+    selectedTitles: string[];
+  };
+  /** 放置图片生成器并可选立即跑（Demo 全 mock） */
+  placeImageGen?: (opts?: {
+    prompt?: string;
+    model?: string;
+    skillId?: string;
+    count?: number;
+    aspect?: string;
+    autoRun?: boolean;
+  }) => string | null;
+  /** 对当前选中图做交互改图（旁落生成器） */
+  editSelected?: (instruction: string) => boolean;
 };
 
 type FormscapeAiContextValue = {
@@ -83,7 +103,7 @@ export function FormscapeAiProvider({ children }: { children: ReactNode }) {
 
   // 从路由 / 画布推导项目上下文
   const harness = useMemo<ProjectHarnessContext>(() => {
-    let projectId = routeProjectId;
+    let projectId: string | null = routeProjectId;
     // 画布 ?project= 由 bridge 名称兜底；路由优先
     if (!projectId && canvasActive && canvasProjectName) {
       // 仅有名称时不强行解析 id
@@ -127,6 +147,8 @@ export function FormscapeAiProvider({ children }: { children: ReactNode }) {
 
   const registerCanvasBridge = useCallback((bridge: CanvasAiBridge | null) => {
     bridgeRef.current = bridge;
+    // 同步给 harness tools（非 React 上下文）
+    void import("./canvas/canvas-ai-bridge-registry").then((m) => m.setCanvasAiBridge(bridge));
     setCanvasActive(!!bridge);
     setCanvasProjectName(bridge?.projectName ?? null);
   }, []);
@@ -137,6 +159,8 @@ export function FormscapeAiProvider({ children }: { children: ReactNode }) {
     b.placeResult(payload ?? DEFAULT_PLACE);
     return true;
   }, []);
+
+
 
   const clearMsgs = useCallback(() => setMsgs([]), []);
 

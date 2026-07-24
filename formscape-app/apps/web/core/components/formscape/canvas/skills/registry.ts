@@ -1,13 +1,17 @@
 /**
- * 画布技能库 — 对齐 Lovspark CanvasSkillPanel / dynamic skill schema
+ * 画布技能库 — 对齐 lovspark-skill-library-cases 全部 14 个技能
  *
  * 展开参数轨只包含：
  *  - 上传槽：空间图 / 参考图 / 材质图（按技能配置）
  *  - 画面比例滑块
  *  - 生成数量
  *  - 生成图像到画布
- * 不做自由提示词编写、不做动态 tag 字段（与用户确认的 Lovspark 行为一致）
+ * 不做自由提示词编写、不做动态 tag 字段
+ *
+ * 生成结果：全部 mock，资源见 formscape-skill-mocks（构境可移植样例包）
  */
+
+import { getMockSkillCovers } from "./mock-skill-assets";
 
 /** 对齐 Lovspark toolsRegistry CATEGORIES */
 export type SkillCategory = "image" | "video" | "spaces" | "3d" | "design" | "product";
@@ -33,6 +37,9 @@ export type CanvasSkillDef = {
   category: SkillCategory;
   colors: string[];
   hoverColors?: string[];
+  /** case 模拟封面（/formscape-skill-mocks） */
+  coverSrc?: string;
+  coverHoverSrc?: string;
   model: string;
   /** 上传槽配置（按技能不同） */
   uploads: SkillUploadSlot[];
@@ -51,9 +58,10 @@ export const SKILL_CATEGORIES: { key: SkillCategory | "all" | "fav"; label: stri
   { key: "all", label: "全部" },
   { key: "fav", label: "收藏" },
   { key: "image", label: "出图" },
-  { key: "video", label: "视频" },
   { key: "spaces", label: "空间" },
   { key: "3d", label: "3D" },
+  { key: "design", label: "设计" },
+  { key: "product", label: "产品" },
 ];
 
 export const SKILL_CAT_LABEL: Record<SkillCategory, string> = {
@@ -70,7 +78,9 @@ export const DEFAULT_ASPECT_RATIOS = ["9:16", "2:3", "3:4", "1:1", "4:3", "3:2",
 
 export function skillMatchesCategory(skill: CanvasSkillDef, cat: SkillCategory | "all" | "fav"): boolean {
   if (cat === "all" || cat === "fav") return true;
-  if (cat === "image") return skill.category === "image" || skill.category === "design" || skill.category === "product";
+  if (cat === "image") {
+    return skill.category === "image" || skill.category === "design" || skill.category === "product";
+  }
   return skill.category === cat;
 }
 
@@ -104,73 +114,71 @@ export function toggleFavoriteSkillId(id: string): string[] {
 
 const SPACE: SkillUploadSlot = { key: "space", label: "空间图", kind: "space", required: true };
 const REF: SkillUploadSlot = { key: "reference", label: "参考图", kind: "reference" };
+const REF_REQ: SkillUploadSlot = { key: "reference", label: "参考图", kind: "reference", required: true };
 const MATERIAL: SkillUploadSlot = {
   key: "material",
   label: "材质图",
   kind: "material",
   multiple: true,
   max: 6,
+  required: true,
+};
+const WHITE_MODEL: SkillUploadSlot = {
+  key: "space",
+  label: "白模图",
+  kind: "space",
+  required: true,
 };
 
 function skill(
   partial: Omit<CanvasSkillDef, "aspectRatios" | "defaultAspect" | "defaultCount" | "promptTemplate"> &
     Partial<Pick<CanvasSkillDef, "aspectRatios" | "defaultAspect" | "defaultCount" | "promptTemplate">>
 ): CanvasSkillDef {
+  const covers = getMockSkillCovers(partial.id);
   return {
     aspectRatios: DEFAULT_ASPECT_RATIOS,
     defaultAspect: "1:1",
     defaultCount: 1,
     promptTemplate: partial.name,
+    coverSrc: covers.cover,
+    coverHoverSrc: covers.hover,
     ...partial,
   };
 }
 
 /**
- * 技能列表 — 每技能声明上传槽，无用户提示词字段
- * （对齐 Lovspark：多数动态技能 showDynamicPrompt=false）
+ * 全部 14 技能 — id 与 lovspark-skill-library-cases 目录名一一对应
  */
 export const CANVAS_SKILLS: CanvasSkillDef[] = [
   skill({
-    id: "style-render-2",
-    name: "风格渲染 2.0",
-    desc: "高级 AI 风格迁移 · 保结构渲染",
-    category: "image",
-    colors: ["#EDE6D9", "#C4A574", "#6B5B4F"],
-    hoverColors: ["#F5F0E8", "#D4C4B0", "#8B7355"],
-    model: "structure-safe",
-    popular: true,
-    isNew: true,
-    credits: 12,
-    uploads: [SPACE, REF],
-    promptTemplate: "风格渲染 2.0",
-  }),
-  skill({
-    id: "style-render-1",
-    name: "风格渲染 1.0",
-    desc: "经典风格迁移，快速出图",
-    category: "image",
-    colors: ["#F5F0E8", "#D4C4B0", "#8B7355"],
-    model: "formscape-style",
-    credits: 8,
-    uploads: [SPACE, REF],
-    promptTemplate: "风格渲染 1.0",
-  }),
-  skill({
-    id: "blank-room",
-    name: "空房 / 毛坯设计",
-    desc: "白模或毛坯空间一键铺风格",
+    id: "unfurnished-space-generation",
+    name: "空房设计",
+    desc: "毛坯 / 空房一键铺风格出图",
     category: "spaces",
     colors: ["#F5F0E8", "#D4C4B0", "#8B7355"],
     model: "formscape-style",
     popular: true,
+    isNew: true,
     credits: 10,
     uploads: [SPACE, REF],
     defaultAspect: "16:9",
     promptTemplate: "空房设计",
   }),
   skill({
-    id: "multi-angle",
-    name: "多角度",
+    id: "white-model-rendering",
+    name: "白模渲染",
+    desc: "白模上色与风格预演（无材质槽）",
+    category: "3d",
+    colors: ["#F8FAFC", "#CBD5E1", "#64748B"],
+    model: "structure-safe",
+    popular: true,
+    credits: 12,
+    uploads: [WHITE_MODEL, REF],
+    promptTemplate: "白模渲染",
+  }),
+  skill({
+    id: "architectural-multi-angle",
+    name: "建筑多角度",
     desc: "同一方案生成多视角画面",
     category: "spaces",
     colors: ["#E8EEF5", "#A8C0D8", "#5A7A9A"],
@@ -179,95 +187,105 @@ export const CANVAS_SKILLS: CanvasSkillDef[] = [
     credits: 14,
     uploads: [SPACE],
     defaultCount: 2,
-    promptTemplate: "多角度",
+    promptTemplate: "建筑多角度",
   }),
   skill({
-    id: "storyboard",
-    name: "分镜场景",
-    desc: "空间叙事分镜 · 多镜头排布",
-    category: "image",
-    colors: ["#EDE9FE", "#C4B5FD", "#8B5CF6"],
-    model: "fast-draft",
-    credits: 10,
-    uploads: [SPACE, REF],
-    defaultCount: 4,
-    promptTemplate: "分镜场景",
-  }),
-  skill({
-    id: "sketch",
-    name: "建筑手稿",
-    desc: "手绘 / 线稿风格草图",
-    category: "spaces",
-    colors: ["#F3F4F6", "#D1D5DB", "#6B7280"],
-    model: "fast-draft",
-    credits: 6,
-    uploads: [SPACE],
-    promptTemplate: "建筑手稿",
-  }),
-  skill({
-    id: "mood-palette",
-    name: "情绪色板",
-    desc: "从参考图提取情绪与色彩关键词",
-    category: "design",
-    colors: ["#FCE7F3", "#F9A8D4", "#BE185D"],
-    model: "fast-draft",
-    credits: 4,
-    uploads: [REF],
-    promptTemplate: "情绪色板",
-  }),
-  skill({
-    id: "axon-view",
-    name: "轴测图",
-    desc: "生成建筑 / 室内轴测制图感",
+    id: "space-to-axonometric",
+    name: "空间转轴测",
+    desc: "透视图转轴测制图感",
     category: "spaces",
     colors: ["#ECFDF5", "#6EE7B7", "#047857"],
     model: "structure-safe",
     credits: 12,
     uploads: [SPACE],
     defaultAspect: "1:1",
-    promptTemplate: "轴测图",
+    promptTemplate: "空间转轴测",
   }),
   skill({
-    id: "floor-plan",
-    name: "平面布局",
-    desc: "室内平面功能分区建议图",
+    id: "space-atmosphere-transformation",
+    name: "空间氛围转换",
+    desc: "保留结构，切换光影与氛围",
     category: "spaces",
-    colors: ["#EFF6FF", "#93C5FD", "#1D4ED8"],
+    colors: ["#EDE9FE", "#C4B5FD", "#7C3AED"],
+    model: "formscape-style",
+    popular: true,
+    credits: 12,
+    uploads: [SPACE, REF],
+    promptTemplate: "空间氛围转换",
+  }),
+  skill({
+    id: "seasonal-changes",
+    name: "四季变化",
+    desc: "同一空间春夏秋冬四时效果",
+    category: "spaces",
+    colors: ["#FEF3C7", "#FBBF24", "#B45309"],
+    model: "formscape-style",
+    isNew: true,
+    credits: 16,
+    uploads: [SPACE],
+    defaultCount: 4,
+    defaultAspect: "16:9",
+    promptTemplate: "四季变化",
+  }),
+  skill({
+    id: "old-house-renovation",
+    name: "老房改造",
+    desc: "旧改前后对比与翻新效果",
+    category: "spaces",
+    colors: ["#FEE2E2", "#F87171", "#B91C1C"],
     model: "structure-safe",
     popular: true,
-    credits: 10,
-    uploads: [SPACE],
-    defaultAspect: "1:1",
-    promptTemplate: "平面布局",
+    credits: 14,
+    uploads: [SPACE, REF],
+    promptTemplate: "老房改造",
   }),
   skill({
-    id: "plan-aerial",
-    name: "俯视鸟瞰",
-    desc: "空间俯视 / 鸟瞰效果",
-    category: "spaces",
-    colors: ["#FEF3C7", "#FCD34D", "#B45309"],
-    model: "formscape-style",
-    credits: 10,
-    uploads: [SPACE],
-    defaultAspect: "16:9",
-    promptTemplate: "俯视鸟瞰",
-  }),
-  skill({
-    id: "style-ref",
-    name: "风格参考延展",
-    desc: "以一张参考图延展同风格新场景",
+    id: "multi-shot-storyboard",
+    name: "分镜场景",
+    desc: "空间叙事分镜 · 多镜头排布",
     category: "image",
-    colors: ["#F5F0E8", "#D4C4B0", "#A89070"],
-    model: "formscape-style",
+    colors: ["#EDE9FE", "#C4B5FD", "#8B5CF6"],
+    model: "fast-draft",
     credits: 12,
-    uploads: [
-      { ...SPACE, required: true },
-      { ...REF, required: true, label: "风格参考" },
-    ],
-    promptTemplate: "风格参考延展",
+    uploads: [SPACE, REF],
+    defaultCount: 4,
+    promptTemplate: "分镜场景",
   }),
   skill({
-    id: "material-swap",
+    id: "furniture-sketches",
+    name: "家具手绘",
+    desc: "家具 / 单品线稿与手绘风格",
+    category: "product",
+    colors: ["#F3F4F6", "#D1D5DB", "#6B7280"],
+    model: "fast-draft",
+    credits: 6,
+    uploads: [REF_REQ],
+    promptTemplate: "家具手绘",
+  }),
+  skill({
+    id: "color-mood-analysis",
+    name: "情绪色彩",
+    desc: "从参考图提取情绪与色彩分析",
+    category: "design",
+    colors: ["#FCE7F3", "#F9A8D4", "#BE185D"],
+    model: "fast-draft",
+    credits: 4,
+    uploads: [REF_REQ],
+    promptTemplate: "情绪色彩",
+  }),
+  skill({
+    id: "material-extraction-analysis",
+    name: "材质提取分析",
+    desc: "从空间/产品图提取材质与色板",
+    category: "design",
+    colors: ["#F5F0E8", "#D4C4B0", "#A89070"],
+    model: "fast-draft",
+    credits: 6,
+    uploads: [REF_REQ],
+    promptTemplate: "材质提取分析",
+  }),
+  skill({
+    id: "material-replacement",
     name: "材质替换",
     desc: "点选区域替换真实材质观感",
     category: "product",
@@ -279,120 +297,58 @@ export const CANVAS_SKILLS: CanvasSkillDef[] = [
     promptTemplate: "材质替换",
   }),
   skill({
-    id: "product-replace",
-    name: "产品替换",
-    desc: "画面物件替换，场景结构保留",
+    id: "product-inspiration-expansion",
+    name: "产品灵感裂变",
+    desc: "单品延展同风格场景与变体",
     category: "product",
     colors: ["#F0EDE6", "#B8A890", "#6A6050"],
-    model: "structure-safe",
-    popular: true,
-    credits: 14,
-    uploads: [
-      SPACE,
-      { key: "product", label: "产品图", kind: "reference", required: true },
-    ],
-    promptTemplate: "产品替换",
-  }),
-  skill({
-    id: "moodboard-extract",
-    name: "意向提取",
-    desc: "从参考图抽取色板与材质词",
-    category: "design",
-    colors: ["#F5F0E8", "#D4C4B0", "#A89070"],
-    model: "fast-draft",
-    credits: 4,
-    uploads: [{ ...REF, required: true }],
-    promptTemplate: "意向提取",
-  }),
-  skill({
-    id: "cast-storyboard",
-    name: "人物分镜",
-    desc: "带人物动线的空间分镜",
-    category: "image",
-    colors: ["#DBEAFE", "#60A5FA", "#1E40AF"],
-    hoverColors: ["#EFF6FF", "#93C5FD", "#1D4ED8"],
     model: "formscape-style",
-    credits: 12,
-    uploads: [SPACE, REF],
-    defaultCount: 2,
-    promptTemplate: "人物分镜",
-  }),
-  skill({
-    id: "space-walkthrough",
-    name: "空间漫游",
-    desc: "室内镜头推进 / 环绕短片",
-    category: "video",
-    colors: ["#1E3A5F", "#3B82F6", "#93C5FD"],
-    model: "formscape-motion",
+    popular: true,
     isNew: true,
-    credits: 20,
-    uploads: [SPACE, REF],
-    defaultAspect: "16:9",
-    defaultCount: 1,
-    promptTemplate: "空间漫游",
+    credits: 12,
+    uploads: [REF_REQ],
+    defaultCount: 4,
+    promptTemplate: "产品灵感裂变",
   }),
   skill({
-    id: "storyboard-clip",
-    name: "分镜短片",
-    desc: "方案讲解短视频",
-    category: "video",
-    colors: ["#312E81", "#6366F1", "#C7D2FE"],
-    model: "storyboard-clip",
-    credits: 24,
-    uploads: [SPACE],
-    defaultAspect: "16:9",
-    promptTemplate: "分镜短片",
-  }),
-  skill({
-    id: "massing-3d",
-    name: "体块推敲",
-    desc: "建筑体块 / 室内体量 3D 感",
+    id: "model-generation",
+    name: "模型生成",
+    desc: "空间 / 产品 3D 体感预览图",
     category: "3d",
     colors: ["#334155", "#94A3B8", "#E2E8F0"],
     model: "structure-safe",
     isNew: true,
-    credits: 12,
-    uploads: [SPACE],
-    promptTemplate: "体块推敲",
-  }),
-  skill({
-    id: "white-model",
-    name: "白模渲染",
-    desc: "白模上色与材质预演",
-    category: "3d",
-    colors: ["#F8FAFC", "#CBD5E1", "#64748B"],
-    model: "structure-safe",
-    popular: true,
-    credits: 12,
-    uploads: [
-      { key: "space", label: "白模图", kind: "space", required: true },
-      REF,
-      MATERIAL,
-    ],
-    promptTemplate: "白模渲染",
+    credits: 14,
+    uploads: [SPACE, REF],
+    promptTemplate: "模型生成",
   }),
 ];
 
 for (const s of CANVAS_SKILLS) {
   if (!s.hoverColors) s.hoverColors = [...s.colors].reverse();
+  if (!s.coverSrc || !s.coverHoverSrc) {
+    const covers = getMockSkillCovers(s.id);
+    if (!s.coverSrc) s.coverSrc = covers.cover;
+    if (!s.coverHoverSrc) s.coverHoverSrc = covers.hover;
+  }
 }
 
 export const SKILLS_BY_ID = Object.fromEntries(CANVAS_SKILLS.map((s) => [s.id, s]));
 
 /** Demo：根据技能 + 比例生成内部 prompt（不展示给用户） */
 export function buildPromptFromSkill(
-  skill: CanvasSkillDef,
+  skillDef: CanvasSkillDef,
   values: Record<string, string | number>
 ): string {
-  const aspect = String(values.aspect ?? skill.defaultAspect);
-  const count = values.count ?? skill.defaultCount;
-  return `${skill.promptTemplate} · ${aspect} · ×${count}`;
+  const aspect = String(values.aspect ?? skillDef.defaultAspect);
+  const count = values.count ?? skillDef.defaultCount;
+  return `${skillDef.promptTemplate} · ${aspect} · ×${count}`;
 }
 
 /** @deprecated 兼容旧字段 API */
-export function defaultFieldValues(skill: CanvasSkillDef): Record<string, string | number> {
+export function defaultFieldValues(skillDef: CanvasSkillDef): Record<string, string | number> {
   return {
-    aspect: skill.defaultAspect,
-    count: skill.defaultCount,
+    aspect: skillDef.defaultAspect,
+    count: skillDef.defaultCount,
   };
 }

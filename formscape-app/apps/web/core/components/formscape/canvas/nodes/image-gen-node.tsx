@@ -104,9 +104,12 @@ function ImageGenNodeComponent({ id, data: raw, selected }: NodeProps<ImageGenNo
   };
 
   const runGenerate = () => {
-    if (isRunning || !draft.trim()) return;
+    const promptText = draft.trim() || skillName || "生成图";
+    if (isRunning) return;
+    // 技能节点可无用户提示词直接跑（Demo mock）
+    if (!draft.trim() && !data.skillId) return;
     patch({
-      prompt: draft.trim(),
+      prompt: promptText,
       negativePrompt: negDraft.trim() || undefined,
     });
     window.dispatchEvent(new CustomEvent("fs-canvas-generate", { detail: { id, media: "image" } }));
@@ -187,11 +190,23 @@ function ImageGenNodeComponent({ id, data: raw, selected }: NodeProps<ImageGenNo
           <ResultGrid results={results} selected={sel} onSelect={selectResult} />
         ) : isDone && (primary || data.resultColors) ? (
           <div
-            className="size-full"
-            style={{
-              background: `linear-gradient(145deg, ${(primary?.colors || data.resultColors || ["#E5E5E5"]).join(",")})`,
-            }}
+            className="relative size-full"
+            style={
+              primary?.src
+                ? undefined
+                : {
+                    background: `linear-gradient(145deg, ${(primary?.colors || data.resultColors || ["#E5E5E5"]).join(",")})`,
+                  }
+            }
           >
+            {primary?.src ? (
+              <img
+                src={primary.src}
+                alt={primary.title || data.resultTitle || "生成结果"}
+                className="size-full object-cover"
+                draggable={false}
+              />
+            ) : null}
             {(primary?.title || data.resultTitle) && (
               <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 to-transparent px-2 py-1.5">
                 <div className="truncate text-11 font-medium text-white">
@@ -469,7 +484,7 @@ function ImageGenNodeComponent({ id, data: raw, selected }: NodeProps<ImageGenNo
                 ) : (
                   <button
                     type="button"
-                    disabled={!draft.trim()}
+                    disabled={!draft.trim() && !data.skillId}
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
@@ -477,7 +492,7 @@ function ImageGenNodeComponent({ id, data: raw, selected }: NodeProps<ImageGenNo
                     }}
                     className={cn(
                       "inline-flex h-6 items-center gap-1 rounded-md px-2 text-[10px] font-medium",
-                      !draft.trim()
+                      !draft.trim() && !data.skillId
                         ? "cursor-not-allowed text-placeholder"
                         : "bg-accent-primary text-on-color hover:opacity-90"
                     )}
@@ -529,9 +544,16 @@ function ResultGrid({
             "relative min-h-0 overflow-hidden rounded-md",
             selected === i ? "ring-2 ring-accent-primary ring-offset-1 ring-offset-surface-1" : "opacity-90"
           )}
-          style={{ background: `linear-gradient(145deg, ${r.colors.join(",")})` }}
+          style={
+            r.src
+              ? undefined
+              : { background: `linear-gradient(145deg, ${r.colors.join(",")})` }
+          }
           title={r.title}
         >
+          {r.src ? (
+            <img src={r.src} alt={r.title} className="size-full object-cover" draggable={false} />
+          ) : null}
           <span className="absolute bottom-0.5 left-0.5 rounded bg-black/40 px-1 text-[8px] text-white">
             {i + 1}
           </span>

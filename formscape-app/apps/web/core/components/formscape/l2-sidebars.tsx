@@ -20,6 +20,7 @@ import {
   ProjectNavIcons,
   Settings2,
   ShoppingCart,
+  ScanSearch,
   Upload,
   UserSquare2,
   Users,
@@ -38,22 +39,18 @@ import { getPurchaseCount, PURCHASE_CHANGE_EVENT } from "./purchase-store";
 import {
   applyDetectedPlan,
   getSpaceScene,
-  getSpaceUploads,
-  removeSpaceUpload,
   SPACE_CHANGE_EVENT,
-  type SpaceUploadItem,
+  type SpaceScene,
 } from "./space-model-store";
 import { importArchitecturalPlan, reimportFromPreview } from "./space-plan-pipeline";
 import {
-  loadDetectStrictness,
-  saveDetectStrictness,
-  strictnessLabel,
-} from "./space-detect-params";
-import {
   checkFloorplanMlHealth,
-  floorplanMlBaseUrl,
-  isMlPreferEnabled,
-  setMlPreferEnabled,
+  downloadPlanExport,
+  getMlEngine,
+  loadDetectStrictnessLocal,
+  saveDetectStrictnessLocal,
+  setMlEngine,
+  type MlEngineId,
   type MlHealth,
 } from "./space-ml-client";
 import {
@@ -708,146 +705,240 @@ export const SettingsL2Sidebar = observer(function SettingsL2Sidebar() {
   );
 });
 
-/** 3D模型 L2 — 建筑平面图 / PDF 上传（L3 为生成与调整主区） */
+/** 3D模型 L2 — 选文件 → 点「检测」识墙（L3 仅视口） */
 export const SpaceL2Sidebar = observer(function SpaceL2Sidebar() {
   const { workspaceSlug } = useParams();
   const navigate = useNavigate();
   const ws = workspaceSlug?.toString() ?? "formscape";
   const fileRef = useRef<HTMLInputElement>(null);
-  const [uploads, setUploads] = useState<SpaceUploadItem[]>(() =>
-    typeof window === "undefined" ? [] : getSpaceUploads()
+  const [scene, setScene] = useState<SpaceScene | null>(() =>
+    typeof window === "undefined" ? null : getSpaceScene()
   );
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [strictness, setStrictness] = useState(() =>
-    typeof window === "undefined" ? 50 : loadDetectStrictness()
+    typeof window === "undefined" ? 50 : loadDetectStrictnessLocal()
   );
-  const [sceneName, setSceneName] = useState(() =>
-    typeof window === "undefined" ? "—" : getSpaceScene().name
-  );
-  const [mlPrefer, setMlPrefer] = useState(() =>
-    typeof window === "undefined" ? true : isMlPreferEnabled()
+  const [engine, setEngine] = useState<MlEngineId>(() =>
+    typeof window === "undefined" ? "f23d" : getMlEngine()
   );
   const [mlHealth, setMlHealth] = useState<MlHealth | null>(null);
 
   useEffect(() => {
-    const bump = () => {
-      setUploads(getSpaceUploads());
-      setSceneName(getSpaceScene().name);
-    };
+    const bump = () => setScene(getSpaceScene());
     bump();
     window.addEventListener(SPACE_CHANGE_EVENT, bump);
     return () => window.removeEventListener(SPACE_CHANGE_EVENT, bump);
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
+    let dead = false;
     const ping = async () => {
-      const h = await checkFloorplanMlHealth(2000);
-      if (!cancelled) setMlHealth(h);
+      const h = await checkFloorplanMlHealth(2500);
+      if (!dead) setMlHealth(h);
     };
     void ping();
-    const id = window.setInterval(() => void ping(), 15000);
+    const id = window.setInterval(() => void ping(), 12000);
     return () => {
-      cancelled = true;
+      dead = true;
       window.clearInterval(id);
     };
   }, []);
 
-  const onStrictness = (v: number) => {
-    setStrictness(v);
-    saveDetectStrictness(v);
-  };
-
-  const processFile = async (file: File | null) => {
-    if (!file || busy) return;
+  const pickFile = (file: File | null) => {
+    if (!file) return;
     const isPdf = /\.pdf$/i.test(file.name) || file.type === "application/pdf";
-    const isImage = /^image\//.test(file.type) || /\.(png|jpe?g|webp|gif|bmp)$/i.test(file.name);
+    const isImage =
+      /^image\//.test(file.type) ||
+      /\.(png|jpe?g|webp|gif|bmp|tif{1,2}|heic|heif)$/i.test(file.name);
     if (!isPdf && !isImage) {
-      window.alert("请上传建筑平面图（PNG/JPG）或平面 PDF");
+      window.alert("请选择 PNG/JPG/WebP 或 PDF 平面图");
       return;
     }
-    setBusy(true);
-    const mlHint =
-      mlPrefer && mlHealth?.ok
-        ? mlHealth.backends?.cubicasa
-          ? "CubiCasa ML"
-          : "ML 后处理"
-        : "本地";
-    setStatus(
-      isPdf
-        ? `解析 PDF（${strictnessLabel(strictness)} ${strictness} · ${mlHint}）…`
-        : `图片识墙（${strictnessLabel(strictness)} ${strictness} · ${mlHint}）…`
-    );
-    try {
-      const result = await importArchitecturalPlan(file, strictness);
-      if (!result.walls.length) {
-        throw new Error("未检测到墙线，请调低严格度或换更清晰平面图");
-      }
-      applyDetectedPlan({
-        name: file.name,
-        kind: isPdf ? "pdf" : "image",
-        previewUrl: result.previewUrl,
-        walls: result.walls,
-        widthMm: result.widthMm,
-        depthMm: result.depthMm,
-        method: result.method,
-        message: result.message,
-        strictness: result.strictness,
-      });
-      setStatus(result.message);
-      setUploads(getSpaceUploads());
-      navigate(`/${ws}/space`);
-    } catch (e) {
-      console.error("[space] import failed", e);
-      const msg = e instanceof Error ? e.message : String(e);
-      setStatus(`失败：${msg}`);
-      window.alert(`识墙失败：${msg}`);
-    } finally {
-      setBusy(false);
-    }
+    setPendingFile(file);
+    setStatus(`已选择：${file.name} · 点击下方「开始检测」`);
   };
+
+  const runDetect = async () => {
+    if (busy) return;
+    saveDetectStrictnessLocal(strictness);
+    setMlEngine(engine);
+    const engLabel = engine === "r2v" ? "栅格矢量化 R2V" : "F23D";
+
+    // 1) 有待检测文件 → 走完整导入
+    if (pendingFile) {
+      setBusy(true);
+      setStatus(`检测中…（${engLabel}）`);
+      try {
+        const isPdf =
+          /\.pdf$/i.test(pendingFile.name) || pendingFile.type === "application/pdf";
+        const result = await importArchitecturalPlan(pendingFile, strictness);
+        const polyN = result.f23dPlan
+          ? ["wall", "door", "window"].reduce(
+              (n, k) =>
+                n + ((result.f23dPlan!.polygons as Record<string, unknown[]>)[k]?.length ?? 0),
+              0
+            )
+          : 0;
+        if (!result.walls.length && !polyN) {
+          throw new Error("未检出线段。可换引擎或调低严格度，线稿图更适合 R2V");
+        }
+        // 必须用返回值，勿再 getSpaceScene()（曾因 localStorage 写失败读到旧场景）
+        const next = applyDetectedPlan({
+          name: pendingFile.name,
+          kind: isPdf ? "pdf" : "image",
+          previewUrl: result.previewUrl,
+          walls: result.walls,
+          widthMm: result.widthMm,
+          depthMm: result.depthMm,
+          method: result.method,
+          message: result.message,
+          strictness: result.strictness,
+          f23dPlan: result.f23dPlan ?? null,
+        });
+        setStatus(result.message);
+        setPendingFile(null);
+        setScene(next);
+        navigate(`/${ws}/space`);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        setStatus(msg);
+        window.alert(`检测失败：${msg}`);
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+
+    // 2) 无新文件但场景有底图 → 重新检测
+    if (scene?.floorPlanDataUrl && scene.sourceKind) {
+      setBusy(true);
+      setStatus(`重新检测中…（${engLabel}）`);
+      try {
+        const result = await reimportFromPreview(
+          scene.floorPlanDataUrl,
+          scene.sourceKind,
+          scene.sourceFileName ?? "plan.png",
+          strictness
+        );
+        const polyN = result.f23dPlan
+          ? ["wall", "door", "window"].reduce(
+              (n, k) =>
+                n + ((result.f23dPlan!.polygons as Record<string, unknown[]>)[k]?.length ?? 0),
+              0
+            )
+          : 0;
+        if (!result.walls.length && !polyN) {
+          throw new Error("未检出墙段。可换引擎或调低严格度后重试");
+        }
+        const next = applyDetectedPlan({
+          name: scene.sourceFileName ?? "plan.png",
+          kind: scene.sourceKind,
+          previewUrl: result.previewUrl,
+          walls: result.walls,
+          widthMm: result.widthMm,
+          depthMm: result.depthMm,
+          method: result.method,
+          message: result.message,
+          strictness: result.strictness,
+          f23dPlan: result.f23dPlan ?? null,
+        });
+        setStatus(result.message);
+        setScene(next);
+        navigate(`/${ws}/space`);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        setStatus(msg);
+        window.alert(`检测失败：${msg}`);
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+
+    // 3) 什么都没有 → 引导选文件
+    fileRef.current?.click();
+    setStatus("请先选择平面图，再点「开始检测」");
+  };
+
+  const engMap = mlHealth?.engines ?? mlHealth?.backends ?? {};
+  const f23dOk = Boolean(engMap.f23d);
+  const r2vOk = Boolean(engMap.r2v);
+  const anyMl = Boolean(mlHealth?.ok && (f23dOk || r2vOk));
+  const canExport =
+    Boolean(scene?.f23dPlan?.svg_b64) || Boolean(scene?.f23dPlan?.dxf_b64);
 
   return (
     <SidebarWrapper title="3D模型">
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-2 pb-3">
-        <SectionLabel>平面上传</SectionLabel>
+        <SectionLabel>导入平面</SectionLabel>
         <p className="mb-2 px-1.5 text-11 leading-snug text-tertiary">
-          PDF 优先矢量；图片/栅格走 CubiCasa 系 ML（未启动则本地识墙）。
+          F23D 语义 · R2V 栅格描摹（路线 B）
         </p>
+
         <div className="mx-1 mb-2 rounded-md border border-subtle bg-surface-2/40 px-2 py-2">
-          <label className="mb-2 flex cursor-pointer items-center justify-between gap-2 text-11">
-            <span className="text-tertiary">优先 ML 识墙</span>
-            <input
-              type="checkbox"
-              checked={mlPrefer}
-              disabled={busy}
-              onChange={(e) => {
-                const on = e.target.checked;
-                setMlPrefer(on);
-                setMlPreferEnabled(on);
-              }}
-              className="size-3.5 accent-[var(--color-accent-primary,#3b82f6)]"
-            />
-          </label>
-          <div className="mb-2 text-[10px] leading-snug text-placeholder">
-            {mlHealth?.ok ? (
-              <span className="text-accent-primary">
-                服务在线 · {mlHealth.backends?.cubicasa ? "CubiCasa 权重就绪" : "heuristic 后处理"}
-                {mlHealth.note ? ` · ${mlHealth.note.slice(0, 48)}` : ""}
-              </span>
-            ) : (
+          <div className="mb-2 text-11 text-tertiary">识别引擎</div>
+          <div className="mb-2 flex flex-col gap-1">
+            <label
+              className={cn(
+                "flex cursor-pointer items-start gap-2 rounded-md border px-2 py-1.5 text-11",
+                engine === "f23d"
+                  ? "border-accent-primary/50 bg-accent-subtle/40"
+                  : "border-subtle"
+              )}
+            >
+              <input
+                type="radio"
+                name="ml-engine"
+                className="mt-0.5"
+                checked={engine === "f23d"}
+                disabled={busy}
+                onChange={() => {
+                  setEngine("f23d");
+                  setMlEngine("f23d");
+                }}
+              />
               <span>
-                ML 未连接（{floorplanMlBaseUrl()}）· 将用浏览器识墙。启动：
-                services/floorplan-ml
+                <span className="font-medium text-primary">F23D · 墙门窗语义</span>
+                <span className="mt-0.5 block text-[10px] text-placeholder">
+                  AI 分割 · 适合示意图
+                  {f23dOk ? " · 在线" : mlHealth ? " · 离线" : ""}
+                </span>
               </span>
-            )}
+            </label>
+            <label
+              className={cn(
+                "flex cursor-pointer items-start gap-2 rounded-md border px-2 py-1.5 text-11",
+                engine === "r2v"
+                  ? "border-accent-primary/50 bg-accent-subtle/40"
+                  : "border-subtle"
+              )}
+            >
+              <input
+                type="radio"
+                name="ml-engine"
+                className="mt-0.5"
+                checked={engine === "r2v"}
+                disabled={busy}
+                onChange={() => {
+                  setEngine("r2v");
+                  setMlEngine("r2v");
+                }}
+              />
+              <span>
+                <span className="font-medium text-primary">R2V · 栅格矢量化</span>
+                <span className="mt-0.5 block text-[10px] text-placeholder">
+                  描摹线稿 → SVG/DXF · 无门窗语义
+                  {r2vOk ? " · 在线" : mlHealth ? " · 离线" : ""}
+                </span>
+              </span>
+            </label>
           </div>
+
           <div className="mb-1 flex items-center justify-between text-11">
-            <span className="text-tertiary">识墙严格度</span>
-            <span className="font-medium text-primary">
-              {strictnessLabel(strictness)} · {strictness}
-            </span>
+            <span className="text-tertiary">严格度</span>
+            <span className="font-medium text-primary">{strictness}</span>
           </div>
           <input
             type="range"
@@ -856,150 +947,130 @@ export const SpaceL2Sidebar = observer(function SpaceL2Sidebar() {
             step={5}
             value={strictness}
             disabled={busy}
-            onChange={(e) => onStrictness(Number(e.target.value))}
+            onChange={(e) => {
+              const v = Number(e.target.value);
+              setStrictness(v);
+              saveDetectStrictnessLocal(v);
+            }}
             className="w-full accent-[var(--color-accent-primary,#3b82f6)]"
           />
           <div className="mt-0.5 flex justify-between text-[10px] text-placeholder">
-            <span>宽松（多墙）</span>
-            <span>严格（少墙）</span>
+            <span>宽松（更多线）</span>
+            <span>严格（更少噪点）</span>
+          </div>
+          <div className="mt-1.5 text-[10px] leading-snug text-placeholder">
+            {anyMl ? (
+              <span className="text-accent-primary">
+                ML 在线 · 当前 {engine === "r2v" ? "R2V" : "F23D"}
+              </span>
+            ) : (
+              <span>ML 离线 · 启动 services/floorplan-ml :8090</span>
+            )}
           </div>
         </div>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => fileRef.current?.click()}
-          className={cn(
-            "mx-1 flex flex-col items-center gap-1.5 rounded-lg border border-dashed border-subtle px-2 py-5 text-center transition-colors",
-            busy
-              ? "opacity-60"
-              : "hover:border-accent-primary/50 hover:bg-accent-subtle/30"
-          )}
-        >
-          <Upload className="size-6 text-accent-primary" strokeWidth={1.5} />
-          <span className="text-13 font-medium text-primary">
-            {busy ? "识别中…" : "上传平面图 / PDF"}
-          </span>
-          <span className="text-11 text-tertiary">当前 {strictnessLabel(strictness)}</span>
-        </button>
-        {status && (
-          <p className="mx-1 mt-2 text-[10px] leading-snug text-tertiary">{status}</p>
-        )}
+
         <input
           ref={fileRef}
           type="file"
           accept="image/*,.pdf,application/pdf"
           className="hidden"
           onChange={(e) => {
-            processFile(e.target.files?.[0] ?? null);
+            pickFile(e.target.files?.[0] ?? null);
             e.target.value = "";
           }}
         />
-
-        <div className="mt-3">
-          <SectionLabel>最近上传</SectionLabel>
-          {uploads.length === 0 ? (
-            <div className="mx-1 rounded-md border border-dashed border-subtle px-2 py-4 text-center text-11 text-placeholder">
-              暂无上传
-            </div>
-          ) : (
-            <ul className="space-y-1">
-              {uploads.map((u) => (
-                <li key={u.id}>
-                  <div className="group flex items-center gap-2 rounded-md px-1.5 py-1.5 hover:bg-layer-transparent-hover">
-                    <button
-                      type="button"
-                      className="flex min-w-0 flex-1 items-center gap-2 text-left"
-                      disabled={busy}
-                      onClick={async () => {
-                        if (busy) return;
-                        setBusy(true);
-                        setStatus("重新识墙…");
-                        try {
-                          // PDF 无预览：无法矢量回放，提示重传
-                          if (u.kind === "pdf" && !u.previewUrl) {
-                            setStatus("PDF 矢量结果请重新上传原文件（矢量不落预览图）");
-                            window.alert("PDF 矢量链路请重新上传 PDF 文件");
-                            return;
-                          }
-                          const result = await reimportFromPreview(
-                            u.previewUrl,
-                            u.kind,
-                            u.name,
-                            strictness
-                          );
-                          applyDetectedPlan({
-                            name: u.name,
-                            kind: u.kind,
-                            previewUrl: result.previewUrl,
-                            walls: result.walls,
-                            widthMm: result.widthMm,
-                            depthMm: result.depthMm,
-                            method: result.method,
-                            message: result.message,
-                            strictness: result.strictness,
-                          });
-                          setStatus(result.message);
-                          navigate(`/${ws}/space`);
-                        } catch (e) {
-                          const msg = e instanceof Error ? e.message : String(e);
-                          setStatus(msg);
-                        } finally {
-                          setBusy(false);
-                        }
-                      }}
-                    >
-                      {u.previewUrl ? (
-                        <img
-                          src={u.previewUrl}
-                          alt=""
-                          className="size-8 shrink-0 rounded object-cover"
-                        />
-                      ) : (
-                        <span className="flex size-8 shrink-0 items-center justify-center rounded bg-surface-2">
-                          <FileImage className="size-3.5 text-tertiary" />
-                        </span>
-                      )}
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-11 font-medium text-primary">
-                          {u.name}
-                        </span>
-                        <span className="text-[10px] text-placeholder">
-                          {u.kind === "pdf"
-                            ? u.lastMethod === "pdf-vector"
-                              ? "PDF 矢量"
-                              : "PDF"
-                            : "图片"}
-                          {u.lastMethod ? ` · ${u.lastMethod}` : ""} · 点此重识
-                        </span>
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      title="移除记录"
-                      className="shrink-0 rounded p-1 text-placeholder opacity-0 hover:bg-surface-2 hover:text-danger-primary group-hover:opacity-100"
-                      onClick={() => setUploads(removeSpaceUpload(u.id))}
-                    >
-                      ×
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => fileRef.current?.click()}
+          className={cn(
+            "mx-1 flex flex-col items-center gap-1.5 rounded-lg border border-dashed border-subtle px-2 py-4 text-center transition-colors",
+            busy ? "opacity-60" : "hover:border-accent-primary/50 hover:bg-accent-subtle/30"
           )}
-        </div>
+        >
+          <Upload className="size-5 text-accent-primary" strokeWidth={1.5} />
+          <span className="text-12 font-medium text-primary">
+            {pendingFile ? "更换文件" : "选择平面图 / PDF"}
+          </span>
+          <span className="max-w-full truncate px-1 text-[10px] text-tertiary">
+            {pendingFile ? pendingFile.name : "PNG · JPG · PDF"}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void runDetect()}
+          className={cn(
+            "mx-1 mt-2 flex w-[calc(100%-0.5rem)] items-center justify-center gap-1.5 rounded-md bg-accent-primary px-2 py-2.5 text-12 font-semibold text-on-color transition-colors hover:opacity-90 disabled:cursor-wait disabled:opacity-70"
+          )}
+        >
+          <ScanSearch className="size-4" strokeWidth={1.75} />
+          {busy
+            ? "检测中…"
+            : pendingFile
+              ? "开始检测"
+              : scene?.floorPlanDataUrl
+                ? "重新检测"
+                : "开始检测"}
+        </button>
+        <p className="mx-1 mt-1 text-[10px] text-placeholder">
+          {pendingFile
+            ? `待检测：${pendingFile.name}`
+            : scene?.floorPlanDataUrl
+              ? "可对当前底图重新检测，或先更换文件"
+              : "请先选择平面图，再点检测"}
+        </p>
+        {status && (
+          <p className="mx-1 mt-2 text-[10px] leading-snug text-accent-primary">{status}</p>
+        )}
+
+        {canExport && (
+          <div className="mx-1 mt-2 flex gap-1.5">
+            <button
+              type="button"
+              className="flex-1 rounded-md border border-subtle px-2 py-1.5 text-11 font-medium text-primary hover:bg-surface-2"
+              onClick={() =>
+                downloadPlanExport(
+                  scene?.f23dPlan,
+                  "svg",
+                  (scene?.sourceFileName ?? "floorplan").replace(/\.[^.]+$/, "")
+                )
+              }
+            >
+              导出 SVG
+            </button>
+            <button
+              type="button"
+              className="flex-1 rounded-md border border-subtle px-2 py-1.5 text-11 font-medium text-primary hover:bg-surface-2"
+              onClick={() =>
+                downloadPlanExport(
+                  scene?.f23dPlan,
+                  "dxf",
+                  (scene?.sourceFileName ?? "floorplan").replace(/\.[^.]+$/, "")
+                )
+              }
+            >
+              导出 DXF
+            </button>
+          </div>
+        )}
 
         <div className="mt-3">
-          <SectionLabel>当前模型</SectionLabel>
+          <SectionLabel>当前场景</SectionLabel>
           <NavLink
             to={`/${ws}/space`}
             icon={Box}
-            label={sceneName}
-            meta="L3 调整"
+            label={scene?.sourceFileName ?? scene?.name ?? "未命名场景"}
+            meta={`墙 ${scene?.walls?.length ?? 0} 段`}
             active
           />
-          <p className="mt-1 px-1.5 text-11 text-tertiary">
-            主区 = 墙体生成与调整 · 图块布局 · 平面/3D 切换
-          </p>
+          {scene && scene.widthMm > 0 && (
+            <p className="mt-1 px-1.5 text-[10px] text-placeholder">
+              {(scene.widthMm / 1000).toFixed(1)}×{(scene.depthMm / 1000).toFixed(1)} m
+              {scene.detectMessage ? ` · ${scene.detectMessage.slice(0, 48)}` : ""}
+            </p>
+          )}
         </div>
       </div>
     </SidebarWrapper>

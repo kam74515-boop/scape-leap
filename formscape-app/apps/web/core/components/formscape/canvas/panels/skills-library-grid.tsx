@@ -114,6 +114,8 @@ function SkillBankCard({
 }) {
   const cover = skill.colors;
   const hover = skill.hoverColors ?? [...skill.colors].reverse();
+  const coverSrc = skill.coverSrc;
+  const hoverSrc = skill.coverHoverSrc ?? skill.coverSrc;
 
   return (
     <button
@@ -122,17 +124,35 @@ function SkillBankCard({
       className="fs-skill-card mb-2 w-full break-inside-avoid text-left"
     >
       <div className="fs-skill-card-image group relative aspect-square w-full overflow-hidden rounded-lg bg-surface-2">
-        {/* default 封面 */}
-        <div
-          className="absolute inset-0 transition-opacity duration-200 group-hover:opacity-0"
-          style={{ background: `linear-gradient(145deg, ${cover.join(",")})` }}
-        />
+        {/* default 封面：case 模拟图优先，否则色板 */}
+        {coverSrc ? (
+          <img
+            src={coverSrc}
+            alt=""
+            className="absolute inset-0 size-full object-cover transition-opacity duration-200 group-hover:opacity-0"
+            draggable={false}
+          />
+        ) : (
+          <div
+            className="absolute inset-0 transition-opacity duration-200 group-hover:opacity-0"
+            style={{ background: `linear-gradient(145deg, ${cover.join(",")})` }}
+          />
+        )}
         {/* hover 封面 */}
-        <div
-          className="absolute inset-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
-          style={{ background: `linear-gradient(145deg, ${hover.join(",")})` }}
-        />
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_28%_22%,rgba(255,255,255,0.35),transparent_42%)]" />
+        {hoverSrc ? (
+          <img
+            src={hoverSrc}
+            alt=""
+            className="absolute inset-0 size-full object-cover opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+            draggable={false}
+          />
+        ) : (
+          <div
+            className="absolute inset-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+            style={{ background: `linear-gradient(145deg, ${hover.join(",")})` }}
+          />
+        )}
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_28%_22%,rgba(255,255,255,0.18),transparent_42%)]" />
 
         {/* 收藏星 — Lovspark star-icon */}
         <span

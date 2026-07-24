@@ -11,7 +11,12 @@ import { useFormscapeAi } from "./ai-context";
 
 const PROMPTS_DEFAULT = ["项目进度怎么样", "看看采购清单", "下一步建议", "推进经营节点"];
 const PROMPTS_PROJECT = ["项目进度快照", "设计阶段状态", "家具采买清单", "下一步建议"];
-const PROMPTS_CANVAS = ["分析当前意向板", "提炼色板关键词", "给客厅出 3 个布局建议", "生成汇报口播稿"];
+const PROMPTS_CANVAS = [
+  "画布上有什么",
+  "生成：现代暖白客厅",
+  "改图：更通透的采光",
+  "变体",
+];
 
 /** 顶栏右侧 AI 按钮 — 展开/收起同一入口 */
 export function FormscapeAiHeaderButton() {
@@ -130,10 +135,10 @@ export function FormscapeAiPanel() {
               <div className="space-y-3">
                 <div className="rounded-md bg-surface-2 px-3 py-2 text-11 leading-relaxed text-secondary">
                   {canvasActive
-                    ? "项目制 harness · 画布上下文。产出可放到节点。"
+                    ? "画布 Agent（非全局）：可落图、对选中图改图/变体。试快捷建议。"
                     : harness.projectId
                       ? "项目制 harness：可查双轴进度、设计阶段、采购清单（与生态库同源），并推进经营节点。"
-                      : "项目制 harness。进入项目后可调用项目工具；当前为工作室级。"}
+                      : "项目制 harness。进入项目或画布后能力更完整；全局 Agent 尚未接入。"}
                 </div>
                 <div className="text-11 font-medium text-placeholder">快捷建议</div>
                 <div className="grid gap-1.5">
@@ -201,7 +206,9 @@ export function FormscapeAiPanel() {
                   }
                 }}
                 className="min-w-0 flex-1 rounded-md border border-subtle bg-surface-1 px-2.5 py-2 text-13 text-primary placeholder:text-placeholder outline-none focus:border-accent-primary"
-                placeholder="项目问题… harness 调工具"
+                placeholder={
+                  canvasActive ? "生成：… / 改图：… / 画布上有什么" : "项目问题… harness 调工具"
+                }
               />
               <button
                 type="button"

@@ -18,6 +18,7 @@ import {
   type CanvasSkillDef,
   type SkillUploadSlot,
 } from "../skills/registry";
+import { getMockSkillBundle } from "../skills/mock-skill-assets";
 
 type Props = {
   skill: CanvasSkillDef | null;
@@ -43,9 +44,27 @@ export function SkillRail({ skill, onClose, onGenerate, busy }: Props) {
 
   useEffect(() => {
     if (!skill) return;
-    setUploads({});
     setAspect(skill.defaultAspect);
     setCount(skill.defaultCount);
+    // Demo 全自动：打开技能时自动填入 case 示例图
+    const bundle = getMockSkillBundle(skill.id);
+    const inputs = bundle?.inputs?.length ? bundle.inputs : bundle?.outputs ?? [];
+    if (!inputs.length) {
+      setUploads({});
+      return;
+    }
+    const next: UploadMap = {};
+    let i = 0;
+    for (const slot of skill.uploads) {
+      if (slot.multiple) {
+        const take = Math.min(slot.max ?? 3, Math.max(1, inputs.length));
+        next[slot.key] = inputs.slice(0, take);
+      } else {
+        next[slot.key] = [inputs[i % inputs.length]];
+        i += 1;
+      }
+    }
+    setUploads(next);
   }, [skill]);
 
   const ratios = skill?.aspectRatios ?? ["9:16", "2:3", "3:4", "1:1", "4:3", "3:2", "16:9"];
@@ -60,11 +79,11 @@ export function SkillRail({ skill, onClose, onGenerate, busy }: Props) {
 
   const previewBox = useMemo(() => {
     const [w, h] = aspect.split(":").map(Number);
-    if (!w || !h) return { width: 56, height: 56 };
-    const max = 56;
+    if (!w || !h) return { width: 32, height: 32 };
+    const max = 32;
     const r = w / h;
-    if (r >= 1) return { width: max, height: Math.max(16, Math.round(max / r)) };
-    return { width: Math.max(16, Math.round(max * r)), height: max };
+    if (r >= 1) return { width: max, height: Math.max(12, Math.round(max / r)) };
+    return { width: Math.max(12, Math.round(max * r)), height: max };
   }, [aspect]);
 
   if (!skill) return null;
@@ -111,6 +130,27 @@ export function SkillRail({ skill, onClose, onGenerate, busy }: Props) {
     setUploads((prev) => ({ ...prev, [key]: [] }));
   };
 
+  /** Demo：从 case 输入图填充必填/可选槽，方便一键体验 */
+  const fillMockSamples = () => {
+    if (!skill) return;
+    const bundle = getMockSkillBundle(skill.id);
+    if (!bundle) return;
+    const inputs = bundle.inputs.length ? bundle.inputs : bundle.outputs;
+    if (!inputs.length) return;
+    const next: UploadMap = {};
+    let i = 0;
+    for (const slot of skill.uploads) {
+      if (slot.multiple) {
+        const take = Math.min(slot.max ?? 3, Math.max(1, inputs.length));
+        next[slot.key] = inputs.slice(0, take);
+      } else {
+        next[slot.key] = [inputs[i % inputs.length]];
+        i += 1;
+      }
+    }
+    setUploads(next);
+  };
+
   const run = () => {
     if (!canGenerate) return;
     const values: Record<string, string | number> = {
@@ -134,19 +174,18 @@ export function SkillRail({ skill, onClose, onGenerate, busy }: Props) {
 
   return (
     <aside className="fs-skill-rail" aria-label="技能参数">
-      {/* csp-header */}
       <div className="fs-csp-header">
         <div className="min-w-0 flex-1">
-          <div className="text-[10px] font-semibold tracking-wide text-tertiary">工具</div>
-          <div className="truncate text-15 font-semibold text-primary">{skill.name}</div>
+          <div className="fs-csp-title-sub">工具</div>
+          <div className="fs-csp-title-main truncate">{skill.name}</div>
         </div>
         <button
           type="button"
           onClick={onClose}
-          className="rounded-md p-1 text-tertiary hover:bg-layer-transparent-hover"
+          className="rounded-md p-0.5 text-tertiary hover:bg-layer-transparent-hover"
           aria-label="关闭"
         >
-          <X className="size-4" />
+          <X className="size-3.5" />
         </button>
       </div>
 
@@ -191,9 +230,13 @@ export function SkillRail({ skill, onClose, onGenerate, busy }: Props) {
           </div>
         </div>
 
-        {/* 生成数量 — Quantity 1–4 */}
+        {/* 通高占位：上传/比例在上，数量+生成贴底 */}
+        <div className="fs-skill-rail-spacer" aria-hidden />
+      </div>
+
+      <div className="fs-skill-rail-foot">
         <div className="fs-skill-section-label">生成数量</div>
-        <div className="fs-skill-gens-row">
+        <div className="fs-skill-gens-row mb-2">
           {[1, 2, 3, 4].map((n) => (
             <button
               key={n}
@@ -205,24 +248,29 @@ export function SkillRail({ skill, onClose, onGenerate, busy }: Props) {
             </button>
           ))}
         </div>
-      </div>
-
-      <div className="fs-skill-rail-foot">
         <button
           type="button"
           disabled={!canGenerate}
           onClick={run}
           className={cn("fs-skill-action", !canGenerate && "is-disabled")}
         >
-          {busy ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
-          生成图像到画布
+          {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
+          一键生成落图
           {skill.credits != null && (
-            <span className="ml-1 text-[11px] font-normal opacity-70">{skill.credits} CU</span>
+            <span className="text-[10px] font-normal opacity-70">{skill.credits} CU</span>
           )}
         </button>
         {!canGenerate && !busy && (
-          <div className="mt-1.5 text-center text-[10px] text-placeholder">
+          <div className="mt-1 text-center text-[9px] text-placeholder">
             请先上传必填图片
+            <span className="ml-0.5 font-semibold text-danger-primary">*</span>
+            <button
+              type="button"
+              className="ml-1.5 text-accent-primary hover:underline"
+              onClick={fillMockSamples}
+            >
+              填入示例
+            </button>
           </div>
         )}
       </div>
@@ -254,13 +302,21 @@ function UploadSlotBlock({
   onClear: () => void;
   onRemoveAt: (i: number) => void;
 }) {
+  const reqStar = slot.required ? (
+    <span className="ml-0.5 text-[11px] font-semibold text-danger-primary" aria-label="必填">
+      *
+    </span>
+  ) : null;
+
   if (slot.multiple) {
     const max = slot.max ?? 6;
     return (
       <div>
         <div className="fs-skill-section-label">
-          {slot.label}
-          {slot.required && <span className="text-danger-primary"> *</span>}
+          <span>
+            {slot.label}
+            {reqStar}
+          </span>
           <span className="ml-auto normal-case tracking-normal text-placeholder">
             {images.length} / {max}
           </span>
@@ -292,12 +348,12 @@ function UploadSlotBlock({
   const src = images[0];
   return (
     <div>
-      {slot.kind !== "space" && (
-        <div className="fs-skill-section-label">
+      <div className="fs-skill-section-label">
+        <span>
           {slot.label}
-          {slot.required && <span className="text-danger-primary"> *</span>}
-        </div>
-      )}
+          {reqStar}
+        </span>
+      </div>
       <div className={cn("fs-skill-upload", src && "is-filled")}>
         {src ? (
           <>
@@ -310,11 +366,14 @@ function UploadSlotBlock({
           <>
             <button type="button" className="fs-skill-upload-main" onClick={onPick}>
               <Plus className="size-5 text-tertiary" />
-              <span>{slot.label}</span>
+              <span>
+                {slot.label}
+                {reqStar}
+              </span>
             </button>
             <button type="button" className="fs-skill-upload-lib" onClick={onPick}>
-              <ImagePlus className="size-3" />
-              从图库
+              <ImagePlus className="size-2.5" />
+              图库
             </button>
           </>
         )}

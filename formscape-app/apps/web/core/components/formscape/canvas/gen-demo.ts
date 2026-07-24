@@ -1,8 +1,13 @@
 /**
- * Demo 生成结果模拟 — 可替换为真实 API
+ * 全部生成结果使用模拟数据
+ * - 有 skillId：从 lovspark-skill-library-cases 对应目录取图
+ * - 无 skillId：从通用 mock 池取图
+ * - 仍附带 colors 作为无 src 时的兜底渐变
  */
 import type { ImageGenResult } from "./types";
 import { newId } from "./use-canvas-document";
+import { pickMockResultSrcs } from "./skills/mock-skill-assets";
+import { SKILLS_BY_ID } from "./skills/registry";
 
 const PALETTES = [
   ["#EDE6D9", "#C4A574", "#6B5B4F"],
@@ -26,7 +31,6 @@ function hashSeed(s: string): number {
 
 function paletteAt(seed: number, offset: number): string[] {
   const base = PALETTES[(seed + offset) % PALETTES.length];
-  // 轻微扰动第二色，模拟多图差异
   if (offset === 0) return base;
   const shift = PALETTES[(seed + offset * 3) % PALETTES.length];
   return [base[0], shift[1], base[2]];
@@ -35,17 +39,30 @@ function paletteAt(seed: number, offset: number): string[] {
 export function buildDemoImageResults(opts: {
   prompt: string;
   count: number;
+  skillId?: string | null;
   skillColors?: string[];
   seed?: number;
 }): { results: ImageGenResult[]; seed: number } {
-  const seed = opts.seed ?? (hashSeed(opts.prompt || "fs") ^ (Date.now() & 0xffff));
+  const skill = opts.skillId ? SKILLS_BY_ID[opts.skillId] : undefined;
+  const seed =
+    opts.seed ??
+    (hashSeed(`${opts.skillId || ""}|${opts.prompt || "fs"}`) ^ (Date.now() & 0xffff));
   const count = Math.min(4, Math.max(1, opts.count || 1));
-  const label = (opts.prompt || "生成图").trim().slice(0, 18) || "生成图";
+  const label =
+    (skill?.name || opts.prompt || "生成图").trim().slice(0, 18) || "生成图";
+  const srcs = pickMockResultSrcs({
+    skillId: opts.skillId,
+    count,
+    seed,
+  });
+  const baseColors = opts.skillColors ?? skill?.colors;
+
   const results: ImageGenResult[] = Array.from({ length: count }, (_, i) => ({
     id: newId("res"),
     title: count > 1 ? `${label} ·${i + 1}` : label,
-    colors: opts.skillColors && i === 0 ? opts.skillColors : paletteAt(seed, i),
+    colors: baseColors && i === 0 ? baseColors : paletteAt(seed, i),
     seed: (seed + i * 9973) >>> 0,
+    src: srcs[i],
   }));
   return { results, seed };
 }
@@ -53,8 +70,8 @@ export function buildDemoImageResults(opts: {
 export function pickResultColors(
   results: ImageGenResult[] | undefined,
   index = 0
-): { colors: string[]; title: string } | null {
+): { colors: string[]; title: string; src?: string } | null {
   if (!results?.length) return null;
   const r = results[Math.min(Math.max(0, index), results.length - 1)];
-  return { colors: r.colors, title: r.title };
+  return { colors: r.colors, title: r.title, src: r.src };
 }
