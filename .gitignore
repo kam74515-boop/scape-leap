@@ -15,6 +15,8 @@ refs/*
 **/.next/
 **/dist/
 **/build/
+services/floorplan-ml/weights/*
+!services/floorplan-ml/weights/.gitkeep
 formscape-demo/node_modules/
 formscape-demo/dist/
 formscape-demo/server/target/
