@@ -1,0 +1,3 @@
+# 放置 CubiCasa5k 权重：
+#   model_best_val_loss_var.pkl
+# 或设置 CUBICASA_WEIGHTS=/abs/path/to/weights.pkl

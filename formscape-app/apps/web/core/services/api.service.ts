@@ -1,0 +1,59 @@
+/**
+ * Copyright (c) 2023-present Plane Software, Inc. and contributors
+ * SPDX-License-Identifier: AGPL-3.0-only
+ * See the LICENSE file for details.
+ */
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { AxiosInstance, AxiosRequestConfig } from "axios";
+import { create } from "axios";
+
+export abstract class APIService {
+  protected baseURL: string;
+  private axiosInstance: AxiosInstance;
+
+  constructor(baseURL: string) {
+    this.baseURL = baseURL;
+    this.axiosInstance = create({
+      baseURL,
+      withCredentials: true,
+    });
+
+    this.setupInterceptors();
+  }
+
+  private setupInterceptors() {
+    // 本地无鉴权：401 不整页跳转登录
+    this.axiosInstance.interceptors.response.use(
+      (response) => response,
+      (error) => Promise.reject(error)
+    );
+  }
+
+  get(url: string, params = {}, config: AxiosRequestConfig = {}) {
+    return this.axiosInstance.get(url, {
+      ...params,
+      ...config,
+    });
+  }
+
+  post(url: string, data = {}, config: AxiosRequestConfig = {}) {
+    return this.axiosInstance.post(url, data, config);
+  }
+
+  put(url: string, data = {}, config: AxiosRequestConfig = {}) {
+    return this.axiosInstance.put(url, data, config);
+  }
+
+  patch(url: string, data = {}, config: AxiosRequestConfig = {}) {
+    return this.axiosInstance.patch(url, data, config);
+  }
+
+  delete(url: string, data?: any, config: AxiosRequestConfig = {}) {
+    return this.axiosInstance.delete(url, { data, ...config });
+  }
+
+  request(config = {}) {
+    return this.axiosInstance(config);
+  }
+}

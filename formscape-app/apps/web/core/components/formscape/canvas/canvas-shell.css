@@ -1,0 +1,745 @@
+/**
+ * 画布壳层 — 对齐 Plane / 构境 UI
+ * - token: surface / subtle / layer-transparent / accent
+ * - 形状: rounded-md / rounded-lg（不用 Lovspark 大 pill / 18px 圆角）
+ * - 阴影: shadow-sm 级别，无紫调
+ * - 交互: layer-transparent-hover / selected（同侧栏）
+ */
+
+/* ========== 左侧 Library 面板（对齐 Plane floating sidebar） ========== */
+.fs-lib-panel {
+  position: absolute;
+  top: 8px;
+  left: 0;
+  bottom: 8px;
+  z-index: 24;
+  display: flex;
+  width: min(320px, 86vw);
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  border-left: none;
+  border-radius: 0 8px 8px 0;
+  background: var(--bg-surface-1);
+  box-shadow: 0 1px 2px var(--alpha-black-100), 0 4px 12px var(--alpha-black-100);
+  contain: layout style paint;
+  isolation: isolate;
+  animation: fs-lib-in 200ms ease-out;
+}
+@keyframes fs-lib-in {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.fs-lib-pull {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  z-index: 25;
+  display: inline-flex;
+  height: 40px;
+  width: 22px;
+  transform: translateY(-50%);
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-subtle);
+  border-left: none;
+  border-radius: 0 6px 6px 0;
+  background: var(--bg-surface-1);
+  color: var(--txt-tertiary);
+  box-shadow: 0 1px 2px var(--alpha-black-100);
+  transition:
+    left 200ms ease,
+    background-color 120ms ease,
+    color 120ms ease;
+  cursor: pointer;
+}
+.fs-lib-pull.is-open {
+  left: min(320px, 86vw);
+}
+.fs-lib-pull:hover {
+  background: var(--bg-layer-transparent-hover);
+  color: var(--txt-primary);
+}
+
+.fs-lib-rail {
+  display: flex;
+  width: 44px;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  border-right: 1px solid var(--border-subtle);
+  padding: 10px 4px;
+  background: var(--bg-surface-1);
+}
+.fs-lib-rail-btn {
+  display: inline-flex;
+  height: 32px;
+  width: 32px;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--txt-tertiary);
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+  cursor: pointer;
+}
+.fs-lib-rail-btn:hover {
+  background: var(--bg-layer-transparent-hover);
+  color: var(--txt-secondary);
+}
+.fs-lib-rail-btn.is-active {
+  background: var(--bg-layer-transparent-selected);
+  color: var(--txt-primary);
+}
+
+.fs-lib-main {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  background: var(--bg-surface-1);
+}
+.fs-lib-head {
+  display: flex;
+  height: 44px;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 0 12px;
+}
+.fs-lib-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--txt-primary);
+}
+.fs-lib-search {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 12px 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  background: var(--bg-surface-1);
+  padding: 6px 10px;
+}
+.fs-lib-search:focus-within {
+  border-color: var(--bg-accent-primary);
+}
+.fs-lib-search input {
+  min-width: 0;
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 11px;
+  color: var(--txt-primary);
+  outline: none;
+}
+.fs-lib-search input::placeholder {
+  color: var(--txt-placeholder);
+}
+.fs-lib-body {
+  min-height: 0;
+  flex: 1;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 10px 12px 16px;
+  scrollbar-width: thin;
+}
+
+/* ========== 底部工具坞（对齐 Plane 工具条：rounded-lg + shadow-sm） ========== */
+.fs-canvas-toolbar {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  z-index: 30;
+  display: flex;
+  height: 40px;
+  max-width: calc(100% - 32px);
+  min-width: 0;
+  box-sizing: border-box;
+  transform: translateX(-50%);
+  align-items: center;
+  gap: 2px;
+  overflow: visible;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-surface-1);
+  padding: 4px;
+  box-shadow: 0 1px 2px var(--alpha-black-100), 0 4px 12px var(--alpha-black-100);
+  transition:
+    left 200ms ease,
+    bottom 200ms ease;
+  pointer-events: auto;
+}
+
+
+.fs-tool {
+  position: relative;
+  display: inline-flex;
+  height: 32px;
+  width: 32px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--txt-tertiary);
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+  cursor: pointer;
+}
+.fs-tool:hover {
+  background: var(--bg-layer-transparent-hover);
+  color: var(--txt-secondary);
+}
+.fs-tool:active {
+  background: var(--bg-layer-transparent-active);
+}
+.fs-tool.is-active {
+  background: var(--bg-layer-transparent-selected);
+  color: var(--txt-primary);
+}
+.fs-tool.is-accent.is-active {
+  background: var(--bg-accent-subtle);
+  color: var(--txt-accent-primary);
+}
+.fs-tool-kbd {
+  position: absolute;
+  top: 1px;
+  right: 3px;
+  font-size: 8px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  color: var(--txt-placeholder);
+  pointer-events: none;
+}
+
+/* + 主按钮：品牌色（对齐 FsPrimary / accent-primary） */
+.fs-tool-add-wrap {
+  position: relative;
+  display: inline-flex;
+  margin-right: 4px;
+}
+.fs-tool-add {
+  margin-right: 0;
+  background: var(--bg-accent-primary);
+  color: var(--txt-on-color);
+}
+.fs-tool-add:hover {
+  background: var(--bg-accent-primary-hover);
+  color: var(--txt-on-color);
+  opacity: 1;
+}
+.fs-tool-add-pop {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  z-index: 40;
+  display: flex;
+  min-width: 176px;
+  flex-direction: column;
+  gap: 1px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-surface-1);
+  padding: 4px;
+  box-shadow: 0 4px 16px var(--alpha-black-200);
+  transform-origin: bottom left;
+  animation: fs-pop-in 120ms ease-out;
+}
+.fs-tool-add-pop::before {
+  content: "";
+  position: absolute;
+  bottom: -6px;
+  left: 0;
+  right: 0;
+  height: 6px;
+}
+@keyframes fs-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.fs-tool-add-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  padding: 7px 8px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--txt-primary);
+  cursor: pointer;
+}
+.fs-tool-add-row:hover {
+  background: var(--bg-layer-transparent-hover);
+}
+.fs-tool-add-row span.muted {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--txt-placeholder);
+}
+
+/* Skills / Libraries 文字按钮 */
+.fs-tool-pill {
+  width: auto;
+  gap: 5px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--txt-secondary);
+}
+.fs-tool-pill.is-active {
+  background: var(--bg-accent-subtle);
+  color: var(--txt-accent-primary);
+}
+.fs-tool-pill.is-active .fs-tool-kbd {
+  color: var(--txt-accent-secondary);
+}
+
+.fs-tool-sep {
+  width: 1px;
+  height: 16px;
+  flex: none;
+  background: var(--border-subtle);
+  margin: 0 3px;
+}
+
+/* 左下缩放 / 历史控件 */
+.fs-zoom-controls {
+  position: absolute;
+  bottom: 16px;
+  left: 12px;
+  z-index: 28;
+  display: flex;
+  height: 32px;
+  align-items: center;
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  background: var(--bg-surface-1);
+  box-shadow: 0 1px 2px var(--alpha-black-100);
+  transition: left 200ms ease;
+}
+.fs-zoom-controls button {
+  display: inline-flex;
+  height: 32px;
+  min-width: 30px;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-right: 1px solid var(--border-subtle);
+  background: transparent;
+  padding: 0 7px;
+  font-size: 11px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--txt-secondary);
+  cursor: pointer;
+}
+.fs-zoom-controls button:last-child {
+  border-right: none;
+}
+.fs-zoom-controls button:hover:not(:disabled) {
+  background: var(--bg-layer-transparent-hover);
+  color: var(--txt-primary);
+}
+.fs-zoom-controls button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* 画布交互光标 */
+.fs-canvas-flow.fs-canvas-panning,
+.fs-canvas-flow.fs-canvas-panning .react-flow__pane {
+  cursor: grab !important;
+}
+.fs-canvas-flow.fs-canvas-panning:active,
+.fs-canvas-flow.fs-canvas-panning .react-flow__pane:active {
+  cursor: grabbing !important;
+}
+.fs-canvas-flow.fs-canvas-placing,
+.fs-canvas-flow.fs-canvas-placing .react-flow__pane {
+  cursor: crosshair !important;
+}
+.fs-canvas-flow .react-flow__node {
+  cursor: default;
+}
+.fs-canvas-flow:not(.fs-canvas-panning):not(.fs-canvas-placing) .react-flow__node.draggable {
+  cursor: grab;
+}
+.fs-canvas-flow .react-flow__node.dragging {
+  cursor: grabbing;
+}
+
+/* React Flow 选区 / 边 — 用品牌色 */
+.fs-canvas-flow .react-flow__selection {
+  background: color-mix(in srgb, var(--bg-accent-primary) 12%, transparent);
+  border: 1px solid var(--bg-accent-primary);
+}
+.fs-canvas-flow .react-flow__nodesselection-rect {
+  border: 1px solid var(--bg-accent-primary);
+  background: color-mix(in srgb, var(--bg-accent-primary) 6%, transparent);
+}
+/* 无连线：隐藏 handle / edge */
+.fs-canvas-flow .react-flow__handle,
+.fs-canvas-flow .react-flow__edge {
+  display: none !important;
+  pointer-events: none !important;
+}
+.fs-canvas-flow .react-flow__minimap {
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: 6px !important;
+  background: var(--bg-surface-1) !important;
+  box-shadow: 0 1px 2px var(--alpha-black-100) !important;
+  overflow: hidden;
+  /* 右下与底栏（toolbar / zoom）同一底边 bottom: 16px */
+  left: auto !important;
+  right: 12px !important;
+  bottom: 16px !important;
+}
+
+/* 浮层控件始终可点 */
+.fs-canvas-toolbar,
+.fs-zoom-controls,
+.fs-skill-rail {
+  pointer-events: auto;
+}
+
+/* 选中 L2 技能后的参数轨 — 布局对齐 Lovspark skill-rail */
+.fs-skill-rail {
+  position: absolute;
+  top: 8px;
+  left: 0;
+  bottom: 8px;
+  z-index: 30;
+  display: flex;
+  width: min(300px, 88vw);
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  border-left: none;
+  border-radius: 0 10px 10px 0;
+  background: var(--bg-surface-1);
+  box-shadow: 0 1px 2px var(--alpha-black-100), 0 4px 12px var(--alpha-black-100);
+}
+
+/* CanvasSkillPanel header */
+.fs-csp-header {
+  display: flex;
+  flex-shrink: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 14px 16px;
+}
+.fs-csp-body {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 14px 16px 16px;
+}
+
+/* 上传 3:2 — Lovspark skill-upload */
+.fs-skill-upload {
+  position: relative;
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 3 / 2;
+  border: 1px dashed var(--border-strong, var(--border-subtle));
+  border-radius: 10px;
+  background: var(--bg-surface-2);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  overflow: hidden;
+}
+.fs-skill-upload.is-filled {
+  border-style: solid;
+  padding: 0;
+}
+.fs-skill-upload-main {
+  display: flex;
+  width: 100%;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.fs-skill-upload-lib {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  background: var(--bg-surface-1);
+  padding: 3px 8px;
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.fs-skill-upload-lib:hover {
+  background: var(--bg-surface-2);
+}
+.fs-skill-upload-thumb {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: var(--bg-surface-2);
+}
+.fs-skill-upload-remove {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+.fs-skill-upload.is-filled:hover .fs-skill-upload-remove {
+  opacity: 1;
+}
+
+.fs-skill-model-btn {
+  position: relative;
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: var(--bg-surface-2);
+  padding: 10px 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.fs-skill-model-btn:hover {
+  border-color: var(--border-strong, var(--border-subtle));
+}
+
+.fs-skill-section-label {
+  display: flex;
+  align-items: center;
+  margin-top: 2px;
+  color: var(--text-tertiary);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* 材质多图槽 — skill-product-slots */
+.fs-skill-product-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.fs-skill-product-slot {
+  position: relative;
+  display: inline-flex;
+  width: 56px;
+  height: 56px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px dashed var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-surface-2);
+  cursor: pointer;
+}
+.fs-skill-product-slot.is-filled {
+  border-style: solid;
+  padding: 0;
+}
+.fs-skill-product-slot.is-filled img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.fs-skill-product-slot.is-cta {
+  color: var(--text-tertiary);
+}
+.fs-skill-product-slot.is-cta:hover {
+  border-color: var(--border-strong, var(--border-subtle));
+  color: var(--text-secondary);
+}
+.fs-skill-product-slot-remove {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  opacity: 0;
+  cursor: pointer;
+}
+.fs-skill-product-slot.is-filled:hover .fs-skill-product-slot-remove {
+  opacity: 1;
+}
+
+/* 画面比例滑块 — SizeView */
+.fs-skill-size-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: var(--bg-surface-2);
+  padding: 12px;
+}
+.fs-skill-size-preview {
+  display: flex;
+  height: 72px;
+  align-items: center;
+  justify-content: center;
+}
+.fs-skill-size-frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--text-secondary);
+  border-radius: 3px;
+  background: var(--bg-surface-1);
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 600;
+}
+.fs-skill-size-slider {
+  width: 100%;
+  accent-color: var(--bg-accent-primary);
+  cursor: pointer;
+}
+
+.fs-skill-gens-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.fs-skill-gen-btn {
+  display: inline-flex;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: var(--bg-surface-2);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.fs-skill-gen-btn:hover {
+  color: var(--text-primary);
+}
+.fs-skill-gen-btn.is-active {
+  border-color: var(--border-strong, var(--border-subtle));
+  background: var(--bg-surface-1);
+  color: var(--text-primary);
+  font-weight: 600;
+  box-shadow: 0 1px 2px var(--alpha-black-100);
+}
+
+.fs-skill-rail-foot {
+  flex-shrink: 0;
+  border-top: 1px solid var(--border-subtle);
+  padding: 12px 14px;
+  background: var(--bg-surface-1);
+}
+
+.fs-skill-action {
+  display: inline-flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: linear-gradient(180deg, var(--bg-surface-1) 0%, var(--bg-surface-2) 100%);
+  padding: 12px 14px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.12s ease, background 0.12s ease;
+}
+.fs-skill-action:hover:not(.is-disabled) {
+  background: var(--bg-surface-2);
+}
+.fs-skill-action.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+/* L2 技能库卡片（SkillsBank） */
+.fs-skill-card {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+}
+.fs-skill-card-image {
+  box-shadow: 0 0 0 1px var(--border-subtle);
+}
+.fs-skill-card:hover .fs-skill-card-image {
+  box-shadow: 0 0 0 1px var(--border-strong, var(--border-subtle));
+}

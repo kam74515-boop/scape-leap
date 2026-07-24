@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<title>Logo 复杂度探索 · 视错觉旋转</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family: "PingFang SC", Inter, system-ui, sans-serif; background:#F5F5F5; color:#0A0A0A; padding:40px 24px 80px; }
+  .wrap { max-width:1100px; margin:0 auto; }
+  h1 { font-size:24px; font-weight:650; }
+  .sub { color:#6B6B6B; margin:8px 0 28px; font-size:14px; max-width:640px; line-height:1.55; }
+  h2 { font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#6B6B6B; margin:28px 0 12px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:14px; }
+  .card { background:#fff; border:1px solid #E5E5E5; border-radius:14px; padding:20px; }
+  .card .stage { display:grid; place-items:center; min-height:140px; }
+  .card h3 { font-size:14px; margin-top:8px; }
+  .card p { font-size:12px; color:#6B6B6B; margin-top:6px; line-height:1.45; }
+  .card.base { border-color:#0A0A0A; box-shadow:0 0 0 2px rgba(0,0,0,0.06); }
+  .note { margin-top:28px; padding:16px 18px; background:#fff; border-radius:12px; border:1px solid #E5E5E5; font-size:13px; color:#6B6B6B; line-height:1.55; }
+  .note strong { color:#0A0A0A; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>给立方体加点复杂度</h1>
+  <p class="sub">在保持黑白、扁平、几何的前提下，用<strong>视错觉 / 双稳态</strong>增加可玩性。当前定稿作对照；下方 5 个方向均可直接替换主标。</p>
+
+  <h2>00 · 当前定稿（对照）</h2>
+  <div class="grid">
+    <div class="card base">
+      <div class="stage">
+        <svg width="120" height="120" viewBox="0 0 88 88">
+  <rect width="88" height="88" rx="20" fill="#0A0A0A"/>
+  <path d="M44.0 18.0 L67.0 31.0 L44.0 44.0 L21.0 31.0 Z" fill="#FFFFFF"/>
+  <path d="M21.0 31.0 L44.0 44.0 L44.0 70.0 L21.0 57.0 Z" fill="#3A3A3A"/>
+  <path d="M67.0 31.0 L44.0 44.0 L44.0 70.0 L67.0 57.0 Z" fill="#6B6B6B"/>
+
+</svg>
+      </div>
+      <h3>Baseline · 三色块立方</h3>
+      <p>干净、已居中。凹凸可逆已存在，但旋转感弱。</p>
+    </div>
+  </div>
+
+  <h2>01 · 旋转 / 双稳态方向</h2>
+  <div class="grid">
+    
+    <div class="card">
+      <div class="stage">
+        <svg width="120" height="120" viewBox="0 0 88 88">
+  <rect width="88" height="88" rx="20" fill="#0A0A0A"/>
+  <path fill-rule="evenodd" d="M44.0 18.0 L67.0 31.0 L44.0 44.0 L21.0 31.0 Z M44.0 32.3 L54.4 38.1 L44.0 44.0 L33.6 38.1 Z" fill="#FFFFFF"/>
+  <path fill-rule="evenodd" d="M21.0 31.0 L44.0 44.0 L44.0 70.0 L21.0 57.0 Z M33.6 38.1 L44.0 44.0 L44.0 55.7 L33.6 49.9 Z" fill="#3A3A3A"/>
+  <path fill-rule="evenodd" d="M67.0 31.0 L44.0 44.0 L44.0 70.0 L67.0 57.0 Z M54.4 38.1 L44.0 44.0 L44.0 55.7 L54.4 49.9 Z" fill="#6B6B6B"/>
+  <!-- inner solid for tunnel depth -->
+  <path d="M44.0 32.3 L54.4 38.1 L44.0 44.0 L33.6 38.1 Z" fill="#1A1A1A"/>
+  <path d="M33.6 38.1 L44.0 44.0 L44.0 55.7 L33.6 49.9 Z" fill="#2A2A2A"/>
+  <path d="M54.4 38.1 L44.0 44.0 L44.0 55.7 L54.4 49.9 Z" fill="#3A3A3A"/>
+
+</svg>
+      </div>
+      <h3>A · 嵌套隧道</h3>
+      <p>内外立方套叠。可读作纵深隧道、放大镜或无限内缩旋转。</p>
+    </div>
+    <div class="card">
+      <div class="stage">
+        <svg width="120" height="120" viewBox="0 0 88 88">
+  <rect width="88" height="88" rx="20" fill="#0A0A0A"/>
+  <path d="M44.0 18.0 L67.0 31.0 L52.7 39.1 L35.3 39.1 L21.0 31.0 Z" fill="#FFFFFF"/>
+  <path d="M21.0 31.0 L35.3 39.1 L44.0 53.9 L44.0 70.0 L21.0 57.0 Z" fill="#3A3A3A"/>
+  <path d="M67.0 31.0 L67.0 57.0 L44.0 70.0 L44.0 53.9 L52.7 39.1 Z" fill="#6B6B6B"/>
+  <path d="M35.3 39.1 L52.7 39.1 L44.0 44.0 Z" fill="#E8E8E8"/>
+  <path d="M35.3 39.1 L44.0 44.0 L44.0 53.9 Z" fill="#5A5A5A"/>
+  <path d="M52.7 39.1 L44.0 53.9 L44.0 44.0 Z" fill="#2E2E2E"/>
+
+</svg>
+      </div>
+      <h3>B · 切角内凹</h3>
+      <p>近角挖空三面。外凸实体 ↔ 内凹房间角，翻转最强。</p>
+    </div>
+    <div class="card">
+      <div class="stage">
+        <svg width="120" height="120" viewBox="0 0 88 88">
+  <rect width="88" height="88" rx="20" fill="#0A0A0A"/>
+  <path d="M44.0 18.0 L67.0 31.0 L44.0 44.0 Z" fill="#FFFFFF"/>
+  <path d="M44.0 18.0 L44.0 44.0 L21.0 31.0 Z" fill="#D8D8D8"/>
+  <path d="M21.0 31.0 L44.0 44.0 L44.0 70.0 Z" fill="#3A3A3A"/>
+  <path d="M21.0 31.0 L44.0 70.0 L21.0 57.0 Z" fill="#2A2A2A"/>
+  <path d="M67.0 31.0 L67.0 57.0 L44.0 70.0 Z" fill="#6B6B6B"/>
+  <path d="M67.0 31.0 L44.0 70.0 L44.0 44.0 Z" fill="#5A5A5A"/>
+
+</svg>
+      </div>
+      <h3>C · 六菱旋转</h3>
+      <p>每面拆成两菱形。六块菱格可作折纸式旋转 / 翻转阅读。</p>
+    </div>
+    <div class="card">
+      <div class="stage">
+        <svg width="120" height="120" viewBox="0 0 88 88">
+  <rect width="88" height="88" rx="20" fill="#0A0A0A"/>
+  <g stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- hexagon outer -->
+    <path d="M44 18 L67 31 L67 57 L44 70 L21 57 L21 31 Z"/>
+    <!-- internal Y (near corner) -->
+    <path d="M44 44 L21 31"/>
+    <path d="M44 44 L67 31"/>
+    <path d="M44 44 L44 70"/>
+  </g>
+
+</svg>
+      </div>
+      <h3>D · 线框 Necker</h3>
+      <p>纯线框 Y 结构。最经典的双稳态旋转立方体。</p>
+    </div>
+    <div class="card">
+      <div class="stage">
+        <svg width="120" height="120" viewBox="0 0 88 88">
+  <rect width="88" height="88" rx="20" fill="#0A0A0A"/>
+  <path d="M44.0 18.0 L67.0 31.0 L44.0 44.0 L21.0 31.0 Z" fill="#FFFFFF"/>
+  <path d="M21.0 31.0 L44.0 44.0 L44.0 70.0 L21.0 57.0 Z" fill="#3A3A3A"/>
+  <path d="M67.0 31.0 L44.0 44.0 L44.0 70.0 L67.0 57.0 Z" fill="#6B6B6B"/>
+  <!-- rotational step / bite -->
+  <path d="M52.0 35.0 L61.7 40.5 L52.0 46.0 L42.4 40.5 Z" fill="#E8E8E8"/>
+  <path d="M42.4 40.5 L52.0 46.0 L52.0 56.9 L42.4 51.4 Z" fill="#2A2A2A"/>
+  <path d="M61.7 40.5 L52.0 46.0 L52.0 56.9 L61.7 51.4 Z" fill="#4A4A4A"/>
+
+</svg>
+      </div>
+      <h3>E · 阶跃咬合</h3>
+      <p>主体 + 错位小立方。像转过一格的齿轮/台阶，暗示旋转步进。</p>
+    </div>
+  </div>
+
+  <div class="note">
+    <strong>怎么选：</strong><br/>
+    · 要「转起来」的动势 → <strong>C 六菱</strong> 或 <strong>E 阶跃</strong><br/>
+    · 要最强凹凸翻转 → <strong>B 切角内凹</strong><br/>
+    · 要极简仍聪明 → <strong>D 线框 Necker</strong><br/>
+    · 要纵深 / 空间感 → <strong>A 嵌套隧道</strong><br/>
+    · 也可混合：例如 Baseline 实体 + D 的线框外轮廓，或 B 的切角做进实体
+  </div>
+</div>
+</body>
+</html>

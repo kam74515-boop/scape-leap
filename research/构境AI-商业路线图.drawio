@@ -1,0 +1,90 @@
+<mxfile host="app.diagrams.net" agent="Formscape" version="24.0.0" type="device">
+  <diagram id="roadmap" name="商业路线图-三阶段">
+    <mxGraphModel dx="1000" dy="700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="850" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="构境AI · Formscape 商业路线图（2026-2028）&#10;让设计师的价值真正体现在设计中 —— 设计的价值远高于材料" style="text;html=1;fontSize=22;fontStyle=1;align=center;verticalAlign=middle;fontColor=#2B2622;" vertex="1" parent="1">
+          <mxGeometry x="300" y="20" width="800" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="s1" value="阶段一：设计师 AI 工作台（0-6 个月）&#10;——————————————&#10;产品：项目制工作区（对话+画布+预设技能）&#10;能力：需求对话档案 / 风格意向检索 / 平面图→3D白模 / 视口AI渲染&#10;接入：SketchUp·Rhino 插件（只读视觉顾问）&#10;收入：B端订阅 ¥399-999/人/年&#10;北极星：月活跃设计项目数 1,000" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F6EFE8;strokeColor=#C96F4A;fontSize=12;align=left;spacing=10;fontColor=#2B2622;" vertex="1" parent="1">
+          <mxGeometry x="60" y="140" width="380" height="210" as="geometry" />
+        </mxCell>
+        <mxCell id="s2" value="阶段二：交易闭环（6-12 个月）&#10;——————————————&#10;产品：开放家居生态库（真实可购 SKU + 3D 模型）&#10;能力：效果图→可购买清单（以图搜货）/ 材料选材库&#10;C端：小程序看方案、按项目付费解锁（¥几十-几百/项目）&#10;收入：订阅 + 联盟分佣 + 项目解锁&#10;北极星：项目交易转化率 / GMV" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAF1EF;strokeColor=#3E7A6E;fontSize=12;align=left;spacing=10;fontColor=#2B2622;" vertex="1" parent="1">
+          <mxGeometry x="500" y="140" width="380" height="210" as="geometry" />
+        </mxCell>
+        <mxCell id="s3" value="阶段三：行业透明化平台（12-24 个月）&#10;——————————————&#10;产品：报价透明模板 + 开放比价 / 施工轻协同（节点·验收·变更留痕）&#10;生态：设计师→业主→供应链→施工 全角色在线&#10;收入：订阅 + 交易佣金 + 团队版 SaaS&#10;数据飞轮：项目数据→风格/报价/布局模型→反哺工作台&#10;北极星：平台撮合交付项目数" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFEAF4;strokeColor=#6C5B9E;fontSize=12;align=left;spacing=10;fontColor=#2B2622;" vertex="1" parent="1">
+          <mxGeometry x="940" y="140" width="380" height="210" as="geometry" />
+        </mxCell>
+        <mxCell id="a1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#C96F4A;strokeWidth=2;endArrow=block;" edge="1" parent="1" source="s1" target="s2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#3E7A6E;strokeWidth=2;endArrow=block;" edge="1" parent="1" source="s2" target="s3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="moat" value="护城河：项目制工作流数据 + 设计师迁移成本 + 真实 SKU 生态&#10;不做：重供应链 / 施工履约担保（巨头主场）· AI 全自动建模承诺（技术不成熟）&#10;对标：Collov 验证「视觉AI+可购买闭环」✓  群核验证「设计师订阅」✓  Modsy 证伪「重人工服务」✗" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8E6;strokeColor=#B98A2F;fontSize=12;align=left;spacing=10;fontColor=#2B2622;" vertex="1" parent="1">
+          <mxGeometry x="220" y="420" width="940" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="market" value="市场分层：空间设计软件 2026E ≈43亿元（入口）→ 家装市场 2025E ≈3.78万亿元（变现）→ 家装家居 2030E ≈7万亿元（天花板）&#10;用户心智：62.5% 业主找装企前先问 AI · 37.98% 已用 AI 规划新家（2026 行业信源）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F2F2F2;strokeColor=#999999;fontSize=12;align=left;spacing=10;fontColor=#2B2622;" vertex="1" parent="1">
+          <mxGeometry x="220" y="560" width="940" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="philosophy" value="价值主张：我设计的不是产品，而是生活 —— 不追求设计全自动 AI 化，而是用 AI 消除行业信息壁垒，&#10;让设计师从重复劳动中解放，专注创造；让业主明白设计费的价值远高于材料差价。" style="text;html=1;fontSize=13;fontStyle=2;align=center;verticalAlign=middle;fontColor=#6B6259;" vertex="1" parent="1">
+          <mxGeometry x="220" y="690" width="940" height="60" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="ecosystem" name="生态价值流图">
+    <mxGraphModel dx="1000" dy="700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="t2" value="构境AI 生态价值流：一个工作台连接全流程，不再切换多个软件" style="text;html=1;fontSize=20;fontStyle=1;align=center;verticalAlign=middle;fontColor=#2B2622;" vertex="1" parent="1">
+          <mxGeometry x="300" y="20" width="800" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="owner" value="C端业主&#10;需求·预算·确认·支付&#10;（低频，按项目参与）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F6EFE8;strokeColor=#C96F4A;fontSize=13;fontColor=#2B2622;" vertex="1" parent="1">
+          <mxGeometry x="80" y="120" width="200" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="designer" value="B端设计师 / 设计公司&#10;（高频，订阅付费）&#10;价值核心：创意与决策" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F6EFE8;strokeColor=#C96F4A;strokeWidth=2;fontSize=13;fontColor=#2B2622;" vertex="1" parent="1">
+          <mxGeometry x="80" y="320" width="200" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="platform" value="构境AI 工作台（核心）&#10;——————————&#10;① 需求分析：对话→需求档案&#10;② 风格设计：图像检索意向库&#10;③ 空间建模：平面图→3D白模&#10;④ AI渲染：视口截图+预设技能&#10;⑤ 材料选材：材质→真实SKU&#10;⑥ 家具采买：开放生态库&#10;⑦ 施工管理：项目制·透明报价" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2B2622;strokeColor=#2B2622;fontColor=#FFFFFF;fontSize=13;align=left;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="420" y="180" width="300" height="260" as="geometry" />
+        </mxCell>
+        <mxCell id="su" value="专业软件插件层&#10;SketchUp / Rhino&#10;（只读视觉顾问 + 视口渲染）&#10;设计师现有工作流不被打断" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAF1EF;strokeColor=#3E7A6E;fontSize=12;fontColor=#2B2622;" vertex="1" parent="1">
+          <mxGeometry x="420" y="500" width="300" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="supply" value="家居生态库（开放）&#10;品牌 SKU · 联盟商品 · 3D 模型&#10;真实价格 · 可购买 · 分佣" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAF1EF;strokeColor=#3E7A6E;fontSize=12;fontColor=#2B2622;" vertex="1" parent="1">
+          <mxGeometry x="840" y="120" width="220" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="build" value="施工协同（轻量）&#10;节点 / 验收 / 变更留痕&#10;报价透明 · 不碰履约担保" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFEAF4;strokeColor=#6C5B9E;fontSize=12;fontColor=#2B2622;" vertex="1" parent="1">
+          <mxGeometry x="840" y="300" width="220" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="data" value="数据飞轮&#10;项目数据 → 风格/报价/布局模型 → 反哺工作台" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8E6;strokeColor=#B98A2F;fontSize=12;fontColor=#2B2622;" vertex="1" parent="1">
+          <mxGeometry x="840" y="500" width="220" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" value="提出需求 / 看方案 / 按项目付费" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#C96F4A;endArrow=block;fontSize=11;fontColor=#6B6259;" edge="1" parent="1" source="owner" target="platform">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" value="订阅 / 项目制工作" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#C96F4A;endArrow=block;fontSize=11;fontColor=#6B6259;" edge="1" parent="1" source="designer" target="platform">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" value="插件接入（非替代）" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#3E7A6E;endArrow=block;fontSize=11;fontColor=#6B6259;" edge="1" parent="1" source="platform" target="su">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" value="设计即清单 / 成交分佣" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#3E7A6E;endArrow=block;fontSize=11;fontColor=#6B6259;" edge="1" parent="1" source="platform" target="supply">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" value="透明报价 / 节点协同" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#6C5B9E;endArrow=block;fontSize=11;fontColor=#6B6259;" edge="1" parent="1" source="platform" target="build">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" value="全流程数据沉淀" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#B98A2F;endArrow=block;dashed=1;fontSize=11;fontColor=#6B6259;" edge="1" parent="1" source="platform" target="data">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" value="模型反哺（越用越聪明）" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#B98A2F;endArrow=block;dashed=1;fontSize=11;fontColor=#6B6259;" edge="1" parent="1" source="data" target="platform">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 88 88" fill="none" role="img" aria-label="造境跃迁 ScapeLeap">
+  <rect width="88" height="88" rx="20" fill="currentColor"/>
+  <path fill-rule="evenodd" d="M44.00 18.00 L67.00 31.00 L44.00 44.00 L21.00 31.00 Z M44.00 31.00 L55.50 37.50 L44.00 44.00 L32.50 37.50 Z" fill="#fff"/>
+  <path fill-rule="evenodd" d="M21.00 31.00 L44.00 44.00 L44.00 70.00 L21.00 57.00 Z M32.50 37.50 L44.00 44.00 L44.00 57.00 L32.50 50.50 Z" fill="#fff" fill-opacity="0.32"/>
+  <path fill-rule="evenodd" d="M67.00 31.00 L44.00 44.00 L44.00 70.00 L67.00 57.00 Z M55.50 37.50 L44.00 44.00 L44.00 57.00 L55.50 50.50 Z" fill="#fff" fill-opacity="0.55"/>
+  <path d="M44.00 31.00 L55.50 37.50 L44.00 44.00 L32.50 37.50 Z" fill="#000" fill-opacity="0.55"/>
+  <path d="M32.50 37.50 L44.00 44.00 L44.00 57.00 L32.50 50.50 Z" fill="#000" fill-opacity="0.35"/>
+  <path d="M55.50 37.50 L44.00 44.00 L44.00 57.00 L55.50 50.50 Z" fill="#000" fill-opacity="0.25"/>
+</svg>

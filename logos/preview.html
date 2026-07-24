@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>造境跃迁 · ScapeLeap Logo · A 嵌套隧道</title>
+<style>
+  :root { --ink:#0A0A0A; --g2:#6B6B6B; --line:#E5E5E5; --canvas:#F5F5F5; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body {
+    font-family:"Inter","PingFang SC","Noto Sans SC","Helvetica Neue",system-ui,sans-serif;
+    background:var(--canvas); color:var(--ink); line-height:1.5; padding:40px 24px 80px;
+  }
+  .wrap { max-width:1100px; margin:0 auto; }
+  header { margin-bottom:36px; }
+  header h1 { font-size:28px; font-weight:650; letter-spacing:-0.02em; }
+  header p { color:var(--g2); margin-top:8px; font-size:14px; max-width:680px; }
+  .meta { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
+  .chip {
+    font-size:12px; font-weight:500; padding:4px 10px; border-radius:999px;
+    background:#fff; border:1px solid var(--line); color:var(--g2);
+  }
+  .chip.on { background:var(--ink); border-color:var(--ink); color:#fff; }
+  section { margin-bottom:40px; }
+  section > h2 {
+    font-size:13px; font-weight:600; letter-spacing:0.08em;
+    text-transform:uppercase; color:var(--g2); margin-bottom:14px;
+  }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:14px; }
+  .card {
+    background:#fff; border:1px solid var(--line); border-radius:14px;
+    padding:22px; display:flex; flex-direction:column; gap:14px; min-height:170px;
+  }
+  .card.dark { background:var(--ink); border-color:#1a1a1a; color:#fff; }
+  .card.mid { background:#E8E8E8; }
+  .card .stage { flex:1; display:grid; place-items:center; min-height:100px; }
+  .card .label {
+    font-size:12px; color:var(--g2); display:flex; justify-content:space-between; gap:8px;
+  }
+  .card.dark .label { color:rgba(255,255,255,0.55); }
+  .card .label strong { color:inherit; font-weight:600; opacity:0.95; }
+  .wide { grid-column:1 / -1; }
+  .row {
+    display:flex; flex-wrap:wrap; gap:36px;
+    align-items:center; justify-content:space-around; width:100%;
+  }
+  .mk { width:96px; height:96px; display:block; }
+  .spec { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:720px) { .spec { grid-template-columns:1fr; } }
+  .spec-block {
+    background:#fff; border:1px solid var(--line); border-radius:14px; padding:20px;
+  }
+  .spec-block h3 { font-size:14px; margin-bottom:10px; }
+  .spec-block ul { padding-left:18px; color:var(--g2); font-size:13px; }
+  .spec-block li { margin:4px 0; }
+  .swatches { display:flex; gap:10px; flex-wrap:wrap; margin-top:8px; }
+  .swatch {
+    width:64px; height:64px; border-radius:10px;
+    display:flex; align-items:flex-end; padding:6px;
+    font-size:9px; font-weight:700; color:#fff; border:1px solid rgba(0,0,0,0.06);
+  }
+  .swatch.lt { color:#0A0A0A; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>造境跃迁 · ScapeLeap</h1>
+    <p>定稿 <strong>A · 嵌套隧道</strong>：正等轴测外立方 + 内立方（scale = <strong>0.5</strong>）。纵深隧道 / 空间内窥；黑白分色块，几何居中。</p>
+    <div class="meta">
+      <span class="chip on">A 嵌套隧道</span>
+      <span class="chip">内立方 0.5</span>
+      <span class="chip">几何居中</span>
+      <span class="chip">黑 / 白 / 灰</span>
+    </div>
+  </header>
+
+  <section>
+    <h2>01 · Mark</h2>
+    <div class="grid">
+      <div class="card">
+        <div class="stage"><svg class="mk" viewBox="0 0 88 88" fill="none">
+  <rect width="88" height="88" rx="20" fill="#0A0A0A"/>
+  <path fill-rule="evenodd" d="M44.00 18.00 L67.00 31.00 L44.00 44.00 L21.00 31.00 Z M44.00 31.00 L55.50 37.50 L44.00 44.00 L32.50 37.50 Z" fill="#FFFFFF"/>
+  <path fill-rule="evenodd" d="M21.00 31.00 L44.00 44.00 L44.00 70.00 L21.00 57.00 Z M32.50 37.50 L44.00 44.00 L44.00 57.00 L32.50 50.50 Z" fill="#3A3A3A"/>
+  <path fill-rule="evenodd" d="M67.00 31.00 L44.00 44.00 L44.00 70.00 L67.00 57.00 Z M55.50 37.50 L44.00 44.00 L44.00 57.00 L55.50 50.50 Z" fill="#6B6B6B"/>
+  <path d="M44.00 31.00 L55.50 37.50 L44.00 44.00 L32.50 37.50 Z" fill="#0A0A0A"/>
+  <path d="M32.50 37.50 L44.00 44.00 L44.00 57.00 L32.50 50.50 Z" fill="#1A1A1A"/>
+  <path d="M55.50 37.50 L44.00 44.00 L44.00 57.00 L55.50 50.50 Z" fill="#2A2A2A"/>
+        </svg></div>
+        <div class="label"><strong>主标 · 黑底</strong><span>App / 侧栏</span></div>
+      </div>
+      <div class="card dark">
+        <div class="stage"><svg class="mk" viewBox="0 0 88 88" fill="none">
+  <rect width="88" height="88" rx="20" fill="#FFFFFF"/>
+  <path fill-rule="evenodd" d="M44.00 18.00 L67.00 31.00 L44.00 44.00 L21.00 31.00 Z M44.00 31.00 L55.50 37.50 L44.00 44.00 L32.50 37.50 Z" fill="#0A0A0A"/>
+  <path fill-rule="evenodd" d="M21.00 31.00 L44.00 44.00 L44.00 70.00 L21.00 57.00 Z M32.50 37.50 L44.00 44.00 L44.00 57.00 L32.50 50.50 Z" fill="#6B6B6B"/>
+  <path fill-rule="evenodd" d="M67.00 31.00 L44.00 44.00 L44.00 70.00 L67.00 57.00 Z M55.50 37.50 L44.00 44.00 L44.00 57.00 L55.50 50.50 Z" fill="#3A3A3A"/>
+  <path d="M44.00 31.00 L55.50 37.50 L44.00 44.00 L32.50 37.50 Z" fill="#FFFFFF"/>
+  <path d="M32.50 37.50 L44.00 44.00 L44.00 57.00 L32.50 50.50 Z" fill="#E8E8E8"/>
+  <path d="M55.50 37.50 L44.00 44.00 L44.00 57.00 L55.50 50.50 Z" fill="#D0D0D0"/>
+        </svg></div>
+        <div class="label"><strong>反白 · 白底标</strong><span>深色 UI</span></div>
+      </div>
+      <div class="card mid">
+        <div class="stage"><svg class="mk" viewBox="0 0 88 88" fill="none">
+  <path fill-rule="evenodd" d="M44.00 18.00 L67.00 31.00 L44.00 44.00 L21.00 31.00 Z M44.00 31.00 L55.50 37.50 L44.00 44.00 L32.50 37.50 Z" fill="#0A0A0A"/>
+  <path fill-rule="evenodd" d="M21.00 31.00 L44.00 44.00 L44.00 70.00 L21.00 57.00 Z M32.50 37.50 L44.00 44.00 L44.00 57.00 L32.50 50.50 Z" fill="#6B6B6B"/>
+  <path fill-rule="evenodd" d="M67.00 31.00 L44.00 44.00 L44.00 70.00 L67.00 57.00 Z M55.50 37.50 L44.00 44.00 L44.00 57.00 L55.50 50.50 Z" fill="#3A3A3A"/>
+  <path d="M44.00 31.00 L55.50 37.50 L44.00 44.00 L32.50 37.50 Z" fill="#FFFFFF"/>
+  <path d="M32.50 37.50 L44.00 44.00 L44.00 57.00 L32.50 50.50 Z" fill="#E0E0E0"/>
+  <path d="M55.50 37.50 L44.00 44.00 L44.00 57.00 L55.50 50.50 Z" fill="#C8C8C8"/>
+        </svg></div>
+        <div class="label"><strong>裸几何</strong><span>无容器</span></div>
+      </div>
+      <div class="card">
+        <div class="stage">
+          <div class="row" style="gap:14px;align-items:flex-end">
+            <svg width="16" height="16" viewBox="0 0 88 88"><rect width="88" height="88" rx="20" fill="#0A0A0A"/>  <path fill-rule="evenodd" d="M44.00 18.00 L67.00 31.00 L44.00 44.00 L21.00 31.00 Z M44.00 31.00 L55.50 37.50 L44.00 44.00 L32.50 37.50 Z" fill="#FFFFFF"/>
+  <path fill-rule="evenodd" d="M21.00 31.00 L44.00 44.00 L44.00 70.00 L21.00 57.00 Z M32.50 37.50 L44.00 44.00 L44.00 57.00 L32.50 50.50 Z" fill="#3A3A3A"/>
+  <path fill-rule="evenodd" d="M67.00 31.00 L44.00 44.00 L44.00 70.00 L67.00 57.00 Z M55.50 37.50 L44.00 44.00 L44.00 57.00 L55.50 50.50 Z" fill="#6B6B6B"/>
+  <path d="M44.00 31.00 L55.50 37.50 L44.00 44.00 L32.50 37.50 Z" fill="#0A0A0A"/>
+  <path d="M32.50 37.50 L44.00 44.00 L44.00 57.00 L32.50 50.50 Z" fill="#1A1A1A"/>
+  <path d="M55.50 37.50 L44.00 44.00 L44.00 57.00 L55.50 50.50 Z" fill="#2A2A2A"/></svg>
+            <svg width="24" height="24" viewBox="0 0 88 88"><rect width="88" height="88" rx="20" fill="#0A0A0A"/>  <path fill-rule="evenodd" d="M44.00 18.00 L67.00 31.00 L44.00 44.00 L21.00 31.00 Z M44.00 31.00 L55.50 37.50 L44.00 44.00 L32.50 37.50 Z" fill="#FFFFFF"/>
+  <path fill-rule="evenodd" d="M21.00 31.00 L44.00 44.00 L44.00 70.00 L21.00 57.00 Z M32.50 37.50 L44.00 44.00 L44.00 57.00 L32.50 50.50 Z" fill="#3A3A3A"/>
+  <path fill-rule="evenodd" d="M67.00 31.00 L44.00 44.00 L44.00 70.00 L67.00 57.00 Z M55.50 37.50 L44.00 44.00 L44.00 57.00 L55.50 50.50 Z" fill="#6B6B6B"/>
+  <path d="M44.00 31.00 L55.50 37.50 L44.00 44.00 L32.50 37.50 Z" fill="#0A0A0A"/>
+  <path d="M32.50 37.50 L44.00 44.00 L44.00 57.00 L32.50 50.50 Z" fill="#1A1A1A"/>
+  <path d="M55.50 37.50 L44.00 44.00 L44.00 57.00 L55.50 50.50 Z" fill="#2A2A2A"/></svg>
+            <svg width="32" height="32" viewBox="0 0 88 88"><rect width="88" height="88" rx="20" fill="#0A0A0A"/>  <path fill-rule="evenodd" d="M44.00 18.00 L67.00 31.00 L44.00 44.00 L21.00 31.00 Z M44.00 31.00 L55.50 37.50 L44.00 44.00 L32.50 37.50 Z" fill="#FFFFFF"/>
+  <path fill-rule="evenodd" d="M21.00 31.00 L44.00 44.00 L44.00 70.00 L21.00 57.00 Z M32.50 37.50 L44.00 44.00 L44.00 57.00 L32.50 50.50 Z" fill="#3A3A3A"/>
+  <path fill-rule="evenodd" d="M67.00 31.00 L44.00 44.00 L44.00 70.00 L67.00 57.00 Z M55.50 37.50 L44.00 44.00 L44.00 57.00 L55.50 50.50 Z" fill="#6B6B6B"/>
+  <path d="M44.00 31.00 L55.50 37.50 L44.00 44.00 L32.50 37.50 Z" fill="#0A0A0A"/>
+  <path d="M32.50 37.50 L44.00 44.00 L44.00 57.00 L32.50 50.50 Z" fill="#1A1A1A"/>
+  <path d="M55.50 37.50 L44.00 44.00 L44.00 57.00 L55.50 50.50 Z" fill="#2A2A2A"/></svg>
+            <svg width="48" height="48" viewBox="0 0 88 88"><rect width="88" height="88" rx="20" fill="#0A0A0A"/>  <path fill-rule="evenodd" d="M44.00 18.00 L67.00 31.00 L44.00 44.00 L21.00 31.00 Z M44.00 31.00 L55.50 37.50 L44.00 44.00 L32.50 37.50 Z" fill="#FFFFFF"/>
+  <path fill-rule="evenodd" d="M21.00 31.00 L44.00 44.00 L44.00 70.00 L21.00 57.00 Z M32.50 37.50 L44.00 44.00 L44.00 57.00 L32.50 50.50 Z" fill="#3A3A3A"/>
+  <path fill-rule="evenodd" d="M67.00 31.00 L44.00 44.00 L44.00 70.00 L67.00 57.00 Z M55.50 37.50 L44.00 44.00 L44.00 57.00 L55.50 50.50 Z" fill="#6B6B6B"/>
+  <path d="M44.00 31.00 L55.50 37.50 L44.00 44.00 L32.50 37.50 Z" fill="#0A0A0A"/>
+  <path d="M32.50 37.50 L44.00 44.00 L44.00 57.00 L32.50 50.50 Z" fill="#1A1A1A"/>
+  <path d="M55.50 37.50 L44.00 44.00 L44.00 57.00 L55.50 50.50 Z" fill="#2A2A2A"/></svg>
+          </div>
+        </div>
+        <div class="label"><strong>缩放 16–48</strong><span>嵌套仍可辨</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>02 · 中文 Logo · 造境跃迁</h2>
+    <div class="grid">
+      <div class="card wide">
+        <div class="stage">
+          <div class="row">
+            <svg width="340" height="56" viewBox="0 0 340 56" fill="none">
+  <rect width="56" height="56" rx="13" fill="#0A0A0A"/>
+  <g transform="scale(0.63636364)">
+      <path fill-rule="evenodd" d="M44.00 18.00 L67.00 31.00 L44.00 44.00 L21.00 31.00 Z M44.00 31.00 L55.50 37.50 L44.00 44.00 L32.50 37.50 Z" fill="#FFFFFF"/>
+      <path fill-rule="evenodd" d="M21.00 31.00 L44.00 44.00 L44.00 70.00 L21.00 57.00 Z M32.50 37.50 L44.00 44.00 L44.00 57.00 L32.50 50.50 Z" fill="#3A3A3A"/>
+      <path fill-rule="evenodd" d="M67.00 31.00 L44.00 44.00 L44.00 70.00 L67.00 57.00 Z M55.50 37.50 L44.00 44.00 L44.00 57.00 L55.50 50.50 Z" fill="#6B6B6B"/>
+      <path d="M44.00 31.00 L55.50 37.50 L44.00 44.00 L32.50 37.50 Z" fill="#0A0A0A"/>
+      <path d="M32.50 37.50 L44.00 44.00 L44.00 57.00 L32.50 50.50 Z" fill="#1A1A1A"/>
+      <path d="M55.50 37.50 L44.00 44.00 L44.00 57.00 L55.50 50.50 Z" fill="#2A2A2A"/>
+  </g>
+              <text x="72" y="37" font-family="PingFang SC, Noto Sans SC, sans-serif" font-size="28" font-weight="650" fill="#0A0A0A" letter-spacing="0.08em">造境跃迁</text>
+            </svg>
+            <svg width="120" height="100" viewBox="0 0 120 100" fill="none">
+              <g transform="translate(32,0)">
+  <rect width="56" height="56" rx="13" fill="#0A0A0A"/>
+  <g transform="scale(0.63636364)">
+      <path fill-rule="evenodd" d="M44.00 18.00 L67.00 31.00 L44.00 44.00 L21.00 31.00 Z M44.00 31.00 L55.50 37.50 L44.00 44.00 L32.50 37.50 Z" fill="#FFFFFF"/>
+      <path fill-rule="evenodd" d="M21.00 31.00 L44.00 44.00 L44.00 70.00 L21.00 57.00 Z M32.50 37.50 L44.00 44.00 L44.00 57.00 L32.50 50.50 Z" fill="#3A3A3A"/>
+      <path fill-rule="evenodd" d="M67.00 31.00 L44.00 44.00 L44.00 70.00 L67.00 57.00 Z M55.50 37.50 L44.00 44.00 L44.00 57.00 L55.50 50.50 Z" fill="#6B6B6B"/>
+      <path d="M44.00 31.00 L55.50 37.50 L44.00 44.00 L32.50 37.50 Z" fill="#0A0A0A"/>
+      <path d="M32.50 37.50 L44.00 44.00 L44.00 57.00 L32.50 50.50 Z" fill="#1A1A1A"/>
+      <path d="M55.50 37.50 L44.00 44.00 L44.00 57.00 L55.50 50.50 Z" fill="#2A2A2A"/>
+  </g>
+              </g>
+              <text x="60" y="88" text-anchor="middle" font-family="PingFang SC, sans-serif" font-size="16" font-weight="650" fill="#0A0A0A" letter-spacing="0.12em">造境跃迁</text>
+            </svg>
+            <span style="font-size:30px;font-weight:700;letter-spacing:0.1em">造境跃迁</span>
+          </div>
+        </div>
+        <div class="label"><strong>横版 / 竖叠 / 纯字标</strong></div>
+      </div>
+      <div class="card dark wide">
+        <div class="stage">
+          <svg width="340" height="56" viewBox="0 0 340 56" fill="none">
+  <rect width="56" height="56" rx="13" fill="#FFFFFF"/>
+  <g transform="scale(0.63636364)">
+      <path fill-rule="evenodd" d="M44.00 18.00 L67.00 31.00 L44.00 44.00 L21.00 31.00 Z M44.00 31.00 L55.50 37.50 L44.00 44.00 L32.50 37.50 Z" fill="#0A0A0A"/>
+      <path fill-rule="evenodd" d="M21.00 31.00 L44.00 44.00 L44.00 70.00 L21.00 57.00 Z M32.50 37.50 L44.00 44.00 L44.00 57.00 L32.50 50.50 Z" fill="#6B6B6B"/>
+      <path fill-rule="evenodd" d="M67.00 31.00 L44.00 44.00 L44.00 70.00 L67.00 57.00 Z M55.50 37.50 L44.00 44.00 L44.00 57.00 L55.50 50.50 Z" fill="#3A3A3A"/>
+      <path d="M44.00 31.00 L55.50 37.50 L44.00 44.00 L32.50 37.50 Z" fill="#FFFFFF"/>
+      <path d="M32.50 37.50 L44.00 44.00 L44.00 57.00 L32.50 50.50 Z" fill="#E8E8E8"/>
+      <path d="M55.50 37.50 L44.00 44.00 L44.00 57.00 L55.50 50.50 Z" fill="#D0D0D0"/>
+  </g>
+            <text x="72" y="37" font-family="PingFang SC, sans-serif" font-size="28" font-weight="650" fill="#FFFFFF" letter-spacing="0.08em">造境跃迁</text>
+          </svg>
+        </div>
+        <div class="label"><strong>中文 · 深色底</strong></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>03 · English Logo · ScapeLeap</h2>
+    <div class="grid">
+      <div class="card wide">
+        <div class="stage">
+          <div class="row">
+            <svg width="300" height="52" viewBox="0 0 300 52" fill="none">
+  <rect width="52" height="52" rx="12" fill="#0A0A0A"/>
+  <g transform="scale(0.59090909)">
+      <path fill-rule="evenodd" d="M44.00 18.00 L67.00 31.00 L44.00 44.00 L21.00 31.00 Z M44.00 31.00 L55.50 37.50 L44.00 44.00 L32.50 37.50 Z" fill="#FFFFFF"/>
+      <path fill-rule="evenodd" d="M21.00 31.00 L44.00 44.00 L44.00 70.00 L21.00 57.00 Z M32.50 37.50 L44.00 44.00 L44.00 57.00 L32.50 50.50 Z" fill="#3A3A3A"/>
+      <path fill-rule="evenodd" d="M67.00 31.00 L44.00 44.00 L44.00 70.00 L67.00 57.00 Z M55.50 37.50 L44.00 44.00 L44.00 57.00 L55.50 50.50 Z" fill="#6B6B6B"/>
+      <path d="M44.00 31.00 L55.50 37.50 L44.00 44.00 L32.50 37.50 Z" fill="#0A0A0A"/>
+      <path d="M32.50 37.50 L44.00 44.00 L44.00 57.00 L32.50 50.50 Z" fill="#1A1A1A"/>
+      <path d="M55.50 37.50 L44.00 44.00 L44.00 57.00 L55.50 50.50 Z" fill="#2A2A2A"/>
+  </g>
+              <text x="66" y="34" font-family="Helvetica Neue, Arial, sans-serif" font-size="26" font-weight="700" fill="#0A0A0A" letter-spacing="-0.02em">ScapeLeap</text>
+            </svg>
+            <span style="font-size:28px;font-weight:700;letter-spacing:-0.02em">ScapeLeap</span>
+          </div>
+        </div>
+        <div class="label"><strong>横版 / 纯字标</strong></div>
+      </div>
+      <div class="card dark wide">
+        <div class="stage">
+          <svg width="300" height="52" viewBox="0 0 300 52" fill="none">
+  <rect width="52" height="52" rx="12" fill="#FFFFFF"/>
+  <g transform="scale(0.59090909)">
+      <path fill-rule="evenodd" d="M44.00 18.00 L67.00 31.00 L44.00 44.00 L21.00 31.00 Z M44.00 31.00 L55.50 37.50 L44.00 44.00 L32.50 37.50 Z" fill="#0A0A0A"/>
+      <path fill-rule="evenodd" d="M21.00 31.00 L44.00 44.00 L44.00 70.00 L21.00 57.00 Z M32.50 37.50 L44.00 44.00 L44.00 57.00 L32.50 50.50 Z" fill="#6B6B6B"/>
+      <path fill-rule="evenodd" d="M67.00 31.00 L44.00 44.00 L44.00 70.00 L67.00 57.00 Z M55.50 37.50 L44.00 44.00 L44.00 57.00 L55.50 50.50 Z" fill="#3A3A3A"/>
+      <path d="M44.00 31.00 L55.50 37.50 L44.00 44.00 L32.50 37.50 Z" fill="#FFFFFF"/>
+      <path d="M32.50 37.50 L44.00 44.00 L44.00 57.00 L32.50 50.50 Z" fill="#E8E8E8"/>
+      <path d="M55.50 37.50 L44.00 44.00 L44.00 57.00 L55.50 50.50 Z" fill="#D0D0D0"/>
+  </g>
+            <text x="66" y="34" font-family="Helvetica Neue, Arial, sans-serif" font-size="26" font-weight="700" fill="#FFFFFF" letter-spacing="-0.02em">ScapeLeap</text>
+          </svg>
+        </div>
+        <div class="label"><strong>英文 · 深色底</strong></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>04 · 中英双语</h2>
+    <div class="grid">
+      <div class="card wide">
+        <div class="stage">
+          <div class="row" style="gap:48px">
+            <svg width="280" height="72" viewBox="0 0 280 72" fill="none">
+              <g transform="translate(0,8)">
+  <rect width="56" height="56" rx="13" fill="#0A0A0A"/>
+  <g transform="scale(0.63636364)">
+      <path fill-rule="evenodd" d="M44.00 18.00 L67.00 31.00 L44.00 44.00 L21.00 31.00 Z M44.00 31.00 L55.50 37.50 L44.00 44.00 L32.50 37.50 Z" fill="#FFFFFF"/>
+      <path fill-rule="evenodd" d="M21.00 31.00 L44.00 44.00 L44.00 70.00 L21.00 57.00 Z M32.50 37.50 L44.00 44.00 L44.00 57.00 L32.50 50.50 Z" fill="#3A3A3A"/>
+      <path fill-rule="evenodd" d="M67.00 31.00 L44.00 44.00 L44.00 70.00 L67.00 57.00 Z M55.50 37.50 L44.00 44.00 L44.00 57.00 L55.50 50.50 Z" fill="#6B6B6B"/>
+      <path d="M44.00 31.00 L55.50 37.50 L44.00 44.00 L32.50 37.50 Z" fill="#0A0A0A"/>
+      <path d="M32.50 37.50 L44.00 44.00 L44.00 57.00 L32.50 50.50 Z" fill="#1A1A1A"/>
+      <path d="M55.50 37.50 L44.00 44.00 L44.00 57.00 L55.50 50.50 Z" fill="#2A2A2A"/>
+  </g>
+              </g>
+              <text x="72" y="36" font-family="PingFang SC, sans-serif" font-size="26" font-weight="650" fill="#0A0A0A" letter-spacing="0.08em">造境跃迁</text>
+              <text x="72" y="58" font-family="Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="550" fill="#6B6B6B" letter-spacing="0.04em">ScapeLeap</text>
+            </svg>
+            <svg width="260" height="72" viewBox="0 0 260 72" fill="none">
+              <g transform="translate(0,8)">
+  <rect width="56" height="56" rx="13" fill="#0A0A0A"/>
+  <g transform="scale(0.63636364)">
+      <path fill-rule="evenodd" d="M44.00 18.00 L67.00 31.00 L44.00 44.00 L21.00 31.00 Z M44.00 31.00 L55.50 37.50 L44.00 44.00 L32.50 37.50 Z" fill="#FFFFFF"/>
+      <path fill-rule="evenodd" d="M21.00 31.00 L44.00 44.00 L44.00 70.00 L21.00 57.00 Z M32.50 37.50 L44.00 44.00 L44.00 57.00 L32.50 50.50 Z" fill="#3A3A3A"/>
+      <path fill-rule="evenodd" d="M67.00 31.00 L44.00 44.00 L44.00 70.00 L67.00 57.00 Z M55.50 37.50 L44.00 44.00 L44.00 57.00 L55.50 50.50 Z" fill="#6B6B6B"/>
+      <path d="M44.00 31.00 L55.50 37.50 L44.00 44.00 L32.50 37.50 Z" fill="#0A0A0A"/>
+      <path d="M32.50 37.50 L44.00 44.00 L44.00 57.00 L32.50 50.50 Z" fill="#1A1A1A"/>
+      <path d="M55.50 37.50 L44.00 44.00 L44.00 57.00 L55.50 50.50 Z" fill="#2A2A2A"/>
+  </g>
+              </g>
+              <text x="72" y="36" font-family="Helvetica Neue, Arial, sans-serif" font-size="24" font-weight="700" fill="#0A0A0A" letter-spacing="-0.02em">ScapeLeap</text>
+              <text x="72" y="58" font-family="PingFang SC, sans-serif" font-size="14" font-weight="550" fill="#6B6B6B" letter-spacing="0.1em">造境跃迁</text>
+            </svg>
+          </div>
+        </div>
+        <div class="label"><strong>中文主 · 英文主</strong></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>05 · 规范</h2>
+    <div class="spec">
+      <div class="spec-block">
+        <h3>图形构造</h3>
+        <ul>
+          <li>正等轴测外立方 + 同心内立方（<strong>scale = 0.5</strong>）</li>
+          <li>外层 evenodd 镂空，内层实心，形成隧道纵深</li>
+          <li>可读：空间内窥 / 无限内缩 / 外凸体中有腔</li>
+          <li>bbox 居中于容器 (44,44)；无三角、无描边</li>
+        </ul>
+      </div>
+      <div class="spec-block">
+        <h3>色板</h3>
+        <div class="swatches">
+          <div class="swatch" style="background:#0A0A0A">#0A0A0A</div>
+          <div class="swatch" style="background:#1A1A1A">#1A1A1A</div>
+          <div class="swatch" style="background:#3A3A3A">#3A3A3A</div>
+          <div class="swatch" style="background:#6B6B6B">#6B6B6B</div>
+          <div class="swatch lt" style="background:#FFFFFF;border-color:#ddd">#FFFFFF</div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+</body>
+</html>

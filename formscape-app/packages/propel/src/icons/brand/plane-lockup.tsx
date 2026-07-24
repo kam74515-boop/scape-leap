@@ -1,0 +1,53 @@
+/**
+ * 构境AI mark + 字标组合（原 PlaneLockup）
+ */
+import * as React from "react";
+
+import type { ISvgIcons } from "../type";
+
+export function PlaneLockup({ width = "140", height = "32", className, color = "currentColor" }: ISvgIcons) {
+  return (
+    <svg
+      width={width}
+      height={height}
+      viewBox="0 0 200 40"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      role="img"
+      aria-label="构境AI formscape"
+    >
+      <g transform="translate(0,2) scale(0.409)">
+        <rect width="88" height="88" rx="20" fill={color} opacity="0.1" />
+        <path
+          fillRule="evenodd"
+          d="M44 18 L67 31 L44 44 L21 31 Z M44 31 L55.5 37.5 L44 44 L32.5 37.5 Z"
+          fill={color}
+        />
+        <path
+          fillRule="evenodd"
+          d="M21 31 L44 44 L44 70 L21 57 Z M32.5 37.5 L44 44 L44 57 L32.5 50.5 Z"
+          fill={color}
+          opacity="0.55"
+        />
+        <path
+          fillRule="evenodd"
+          d="M67 31 L44 44 L44 70 L67 57 Z M55.5 37.5 L44 44 L44 57 L55.5 50.5 Z"
+          fill={color}
+          opacity="0.35"
+        />
+      </g>
+      <text
+        x="48"
+        y="28"
+        fill={color}
+        fontFamily="'PingFang SC','Noto Sans SC','Microsoft YaHei',system-ui,sans-serif"
+        fontSize="20"
+        fontWeight="650"
+        letterSpacing="0.06em"
+      >
+        构境AI
+      </text>
+    </svg>
+  );
+}

@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>构境AI · UI 方向提案（4 套）</title>
+<style>
+  :root { --ink:#111; --muted:#666; --line:#e8e8ea; --bg:#f4f4f5; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }
+  .chooser {
+    position: sticky; top: 0; z-index: 50; background: rgba(255,255,255,.92); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line); padding: 14px 20px 12px;
+  }
+  .chooser h1 { font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
+  .chooser p { font-size: 12.5px; color: var(--muted); margin-top: 4px; max-width: 720px; line-height: 1.45; }
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .tab {
+    border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 7px 14px;
+    font-size: 13px; cursor: pointer; color: #444; transition: .15s;
+  }
+  .tab:hover { border-color: #bbb; }
+  .tab.on { background: #111; color: #fff; border-color: #111; }
+  .tab b { font-weight: 600; }
+  .tab span { opacity: .75; margin-left: 6px; font-size: 12px; }
+  .stage { padding: 18px; }
+  .frame {
+    display: none; width: min(1280px, 100%); margin: 0 auto; height: calc(100vh - 130px);
+    border-radius: 16px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,.08); border: 1px solid var(--line);
+    background: #fff;
+  }
+  .frame.on { display: flex; }
+  .note {
+    width: min(1280px, 100%); margin: 10px auto 0; font-size: 12px; color: var(--muted); line-height: 1.5;
+  }
+
+  /* ========== A: 画布优先 · 编辑器 ========== */
+  .A { background: #0f0f10; color: #ececec; font-size: 13px; }
+  .A .rail {
+    width: 56px; background: #0a0a0b; border-right: 1px solid #222; display: flex; flex-direction: column;
+    align-items: center; padding: 12px 0; gap: 8px;
+  }
+  .A .rail .logo { width: 32px; height: 32px; border-radius: 9px; background: #fff; color: #000; display:grid; place-items:center; font-weight:700; font-size:13px; margin-bottom: 8px; }
+  .A .rail .ic {
+    width: 36px; height: 36px; border-radius: 10px; display:grid; place-items:center; color: #888; cursor:pointer;
+  }
+  .A .rail .ic.on, .A .rail .ic:hover { background: #1c1c1f; color: #fff; }
+  .A .mid { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .A .top {
+    height: 48px; border-bottom: 1px solid #222; display: flex; align-items: center; gap: 12px; padding: 0 14px;
+  }
+  .A .crumb { color: #888; font-size: 12px; }
+  .A .crumb strong { color: #eee; font-weight: 500; }
+  .A .top .sp { flex: 1; }
+  .A .pill { border: 1px solid #333; border-radius: 8px; padding: 5px 10px; color: #bbb; font-size: 12px; }
+  .A .btn-p { background: #fff; color: #000; border: none; border-radius: 8px; padding: 6px 12px; font-weight: 600; font-size: 12px; }
+  .A .body { flex: 1; display: grid; grid-template-columns: 220px 1fr 300px; min-height: 0; }
+  .A .list { border-right: 1px solid #222; padding: 12px; overflow: auto; background: #121214; }
+  .A .list h3 { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: .06em; margin: 10px 0 8px; }
+  .A .proj {
+    padding: 10px; border-radius: 10px; margin-bottom: 6px; cursor: pointer; border: 1px solid transparent;
+  }
+  .A .proj.on { background: #1a1a1e; border-color: #2a2a30; }
+  .A .proj:hover { background: #18181b; }
+  .A .proj .n { font-size: 13px; margin-bottom: 4px; }
+  .A .proj .m { font-size: 11px; color: #666; }
+  .A .canvas {
+    background:
+      radial-gradient(circle at 1px 1px, #2a2a2e 1px, transparent 0) 0 0 / 22px 22px,
+      #141416;
+    position: relative; overflow: hidden;
+  }
+  .A .node {
+    position: absolute; border-radius: 12px; border: 1px solid #333; background: #1c1c20;
+    box-shadow: 0 12px 40px rgba(0,0,0,.35); overflow: hidden;
+  }
+  .A .node.sel { border-color: #a78bfa; box-shadow: 0 0 0 1px #a78bfa55, 0 12px 40px rgba(0,0,0,.4); }
+  .A .node .img { height: 110px; }
+  .A .node .cap { padding: 8px 10px; font-size: 12px; color: #ccc; }
+  .A .right { border-left: 1px solid #222; background: #121214; display: flex; flex-direction: column; }
+  .A .ai-head { padding: 12px 14px; border-bottom: 1px solid #222; display:flex; align-items:center; gap:8px; }
+  .A .ai-head .dot { width: 8px; height: 8px; border-radius: 50%; background: #a78bfa; }
+  .A .ai-body { flex: 1; padding: 14px; font-size: 12.5px; color: #aaa; line-height: 1.55; }
+  .A .ai-body .bubble { background: #1a1a1e; border-radius: 12px; padding: 10px 12px; margin-bottom: 10px; }
+  .A .ai-in { border-top: 1px solid #222; padding: 10px; }
+  .A .ai-in input {
+    width: 100%; background: #1a1a1e; border: 1px solid #2a2a30; border-radius: 10px;
+    padding: 10px 12px; color: #eee; outline: none;
+  }
+
+  /* ========== B: 画廊 / 编辑部 · 设计工作室感 ========== */
+  .B { background: #f7f4ef; color: #1c1917; }
+  .B .topbar {
+    height: 64px; display: flex; align-items: center; padding: 0 28px; gap: 28px;
+    border-bottom: 1px solid #e7e0d6; background: #faf8f5;
+  }
+  .B .logo { font-family: "Iowan Old Style", "Songti SC", serif; font-size: 20px; letter-spacing: .04em; }
+  .B .nav a { color: #78716c; text-decoration: none; font-size: 13.5px; margin-right: 18px; }
+  .B .nav a.on { color: #1c1917; border-bottom: 1.5px solid #1c1917; padding-bottom: 2px; }
+  .B .sp { flex: 1; }
+  .B .ghost { border: 1px solid #d6d3d1; background: transparent; border-radius: 999px; padding: 7px 14px; font-size: 13px; }
+  .B .solid { background: #1c1917; color: #fafaf9; border: none; border-radius: 999px; padding: 8px 16px; font-size: 13px; }
+  .B .main { display: grid; grid-template-columns: 1fr 340px; height: calc(100% - 64px); }
+  .B .gallery { padding: 28px 28px 40px; overflow: auto; }
+  .B .hero {
+    display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; margin-bottom: 28px;
+  }
+  .B .hero-card {
+    border-radius: 20px; overflow: hidden; min-height: 220px; position: relative;
+    background: linear-gradient(145deg, #e8d5c4, #b08968);
+  }
+  .B .hero-card.alt { background: linear-gradient(145deg, #d6d2c8, #8a857c); min-height: 220px; }
+  .B .hero-card .lab {
+    position: absolute; left: 20px; bottom: 18px; color: #fff;
+  }
+  .B .hero-card .lab h2 { font-size: 22px; font-weight: 500; font-family: "Iowan Old Style", "Songti SC", serif; }
+  .B .hero-card .lab p { font-size: 12.5px; opacity: .9; margin-top: 4px; }
+  .B .section-t { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: #a8a29e; margin: 8px 0 14px; }
+  .B .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .B .card {
+    background: #fff; border-radius: 16px; overflow: hidden; border: 1px solid #ebe6df;
+  }
+  .B .card .ph { height: 120px; }
+  .B .card .bd { padding: 12px 14px 14px; }
+  .B .card h4 { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+  .B .card p { font-size: 12px; color: #78716c; }
+  .B .side {
+    border-left: 1px solid #e7e0d6; background: #faf8f5; padding: 24px 20px; overflow: auto;
+  }
+  .B .side h3 { font-family: "Iowan Old Style", "Songti SC", serif; font-size: 18px; font-weight: 500; margin-bottom: 16px; }
+  .B .timeline { border-left: 1px solid #e7e0d6; margin-left: 8px; padding-left: 16px; }
+  .B .tl-item { margin-bottom: 18px; position: relative; }
+  .B .tl-item::before {
+    content: ""; width: 8px; height: 8px; border-radius: 50%; background: #1c1917;
+    position: absolute; left: -20.5px; top: 4px;
+  }
+  .B .tl-item .t { font-size: 13px; font-weight: 500; }
+  .B .tl-item .d { font-size: 12px; color: #78716c; margin-top: 2px; }
+  .B .quote {
+    margin-top: 24px; padding: 16px; border-radius: 14px; background: #fff; border: 1px solid #ebe6df;
+    font-size: 13px; line-height: 1.55; color: #44403c;
+  }
+
+  /* ========== C: 仪表盘 / Linear 密度 ========== */
+  .C { background: #fafafa; color: #0a0a0a; font-size: 13px; }
+  .C .shell { display: grid; grid-template-columns: 200px 1fr; height: 100%; }
+  .C .side {
+    background: #fff; border-right: 1px solid #ececec; padding: 16px 12px; display: flex; flex-direction: column;
+  }
+  .C .ws {
+    display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 8px; border: 1px solid #ececec; margin-bottom: 14px;
+  }
+  .C .ws i { width: 22px; height: 22px; border-radius: 6px; background: #111; color: #fff; display:grid; place-items:center; font-size: 11px; font-style: normal; font-weight: 600; }
+  .C .ws div { font-size: 12.5px; font-weight: 600; }
+  .C .ws small { display:block; font-weight: 400; color: #888; font-size: 11px; }
+  .C .nav-item {
+    display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 7px; color: #555; margin-bottom: 2px; cursor: pointer;
+  }
+  .C .nav-item.on { background: #f0f0f0; color: #111; font-weight: 500; }
+  .C .nav-item .badge {
+    margin-left: auto; background: #111; color: #fff; font-size: 10px; border-radius: 999px; padding: 1px 6px;
+  }
+  .C .main { display: flex; flex-direction: column; min-width: 0; }
+  .C .bar {
+    height: 44px; border-bottom: 1px solid #ececec; background: #fff; display: flex; align-items: center;
+    padding: 0 16px; gap: 10px;
+  }
+  .C .search {
+    flex: 1; max-width: 360px; background: #f5f5f5; border: none; border-radius: 8px; padding: 7px 10px; font-size: 12.5px;
+  }
+  .C .content { padding: 16px 18px; overflow: auto; }
+  .C .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
+  .C .kpi {
+    background: #fff; border: 1px solid #ececec; border-radius: 10px; padding: 12px 14px;
+  }
+  .C .kpi .n { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+  .C .kpi .l { font-size: 11.5px; color: #888; margin-top: 2px; }
+  .C .panel { background: #fff; border: 1px solid #ececec; border-radius: 12px; overflow: hidden; }
+  .C .panel-h {
+    display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid #f0f0f0;
+    font-size: 12.5px; font-weight: 600;
+  }
+  .C table { width: 100%; border-collapse: collapse; }
+  .C th {
+    text-align: left; font-size: 11px; color: #999; font-weight: 500; padding: 8px 14px; border-bottom: 1px solid #f0f0f0;
+  }
+  .C td { padding: 10px 14px; border-bottom: 1px solid #f7f7f7; font-size: 12.5px; }
+  .C tr:hover td { background: #fafafa; }
+  .C .status {
+    display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: #555;
+    background: #f5f5f5; border-radius: 999px; padding: 2px 8px;
+  }
+  .C .status i { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; font-style: normal; }
+  .C .bar-mini { height: 4px; background: #eee; border-radius: 99px; width: 72px; overflow: hidden; display: inline-block; vertical-align: middle; margin-right: 6px; }
+  .C .bar-mini b { display: block; height: 100%; background: #111; }
+
+  /* ========== D: 三栏会话 + 工作对象 ========== */
+  .D { background: #fff; color: #171717; font-size: 13.5px; }
+  .D .layout { display: grid; grid-template-columns: 240px 1fr 360px; height: 100%; }
+  .D .left { background: #f8f8f8; border-right: 1px solid #eee; padding: 16px 12px; }
+  .D .brand { font-weight: 650; font-size: 14px; margin-bottom: 16px; padding: 0 6px; display:flex; align-items:center; gap:8px; }
+  .D .brand span { width: 26px; height: 26px; border-radius: 8px; background: linear-gradient(135deg,#8b5cf6,#6366f1); color:#fff; display:grid; place-items:center; font-size:12px; }
+  .D .sec { font-size: 11px; color: #999; margin: 14px 6px 6px; }
+  .D .item { padding: 8px 10px; border-radius: 10px; color: #555; margin-bottom: 2px; cursor: pointer; }
+  .D .item.on { background: #fff; color: #111; box-shadow: 0 1px 2px rgba(0,0,0,.04); font-weight: 500; }
+  .D .center { display: flex; flex-direction: column; min-width: 0; border-right: 1px solid #eee; }
+  .D .head { padding: 18px 24px 8px; }
+  .D .head h1 { font-size: 20px; font-weight: 600; letter-spacing: -.02em; }
+  .D .head p { color: #888; font-size: 13px; margin-top: 4px; }
+  .D .chips { display: flex; gap: 8px; padding: 8px 24px 12px; flex-wrap: wrap; }
+  .D .chip { border: 1px solid #eaeaea; border-radius: 999px; padding: 5px 12px; font-size: 12.5px; color: #555; background: #fafafa; }
+  .D .chip.on { background: #111; color: #fff; border-color: #111; }
+  .D .work { flex: 1; padding: 8px 24px 24px; overflow: auto; }
+  .D .board {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+  }
+  .D .tile {
+    border: 1px solid #eee; border-radius: 16px; padding: 14px; background: #fafafa; min-height: 140px;
+  }
+  .D .tile.wide { grid-column: 1 / -1; }
+  .D .tile h4 { font-size: 12px; color: #888; font-weight: 500; margin-bottom: 8px; }
+  .D .tile .big { font-size: 28px; font-weight: 600; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+  .D .tile .row { display:flex; justify-content: space-between; font-size: 13px; padding: 6px 0; border-bottom: 1px solid #eee; }
+  .D .tile .row:last-child { border: none; }
+  .D .right { display: flex; flex-direction: column; background: #fcfcfc; }
+  .D .r-h { padding: 14px 16px; border-bottom: 1px solid #eee; font-weight: 600; font-size: 13px; display:flex; gap:8px; align-items:center; }
+  .D .r-h em { font-style: normal; color: #8b5cf6; }
+  .D .msgs { flex: 1; padding: 16px; overflow: auto; }
+  .D .msg { margin-bottom: 12px; max-width: 92%; }
+  .D .msg.ai { }
+  .D .msg.user { margin-left: auto; }
+  .D .msg .b {
+    display: inline-block; padding: 10px 12px; border-radius: 14px; font-size: 13px; line-height: 1.5;
+  }
+  .D .msg.ai .b { background: #fff; border: 1px solid #eee; }
+  .D .msg.user .b { background: #f0f0f0; }
+  .D .composer { padding: 12px; border-top: 1px solid #eee; }
+  .D .composer .box {
+    border: 1px solid #e5e5e5; border-radius: 16px; padding: 10px 12px; background: #fff;
+    box-shadow: 0 4px 20px rgba(0,0,0,.03);
+  }
+  .D .composer textarea {
+    width: 100%; border: none; outline: none; resize: none; min-height: 52px; font: inherit; color: #333;
+  }
+  .D .composer .tools { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; }
+  .D .composer .tools span { font-size: 11.5px; color: #aaa; }
+  .D .composer button { background: #8b5cf6; color: #fff; border: none; border-radius: 10px; padding: 7px 12px; font-size: 12.5px; font-weight: 500; }
+</style>
+</head>
+<body>
+  <div class="chooser">
+    <h1>构境AI · 页面方案对比（独立原型 · 假数据）</h1>
+    <p>
+      当前 Demo 偏「传统后台 + 列表」。下面 4 套是差异更大的整站方向，请先选气质与主路径，再接入代码。
+      建议：先凭第一眼直觉选 1 个主方向，再提「想融合的局部」。
+    </p>
+    <div class="tabs" id="tabs">
+      <button class="tab on" data-id="A"><b>A 深色编辑器</b><span>画布优先 · Cursor/Figma 感</span></button>
+      <button class="tab" data-id="B"><b>B 画廊工作室</b><span>编辑部气质 · 案例为王</span></button>
+      <button class="tab" data-id="C"><b>C 高密度运营</b><span>Linear/表格 · 多项目管理</span></button>
+      <button class="tab" data-id="D"><b>D 三栏工作台</b><span>对象区 + 右侧 AI · 温和</span></button>
+    </div>
+  </div>
+
+  <div class="stage">
+    <!-- A -->
+    <div class="frame A on" id="A">
+      <div class="rail">
+        <div class="logo">境</div>
+        <div class="ic on" title="项目">▦</div>
+        <div class="ic" title="客户">◎</div>
+        <div class="ic" title="库">☰</div>
+        <div class="ic" title="团队">◡</div>
+        <div class="ic" title="设置">⚙</div>
+      </div>
+      <div class="mid">
+        <div class="top">
+          <div class="crumb">构境工作室 / 项目 / <strong>滨江壹号 · 新婚两居</strong></div>
+          <div class="sp"></div>
+          <div class="pill">风格设计 · 进行中</div>
+          <div class="pill">⌘K</div>
+          <button class="btn-p">导出汇报</button>
+        </div>
+        <div class="body">
+          <div class="list">
+            <h3>进行中</h3>
+            <div class="proj on">
+              <div class="n">滨江壹号 · 新婚两居</div>
+              <div class="m">风格 · 林 · 2h 前</div>
+            </div>
+            <div class="proj">
+              <div class="n">南山旧房 · 三代同堂</div>
+              <div class="m">选材 · 周 · 昨天</div>
+            </div>
+            <h3>阶段</h3>
+            <div class="proj"><div class="n">01 需求</div><div class="m">已确认</div></div>
+            <div class="proj on"><div class="n">02 风格 + 画布</div><div class="m">当前</div></div>
+            <div class="proj"><div class="n">03 建模</div><div class="m">未开始</div></div>
+            <div class="proj"><div class="n">汇报 PPT</div><div class="m">可生成</div></div>
+          </div>
+          <div class="canvas">
+            <div class="node" style="left:48px;top:60px;width:200px">
+              <div class="img" style="background:linear-gradient(135deg,#d6d2c8,#a8a496)"></div>
+              <div class="cap">侘寂 · 素水泥</div>
+            </div>
+            <div class="node sel" style="left:300px;top:90px;width:220px">
+              <div class="img" style="background:linear-gradient(135deg,#f3d9b8,#d9a066)"></div>
+              <div class="cap">原木 · 晨光之屋 · 锚点</div>
+            </div>
+            <div class="node" style="left:120px;top:280px;width:180px;background:#3d3420;border-color:#5c4a1f">
+              <div class="cap" style="color:#f0dfae;padding:16px;line-height:1.5">主卧少硬线<br/>暖木 + 布艺</div>
+            </div>
+            <div class="node" style="left:380px;top:300px;width:200px">
+              <div class="img" style="background:linear-gradient(120deg,#e8d5c4,#8b6914);height:90px"></div>
+              <div class="cap">效果图 v3</div>
+            </div>
+          </div>
+          <div class="right">
+            <div class="ai-head"><span class="dot"></span> AI 视觉顾问</div>
+            <div class="ai-body">
+              <div class="bubble">已选中「原木 · 晨光」。与需求档案「偏暖、少硬线」一致。建议锁定为风格锚点，并生成客厅日景 3 张。</div>
+              <div class="bubble">也可：把该色板同步到材料 Schedule，或一键写入汇报 PPT 第 3 页。</div>
+            </div>
+            <div class="ai-in"><input placeholder="对当前画布提问… ⌘J" /></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- B -->
+    <div class="frame B" id="B">
+      <div class="topbar">
+        <div class="logo">构境</div>
+        <nav class="nav">
+          <a class="on" href="#">作品集</a>
+          <a href="#">客户</a>
+          <a href="#">材料库</a>
+          <a href="#">团队</a>
+        </nav>
+        <div class="sp"></div>
+        <button class="ghost">搜索 ⌘K</button>
+        <button class="solid">新项目</button>
+      </div>
+      <div class="main">
+        <div class="gallery">
+          <div class="hero">
+            <div class="hero-card">
+              <div class="lab">
+                <h2>滨江壹号 · 新婚两居</h2>
+                <p>杭州 · 风格设计中 · 林设计师</p>
+              </div>
+            </div>
+            <div class="hero-card alt">
+              <div class="lab">
+                <h2>南山旧房改造</h2>
+                <p>深圳 · 材料选材 · 预算 35 万</p>
+              </div>
+            </div>
+          </div>
+          <div class="section-t">Recent atmospheres</div>
+          <div class="cards">
+            <div class="card"><div class="ph" style="background:linear-gradient(135deg,#fbeaea,#f3d9ce)"></div><div class="bd"><h4>奶油风 · 云朵</h4><p>灵感 · 工作室库</p></div></div>
+            <div class="card"><div class="ph" style="background:linear-gradient(135deg,#e8e8ec,#c5c5cc)"></div><div class="bd"><h4>89㎡ 白模 A</h4><p>建模 · 昨天</p></div></div>
+            <div class="card"><div class="ph" style="background:linear-gradient(135deg,#c4a484,#8b6914)"></div><div class="bd"><h4>客厅日景 v3</h4><p>渲染 · 可入汇报</p></div></div>
+          </div>
+        </div>
+        <div class="side">
+          <h3>今日节奏</h3>
+          <div class="timeline">
+            <div class="tl-item"><div class="t">陈女士确认风格锚点</div><div class="d">滨江壹号 · 待办</div></div>
+            <div class="tl-item"><div class="t">主材比价 3 个 SKU</div><div class="d">南山旧房 · 进行中</div></div>
+            <div class="tl-item"><div class="t">生成业主汇报封面</div><div class="d">PPT · 建议今天下午</div></div>
+          </div>
+          <div class="quote">
+            「设计费的价值远高于材料。」把每一次确认、每一张锚点图，写成可被业主理解的叙事——而不是一堆效果图。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- C -->
+    <div class="frame C" id="C">
+      <div class="shell">
+        <div class="side">
+          <div class="ws"><i>境</i><div>构境工作室<small>Studio · 3/10 席</small></div></div>
+          <div class="nav-item on">项目 <span class="badge">2</span></div>
+          <div class="nav-item">客户</div>
+          <div class="nav-item">资源库</div>
+          <div class="nav-item">任务收件箱 <span class="badge">5</span></div>
+          <div class="nav-item">团队</div>
+          <div class="nav-item">设置</div>
+        </div>
+        <div class="main">
+          <div class="bar">
+            <input class="search" placeholder="搜索项目、客户、SKU… ⌘K" />
+            <span style="color:#999;font-size:12px">视图：全部项目</span>
+            <div style="flex:1"></div>
+            <button style="background:#111;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12.5px">＋ 新建</button>
+          </div>
+          <div class="content">
+            <div class="kpis">
+              <div class="kpi"><div class="n">2</div><div class="l">进行中</div></div>
+              <div class="kpi"><div class="n">57</div><div class="l">在管预算（万）</div></div>
+              <div class="kpi"><div class="n">5</div><div class="l">待客户确认</div></div>
+              <div class="kpi"><div class="n">1.2</div><div class="l">人均负荷</div></div>
+            </div>
+            <div class="panel">
+              <div class="panel-h"><span>项目列表</span><span style="color:#999;font-weight:400">按更新时间</span></div>
+              <table>
+                <thead>
+                  <tr><th>项目</th><th>阶段</th><th>客户</th><th>负责人</th><th>进度</th><th>更新</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>滨江壹号 · 新婚两居</strong></td>
+                    <td><span class="status"><i></i>风格设计</span></td>
+                    <td>陈女士</td>
+                    <td>林</td>
+                    <td><span class="bar-mini"><b style="width:35%"></b></span>35%</td>
+                    <td style="color:#999">2h</td>
+                  </tr>
+                  <tr>
+                    <td><strong>南山旧房 · 三代同堂</strong></td>
+                    <td><span class="status"><i style="background:#f59e0b"></i>材料选材</span></td>
+                    <td>王先生</td>
+                    <td>周</td>
+                    <td><span class="bar-mini"><b style="width:62%"></b></span>62%</td>
+                    <td style="color:#999">昨天</td>
+                  </tr>
+                  <tr>
+                    <td style="color:#999">（示意）西溪云庐 · 样板间</td>
+                    <td><span class="status"><i style="background:#a3a3a3"></i>暂停</span></td>
+                    <td>赵总</td>
+                    <td>林</td>
+                    <td><span class="bar-mini"><b style="width:18%"></b></span>18%</td>
+                    <td style="color:#999">2 周</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- D -->
+    <div class="frame D" id="D">
+      <div class="layout">
+        <div class="left">
+          <div class="brand"><span>境</span> 构境 Studio</div>
+          <div class="sec">工作区</div>
+          <div class="item on">项目</div>
+          <div class="item">客户</div>
+          <div class="item">资源库</div>
+          <div class="item">团队</div>
+          <div class="sec">最近打开</div>
+          <div class="item">滨江壹号</div>
+          <div class="item">南山旧房</div>
+        </div>
+        <div class="center">
+          <div class="head">
+            <h1>滨江壹号 · 新婚两居</h1>
+            <p>杭州 · 89㎡ · 预算 22 万 · 风格阶段</p>
+          </div>
+          <div class="chips">
+            <div class="chip">概览</div>
+            <div class="chip on">需求</div>
+            <div class="chip">风格</div>
+            <div class="chip">画布</div>
+            <div class="chip">建模</div>
+            <div class="chip">渲染</div>
+            <div class="chip">清单</div>
+            <div class="chip">汇报</div>
+          </div>
+          <div class="work">
+            <div class="board">
+              <div class="tile">
+                <h4>预算</h4>
+                <div class="big">¥6.9万</div>
+                <p style="color:#888;font-size:12px;margin-top:6px">已估 / 上限 ¥22万 · 32%</p>
+              </div>
+              <div class="tile">
+                <h4>阶段</h4>
+                <div class="big" style="font-size:20px;margin-top:8px">风格设计</div>
+                <p style="color:#888;font-size:12px;margin-top:8px">上游需求已确认 ✓</p>
+              </div>
+              <div class="tile wide">
+                <h4>需求档案（可编辑）</h4>
+                <div class="row"><span>城市</span><span>杭州</span></div>
+                <div class="row"><span>户型</span><span>两室两厅 · 89㎡</span></div>
+                <div class="row"><span>风格</span><span>奶油 / 原木偏暖</span></div>
+                <div class="row"><span>禁忌</span><span>少硬线金属</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="right">
+          <div class="r-h"><em>✦</em> AI 助手 · 需求上下文</div>
+          <div class="msgs">
+            <div class="msg ai"><div class="b">档案还缺「是否有老人同住」和「收纳优先级」。要我按三口之家补一版草稿吗？</div></div>
+            <div class="msg user"><div class="b">补吧，偏收纳多一点</div></div>
+            <div class="msg ai"><div class="b">已写入草稿：主卧墙柜 + 玄关落尘区。你可在左侧表单直接改，无需回到对话。</div></div>
+          </div>
+          <div class="composer">
+            <div class="box">
+              <textarea placeholder="继续补充需求，或让 AI 改某一字段…"></textarea>
+              <div class="tools"><span>AI 写草稿 · 人定稿</span><button>发送</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="note" id="note">
+      <strong>A</strong>：适合「每天泡在方案里」的主案设计师，项目=画布工作台，AI 贴在选中对象上。<br/>
+    </p>
+  </div>
+
+<script>
+const notes = {
+  A: '<strong>A 深色编辑器</strong>：画布/视口是主角，列表极窄，AI 贴在选中对象右侧。适合生产向、强设计师。风险：运营/客户管理弱，要另开「运营模式」。',
+  B: '<strong>B 画廊工作室</strong>：案例封面与情绪板优先，像设计事务所官网+内部。适合品牌感、接客叙事。风险：多项目效率不如表格。',
+  C: '<strong>C 高密度运营</strong>：Linear/Jira 气质，表格+KPI 管并行项目。适合 5–30 人工作室老板。风险：偏「冷」，设计感弱。',
+  D: '<strong>D 三栏工作台</strong>：中间永远是业务对象（表单/清单），右侧固定 AI。最接近「ERP + AI 赋能」正统，也最好做权限与字段。风险：若不克制，会回到普通后台。'
+};
+const tabs = document.querySelectorAll('.tab');
+const frames = document.querySelectorAll('.frame');
+const note = document.getElementById('note');
+tabs.forEach(t => t.addEventListener('click', () => {
+  tabs.forEach(x => x.classList.remove('on'));
+  frames.forEach(x => x.classList.remove('on'));
+  t.classList.add('on');
+  document.getElementById(t.dataset.id).classList.add('on');
+  note.innerHTML = notes[t.dataset.id];
+}));
+</script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "构境AI",
+  "short_name": "构境AI",
+  "description": "构境AI / formscape — 设计师工作室 Studio OS",
+  "start_url": "/formscape",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0A0A0A",
+  "icons": [
+    { "src": "/formscape-logos/pwa-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/formscape-logos/pwa-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
