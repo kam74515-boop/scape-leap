@@ -153,7 +153,15 @@ try {
   assert.equal(
     (
       await jsonRequest(member, "/auth/set-password/", memberSessionCsrf, {
-        password: "ChangedPassword!9",
+        password: "Aa1!aaa",
+      })
+    ).status,
+    400
+  );
+  assert.equal(
+    (
+      await jsonRequest(member, "/auth/set-password/", memberSessionCsrf, {
+        password: "Aa1!aaaa",
       })
     ).status,
     200

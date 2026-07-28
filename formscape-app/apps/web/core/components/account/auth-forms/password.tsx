@@ -10,7 +10,7 @@ import Link from "next/link";
 // icons
 import { Eye, EyeOff, Info, XCircle } from "@/icons";
 // plane imports
-import { API_BASE_URL, E_PASSWORD_STRENGTH, AUTH_TRACKER_ELEMENTS } from "@plane/constants";
+import { API_BASE_URL, E_PASSWORD_STRENGTH, AUTH_TRACKER_ELEMENTS, PASSWORD_MIN_LENGTH } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { CloseIcon } from "@plane/propel/icons";
@@ -213,7 +213,7 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
               onFocus={() => setIsPasswordInputFocused(true)}
               onBlur={() => setIsPasswordInputFocused(false)}
               autoComplete={mode === EAuthModes.SIGN_IN ? "current-password" : "new-password"}
-              minLength={mode === EAuthModes.SIGN_UP ? 12 : undefined}
+              minLength={mode === EAuthModes.SIGN_UP ? PASSWORD_MIN_LENGTH : undefined}
             />
             <button
               type="button"
@@ -248,7 +248,7 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
                 onFocus={() => setIsRetryPasswordInputFocused(true)}
                 onBlur={() => setIsRetryPasswordInputFocused(false)}
                 autoComplete="new-password"
-                minLength={12}
+                minLength={PASSWORD_MIN_LENGTH}
               />
               <button
                 type="button"

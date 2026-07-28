@@ -15,8 +15,9 @@ describe("production authentication primitives", () => {
     expect(validateEmail("not-an-email")).toBe(false);
   });
 
-  it("requires a long mixed-class password", () => {
-    expect(validatePassword("short")).toBe(false);
+  it("requires at least 8 characters and all password classes", () => {
+    expect(validatePassword("Aa1!aaa")).toBe(false);
+    expect(validatePassword("Aa1!aaaa")).toBe(true);
     expect(validatePassword("onlylowercasepassword")).toBe(false);
     expect(validatePassword("StrongPassword!9")).toBe(true);
   });
