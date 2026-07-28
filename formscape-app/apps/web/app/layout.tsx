@@ -24,6 +24,8 @@ import icon512 from "@/app/assets/icons/icon-512x512.png?url";
 // local
 import { AppProvider } from "./provider";
 
+const APP_BASE_URL = (process.env.VITE_WEB_BASE_URL || "http://127.0.0.1:3000").replace(/\/+$/, "");
+
 export const meta = () => [
   { title: "构境AI" },
   { name: "description", content: SITE_DESCRIPTION },
@@ -38,13 +40,13 @@ export const meta = () => [
   },
   { property: "og:title", content: "构境AI" },
   { property: "og:description", content: SITE_DESCRIPTION },
-  { property: "og:url", content: "http://127.0.0.1:3000/" },
-  { property: "og:image", content: "/formscape-logos/pwa-512.png" },
+  { property: "og:url", content: `${APP_BASE_URL}/` },
+  { property: "og:image", content: `${APP_BASE_URL}/formscape-logos/pwa-512.png` },
   { property: "og:image:width", content: "512" },
   { property: "og:image:height", content: "512" },
   { property: "og:image:alt", content: "构境AI / formscape" },
   { name: "twitter:card", content: "summary_large_image" },
-  { name: "twitter:image", content: "/formscape-logos/pwa-512.png" },
+  { name: "twitter:image", content: `${APP_BASE_URL}/formscape-logos/pwa-512.png` },
   { name: "twitter:image:width", content: "512" },
   { name: "twitter:image:height", content: "512" },
   { name: "twitter:image:alt", content: "构境AI / formscape" },

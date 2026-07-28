@@ -34,6 +34,7 @@ import "@fontsource/material-symbols-rounded";
 import "@fontsource/ibm-plex-mono";
 
 const APP_TITLE = "构境AI";
+const APP_BASE_URL = (process.env.VITE_WEB_BASE_URL || "http://127.0.0.1:3000").replace(/\/+$/, "");
 
 export const links: LinksFunction = () => [
   { rel: "icon", type: "image/png", sizes: "32x32", href: favicon32 },
@@ -127,8 +128,8 @@ export const meta: Route.MetaFunction = () => [
   { name: "description", content: SITE_DESCRIPTION },
   { property: "og:title", content: APP_TITLE },
   { property: "og:description", content: SITE_DESCRIPTION },
-  { property: "og:url", content: "http://127.0.0.1:3000/" },
-  { property: "og:image", content: ogImage },
+  { property: "og:url", content: `${APP_BASE_URL}/` },
+  { property: "og:image", content: `${APP_BASE_URL}${ogImage}` },
   { property: "og:image:width", content: "1200" },
   { property: "og:image:height", content: "630" },
   { property: "og:image:alt", content: "构境AI / formscape" },
@@ -137,7 +138,7 @@ export const meta: Route.MetaFunction = () => [
     content: "构境AI, formscape, 造境跃迁, 设计师ERP, 设计工作室, 意向画布, 室内设计",
   },
   { name: "twitter:card", content: "summary_large_image" },
-  { name: "twitter:image", content: ogImage },
+  { name: "twitter:image", content: `${APP_BASE_URL}${ogImage}` },
   { name: "twitter:image:width", content: "1200" },
   { name: "twitter:image:height", content: "630" },
   { name: "twitter:image:alt", content: "构境AI / formscape" },
