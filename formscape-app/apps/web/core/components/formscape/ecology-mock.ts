@@ -1,7 +1,7 @@
 /**
  * 生态库数据层
  * 商品/组合/案例/空间来自 ark Mini program mock（ecology-data.json）
- * 图片：/crawled_images/* → apps/web/public/crawled_images（symlink）
+ * 图片：可选放入 apps/web/public/crawled_images；缺失时由 Cover 渲染稳定的渐变占位
  */
 import raw from "./ecology-data.json";
 
