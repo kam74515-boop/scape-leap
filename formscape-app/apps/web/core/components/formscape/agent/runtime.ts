@@ -17,6 +17,16 @@ type CanvasIntent =
   | { kind: "run_skill"; skillId: string; prompt?: string }
   | { kind: "chat" };
 
+const BIZ_ADVANCE_CONFIRMATION = "确认推进经营节点";
+
+function requestsBizAdvance(text: string): boolean {
+  return /(?:推进|完成|更新)(?:当前)?经营节点|经营节点(?:推进|完成|更新)/.test(text);
+}
+
+function confirmsBizAdvance(text: string): boolean {
+  return new RegExp(`^${BIZ_ADVANCE_CONFIRMATION}[。！!]?$`).test(text.trim());
+}
+
 function parseCanvasIntent(text: string): CanvasIntent {
   const t = text.trim();
   const lower = t.toLowerCase();
@@ -91,6 +101,8 @@ export async function runHarnessTurn(
   const skill = matchSkill(userText, ctx.canvasActive);
   const toolTrace: ToolTrace[] = [];
   const text = userText.trim();
+  const asksToAdvanceBiz = requestsBizAdvance(text);
+  const confirmedBizAdvance = confirmsBizAdvance(text);
 
   // —— 画布 Agent：按意图精确调用 ——
   if (ctx.canvasActive) {
@@ -147,6 +159,10 @@ export async function runHarnessTurn(
         const result = await runTool(toolName, ctx, {});
         toolTrace.push({ tool: toolName, args: {}, result });
       }
+      if (confirmedBizAdvance && ctx.projectId) {
+        const result = await runTool("advance_biz_node", ctx, {}, { confirmed: true });
+        toolTrace.push({ tool: "advance_biz_node", args: {}, result });
+      }
     }
 
     const lines: string[] = [];
@@ -154,13 +170,17 @@ export async function runHarnessTurn(
     lines.push(`画布：${ctx.projectName ?? "意向画布"}`);
     lines.push("");
     for (const tr of toolTrace) {
-      lines.push(`${tr.result.ok ? "✓" : "✗"} \`${tr.tool}\`：${tr.result.summary}`);
+      lines.push(`${tr.result.ok ? "√" : "×"} \`${tr.tool}\`：${tr.result.summary}`);
     }
     if (intent.kind === "chat") {
       lines.push("");
       lines.push(
         "可以说：\n· 生成：空房设计 / 暖白客厅\n· 技能：白模渲染\n· 改图：更通透（先选中图）\n· 变体 / 延展\n· 画布上有什么\n· 直接发技能名：材质替换"
       );
+    }
+    if (asksToAdvanceBiz && !confirmedBizAdvance) {
+      lines.push("");
+      lines.push(`推进经营节点会改变项目状态和设计费数据。如需继续，请回复：${BIZ_ADVANCE_CONFIRMATION}`);
     }
     lines.push("");
     lines.push("（Demo 交互 · 非正式生图 API · 全局 Agent 未接入）");
@@ -172,6 +192,10 @@ export async function runHarnessTurn(
     if (toolName.startsWith("canvas_")) continue;
     const result = await runTool(toolName, ctx, {});
     toolTrace.push({ tool: toolName, args: {}, result });
+  }
+  if (confirmedBizAdvance && ctx.projectId) {
+    const result = await runTool("advance_biz_node", ctx, {}, { confirmed: true });
+    toolTrace.push({ tool: "advance_biz_node", args: {}, result });
   }
 
   const lines: string[] = [];
@@ -187,7 +211,11 @@ export async function runHarnessTurn(
   lines.push("");
   lines.push(`关于「${text}」：`);
   for (const tr of toolTrace) {
-    lines.push(`${tr.result.ok ? "✓" : "✗"} \`${tr.tool}\`：${tr.result.summary}`);
+    lines.push(`${tr.result.ok ? "√" : "×"} \`${tr.tool}\`：${tr.result.summary}`);
+  }
+  if (asksToAdvanceBiz && !confirmedBizAdvance) {
+    lines.push("");
+    lines.push(`推进经营节点会改变项目状态和设计费数据。如需继续，请回复：${BIZ_ADVANCE_CONFIRMATION}`);
   }
   lines.push("");
   lines.push("（Demo harness · 全局 Agent 未做）");

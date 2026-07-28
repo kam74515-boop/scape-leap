@@ -88,7 +88,7 @@ export function SpaceWall3DViewport({ scene, selectedWallId, onSelectWall }: Pro
           const c1 = project(w.x2 + nx, w.y2 + ny, 0);
           const d0 = project(w.x1 + nx, w.y1 + ny, h);
           const d1 = project(w.x2 + nx, w.y2 + ny, h);
-          const fill = active ? "#6366f1" : "#64748b";
+          const fill = active ? "var(--fs-plan-accent)" : "var(--neutral-1000)";
           const mid = wallMid(w);
           const label = project(mid.x, mid.y, h + 80);
           return (
@@ -104,21 +104,21 @@ export function SpaceWall3DViewport({ scene, selectedWallId, onSelectWall }: Pro
                 points={`${a0.X},${a0.Y} ${a1.X},${a1.Y} ${b1.X},${b1.Y} ${b0.X},${b0.Y}`}
                 fill={fill}
                 opacity={0.88}
-                stroke={active ? "#4f46e5" : "#334155"}
+                stroke={active ? "var(--fs-plan-accent-strong)" : "var(--fs-plan-wall)"}
                 strokeWidth={active ? 16 : 8}
               />
               <polygon
                 points={`${a1.X},${a1.Y} ${c1.X},${c1.Y} ${d1.X},${d1.Y} ${b1.X},${b1.Y}`}
-                fill={active ? "#818cf8" : "#94a3b8"}
+                fill={active ? "var(--fs-plan-accent-soft)" : "var(--neutral-800)"}
                 opacity={0.75}
-                stroke="#475569"
+                stroke="var(--neutral-1100)"
                 strokeWidth={6}
               />
               <polygon
                 points={`${b0.X},${b0.Y} ${b1.X},${b1.Y} ${d1.X},${d1.Y} ${d0.X},${d0.Y}`}
-                fill={active ? "#c7d2fe" : "#cbd5e1"}
+                fill={active ? "var(--fs-plan-accent-subtle)" : "var(--neutral-700)"}
                 opacity={0.9}
-                stroke="#64748b"
+                stroke="var(--neutral-1000)"
                 strokeWidth={6}
               />
               <line
@@ -126,22 +126,22 @@ export function SpaceWall3DViewport({ scene, selectedWallId, onSelectWall }: Pro
                 y1={c0.Y}
                 x2={c1.X}
                 y2={c1.Y}
-                stroke="#475569"
+                stroke="var(--neutral-1100)"
                 strokeWidth={Math.max(12, t * 0.02)}
                 opacity={0.5}
               />
               {active && (
                 <>
-                  <circle cx={a0.X} cy={a0.Y} r={55} fill="#fff" stroke="#4f46e5" strokeWidth={14} />
-                  <circle cx={a1.X} cy={a1.Y} r={55} fill="#fff" stroke="#4f46e5" strokeWidth={14} />
-                  <circle cx={b0.X} cy={b0.Y} r={40} fill="#6366f1" />
-                  <circle cx={b1.X} cy={b1.Y} r={40} fill="#6366f1" />
+                  <circle cx={a0.X} cy={a0.Y} r={55} fill="var(--fs-plan-surface)" stroke="var(--fs-plan-accent-strong)" strokeWidth={14} />
+                  <circle cx={a1.X} cy={a1.Y} r={55} fill="var(--fs-plan-surface)" stroke="var(--fs-plan-accent-strong)" strokeWidth={14} />
+                  <circle cx={b0.X} cy={b0.Y} r={40} fill="var(--fs-plan-accent)" />
+                  <circle cx={b1.X} cy={b1.Y} r={40} fill="var(--fs-plan-accent)" />
                   <text
                     x={label.X}
                     y={label.Y}
                     textAnchor="middle"
                     fontSize={90}
-                    fill="#312e81"
+                    fill="var(--fs-plan-accent-strong)"
                     fontWeight={600}
                   >
                     {(wallLength(w) / 1000).toFixed(2)}m
@@ -164,7 +164,7 @@ export function SpaceWall3DViewport({ scene, selectedWallId, onSelectWall }: Pro
               height={100}
               fill={pl.color}
               opacity={0.85}
-              stroke="#0f172a"
+              stroke="var(--fs-plan-wall)"
               strokeWidth={6}
               rx={12}
             />

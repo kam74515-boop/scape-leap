@@ -4,8 +4,42 @@
  * See the LICENSE file for details.
  */
 
-import sanitizeHtml from "sanitize-html";
 import type { Content, JSONContent } from "@plane/types";
+
+const HTML_ENTITY_MAP: Record<string, string> = {
+  amp: "&",
+  apos: "'",
+  gt: ">",
+  lt: "<",
+  nbsp: " ",
+  quot: '"',
+};
+
+const decodeHTMLText = (value: string) =>
+  value.replace(/&(#x[\da-f]+|#\d+|[a-z]+);/gi, (entity, body: string) => {
+    if (body[0] === "#") {
+      const isHex = body[1]?.toLowerCase() === "x";
+      const codePoint = Number.parseInt(body.slice(isHex ? 2 : 1), isHex ? 16 : 10);
+      return Number.isFinite(codePoint) && codePoint >= 0 && codePoint <= 0x10ffff
+        ? String.fromCodePoint(codePoint)
+        : entity;
+    }
+    return HTML_ENTITY_MAP[body.toLowerCase()] ?? entity;
+  });
+
+/**
+ * These helpers only need plain text / emptiness checks. Keeping the implementation
+ * browser-native avoids bundling sanitize-html and its Node-only transitive modules.
+ */
+const htmlToPlainText = (htmlString: string) =>
+  decodeHTMLText(
+    htmlString
+      .replace(/<!--[\s\S]*?-->/g, " ")
+      .replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, " ")
+      .replace(/<[^>]*>/g, " ")
+  )
+    .replace(/\s+/g, " ")
+    .trim();
 
 /**
  * @description Adds space between camelCase words
@@ -126,8 +160,7 @@ const text = stripHTML(html);
 console.log(text); // Some text
  */
 export const sanitizeHTML = (htmlString: string) => {
-  const sanitizedText = sanitizeHtml(htmlString, { allowedTags: [] }); // sanitize the string to remove all HTML tags
-  return sanitizedText.trim(); // trim the string to remove leading and trailing whitespaces
+  return htmlToPlainText(htmlString);
 };
 
 /**
@@ -161,10 +194,11 @@ export const checkEmailValidity = (email: string): boolean => {
 };
 
 export const isEmptyHtmlString = (htmlString: string, allowedHTMLTags: string[] = []) => {
-  // Remove HTML tags using sanitize-html
-  const cleanText = sanitizeHtml(htmlString, { allowedTags: allowedHTMLTags });
-  // Trim the string and check if it's empty
-  return cleanText.trim() === "";
+  const hasAllowedElement = allowedHTMLTags.some((tag) => {
+    const escapedTag = tag.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(`<\\s*${escapedTag}\\b`, "i").test(htmlString);
+  });
+  return !hasAllowedElement && htmlToPlainText(htmlString) === "";
 };
 
 /**

@@ -27,43 +27,55 @@ import {
 } from "@/icons";
 import { cn } from "@plane/utils";
 import { ScrollArea } from "@plane/propel/scrollarea";
+import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { WorkspaceEditionBadge } from "@/components/workspace/edition-badge";
 import { SidebarWrapper } from "@/components/sidebar/sidebar-wrapper";
 import { AppSidebarToggleButton } from "@/components/sidebar/sidebar-toggle-button";
 import { SidebarMenuItems } from "@/components/workspace/sidebar/sidebar-menu-items";
-import { CreateProjectModal } from "@/components/project/create-project-modal";
 import { useAppTheme } from "@/hooks/store/use-app-theme";
-import { CUSTOMERS, TEAM, WORKSPACE_META } from "./workspace-mock";
+import { TEAM, WORKSPACE_META } from "./workspace-mock";
+import {
+  countCustomersByStage,
+  CUSTOMERS_CHANGE_EVENT,
+  CUSTOMER_STAGES,
+  getCustomers,
+  type CustomerRecord,
+  type CustomerStage,
+} from "./customers-store";
 import { ECO_CATEGORIES, ECO_MODES, ECO_PRODUCTS, ECO_COMBOS, ECO_CASES, ECO_SPACES } from "./ecology-mock";
 import { getPurchaseCount, PURCHASE_CHANGE_EVENT } from "./purchase-store";
 import {
+  applyDetectConfFilter,
   applyDetectedPlan,
   getSpaceScene,
+  setActiveSpaceProject,
   SPACE_CHANGE_EVENT,
   type SpaceScene,
 } from "./space-model-store";
 import { importArchitecturalPlan, reimportFromPreview } from "./space-plan-pipeline";
 import {
   checkFloorplanMlHealth,
-  downloadPlanExport,
-  getMlEngine,
+  downloadTextFile,
   loadDetectStrictnessLocal,
   saveDetectStrictnessLocal,
-  setMlEngine,
-  type MlEngineId,
   type MlHealth,
 } from "./space-ml-client";
+import { buildWallsObj } from "./space-wall-ops";
 import {
-  PROJECT_CANVAS_TREE,
   canvasHref,
+  CANVAS_TREE_CHANGE_EVENT,
+  loadExtraCanvases,
+  mergeCanvasTree,
+  saveExtraCanvases,
   type CanvasBoard,
-  type ProjectCanvasTree,
 } from "./canvas-mock";
-import { PM_PROJECTS, type PmProject } from "./pm-mock";
+import { useProjects } from "./projects-store";
+import { CreateProjectWizard } from "./CreateProjectWizard";
 import { STAGES } from "./types";
 import { getProjectProgress } from "./project-progress-store";
 import { useStudioProgressTick } from "./use-project-progress";
 import { TreeAddRow, TreeFolder, TreeLeaf, TreeRoot, TreeSectionLabel } from "./tree-nav";
+import { FsButton, FsModal, FsSlider, fsInputClass } from "./ui";
 import type { FormscapeL1 } from "./l1-context";
 import { Tooltip } from "@plane/propel/tooltip";
 import { useCanvasLibraryOptional, type LibSection } from "./canvas/canvas-library-context";
@@ -86,14 +98,89 @@ function NavLink({
     <Link
       to={to}
       className={cn(
-        "flex h-8 items-center gap-2 rounded-md px-1.5 text-13 transition-colors",
-        active ? "bg-layer-transparent-active font-medium text-primary" : "text-secondary hover:bg-layer-transparent-hover"
+        "relative flex h-8 items-center gap-2 rounded-md px-1.5 text-13 transition-colors",
+        active
+          ? "bg-accent-subtle font-medium text-accent-secondary"
+          : "text-secondary hover:bg-layer-transparent-hover"
       )}
     >
-      <Icon className="size-4 shrink-0 text-tertiary" />
+      {active && (
+        <span
+          aria-hidden
+          className="absolute bottom-1.5 left-0 top-1.5 w-[3px] rounded-full bg-accent-primary"
+        />
+      )}
+      <Icon className={cn("size-4 shrink-0", active ? "text-accent-primary" : "text-tertiary")} />
       <span className="min-w-0 flex-1 truncate">{label}</span>
-      {meta && <span className="text-11 text-placeholder">{meta}</span>}
+      {meta && (
+        <span className={cn("text-11 tabular-nums", active ? "text-accent-primary" : "text-placeholder")}>
+          {meta}
+        </span>
+      )}
     </Link>
+  );
+}
+
+/** 命名弹窗 — 替代原生 window.prompt（规范 v3 禁用原生弹窗） */
+function NamePromptModal({
+  open,
+  title,
+  placeholder,
+  defaultValue = "",
+  confirmLabel = "创建",
+  onClose,
+  onSubmit,
+}: {
+  open: boolean;
+  title: string;
+  placeholder?: string;
+  defaultValue?: string;
+  confirmLabel?: string;
+  onClose: () => void;
+  onSubmit: (name: string) => void;
+}) {
+  const [name, setName] = useState(defaultValue);
+  useEffect(() => {
+    if (open) setName(defaultValue);
+  }, [open, defaultValue]);
+
+  const submit = () => {
+    const v = name.trim();
+    if (!v) return;
+    onClose();
+    onSubmit(v);
+  };
+
+  return (
+    <FsModal
+      open={open}
+      onClose={onClose}
+      title={title}
+      footer={
+        <>
+          <FsButton variant="secondary" size="sm" onClick={onClose}>
+            取消
+          </FsButton>
+          <FsButton size="sm" disabled={!name.trim()} onClick={submit}>
+            {confirmLabel}
+          </FsButton>
+        </>
+      }
+    >
+      <input
+        autoFocus
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            submit();
+          }
+        }}
+        placeholder={placeholder}
+        className={fsInputClass}
+      />
+    </FsModal>
   );
 }
 
@@ -107,32 +194,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 // ─── 画布 L1：项目 → 子画布 ───────────────────────────────────────────
 
-const CANVAS_TREE_STORAGE = "fs-canvas-tree-extra";
-
-function loadExtraCanvases(): Record<string, CanvasBoard[]> {
-  try {
-    const raw = localStorage.getItem(CANVAS_TREE_STORAGE);
-    if (raw) return JSON.parse(raw) as Record<string, CanvasBoard[]>;
-  } catch {
-    /* ignore */
-  }
-  return {};
-}
-
-function saveExtraCanvases(map: Record<string, CanvasBoard[]>) {
-  try {
-    localStorage.setItem(CANVAS_TREE_STORAGE, JSON.stringify(map));
-  } catch {
-    /* ignore */
-  }
-}
-
-function mergeCanvasTree(extra: Record<string, CanvasBoard[]>): ProjectCanvasTree[] {
-  return PROJECT_CANVAS_TREE.map((p) => ({
-    ...p,
-    canvases: [...p.canvases, ...(extra[p.projectId] ?? [])],
-  }));
-}
+// 画布树 extra 存于 canvas-mock（与 findCanvasMeta 同源）
 
 /** 画布 L2：顶栏横排 Tab（画布树 + 原悬浮库分区） */
 export const CanvasL2Sidebar = observer(function CanvasL2Sidebar() {
@@ -143,21 +205,30 @@ export const CanvasL2Sidebar = observer(function CanvasL2Sidebar() {
   const activeProject = searchParams.get("project");
   const activeBoard = searchParams.get("board");
   const { sidebarCollapsed } = useAppTheme();
+  const { projects } = useProjects();
   const lib = useCanvasLibraryOptional();
 
   const section: LibSection = lib?.section ?? "boards";
   const setSection = lib?.setSection ?? (() => undefined);
   const bridge = lib?.bridge ?? null;
   const [extra, setExtra] = useState(loadExtraCanvases);
-  const tree = useMemo(() => mergeCanvasTree(extra), [extra]);
+  // SQLite hydrate / 其它处新建画布后，树数据刷新
+  useEffect(() => {
+    const onChange = () => setExtra(loadExtraCanvases());
+    window.addEventListener(CANVAS_TREE_CHANGE_EVENT, onChange);
+    return () => window.removeEventListener(CANVAS_TREE_CHANGE_EVENT, onChange);
+  }, []);
+  const tree = useMemo(() => mergeCanvasTree(extra, projects), [extra, projects]);
+  /** 新建画布弹窗目标项目（替代原生 prompt） */
+  const [canvasTarget, setCanvasTarget] = useState<{ projectId: string; projectName: string } | null>(
+    null
+  );
 
   const createCanvasUnder = useCallback(
-    (projectId: string, projectName: string) => {
-      const name = window.prompt(`在「${projectName}」下新建画布`, "未命名画布");
-      if (!name?.trim()) return;
+    (projectId: string, name: string) => {
       const board: CanvasBoard = {
         id: `cv-local-${Date.now()}`,
-        name: name.trim(),
+        name,
         updatedAt: "刚刚",
         nodes: 0,
       };
@@ -171,9 +242,9 @@ export const CanvasL2Sidebar = observer(function CanvasL2Sidebar() {
     [navigate, ws]
   );
 
-  // 顶栏：画布 | 图库 | 生态库 | 技能库
+  // 顶栏：画布 | 图板 | 图库 | 生态库 | 技能库
   const topTabs: { id: LibSection; label: string; icon: typeof Layers; title?: string }[] = [
-    { id: "boards", label: "画布", icon: FolderTree, title: "项目子画布树" },
+    { id: "boards", label: "画布", icon: FolderTree, title: "项目工作画布树" },
     ...LIB_CONTENT_TABS.map((t) => ({
       id: t.id as LibSection,
       label: t.label,
@@ -201,11 +272,11 @@ export const CanvasL2Sidebar = observer(function CanvasL2Sidebar() {
                   className={cn(
                     "inline-flex size-8 shrink-0 items-center justify-center rounded-md transition-colors",
                     active
-                      ? "bg-layer-transparent-selected text-primary"
+                      ? "bg-accent-subtle text-accent-primary"
                       : "text-tertiary hover:bg-layer-transparent-hover hover:text-secondary"
                   )}
                 >
-                  <Icon className="size-3.5 shrink-0" strokeWidth={1.85} />
+                  <Icon className="size-3.5 shrink-0" strokeWidth={1.75} />
                 </button>
               </Tooltip>
             );
@@ -263,7 +334,9 @@ export const CanvasL2Sidebar = observer(function CanvasL2Sidebar() {
                     ))}
                     <TreeAddRow
                       label="新建画布"
-                      onClick={() => createCanvasUnder(proj.projectId, proj.projectName)}
+                      onClick={() =>
+                        setCanvasTarget({ projectId: proj.projectId, projectName: proj.projectName })
+                      }
                     />
                   </TreeFolder>
                 );
@@ -277,9 +350,14 @@ export const CanvasL2Sidebar = observer(function CanvasL2Sidebar() {
             section={section}
             nodes={bridge.nodes}
             selectedIds={bridge.selectedIds}
+            projectId={bridge.projectId}
+            projectName={bridge.projectName}
             onSelectNode={bridge.onSelectNode}
             onAddImage={bridge.onAddImage}
             onAddProduct={bridge.onAddProduct}
+            onAddProductToStyleBoard={bridge.onAddProductToStyleBoard}
+            onPlaceStylePin={bridge.onPlaceStylePin}
+            onPlaceStyleBoard={bridge.onPlaceStyleBoard}
             onPickSkill={bridge.onPickSkill}
             onUpload={bridge.onUpload}
             onAddImageGen={bridge.onAddImageGen}
@@ -288,8 +366,9 @@ export const CanvasL2Sidebar = observer(function CanvasL2Sidebar() {
 
         {section !== "boards" && !bridge && (
           <div className="px-2 py-10 text-center text-11 text-tertiary">
+            {section === "styleboards" && "打开项目子画布后，可管理项目图板"}
             {section === "images" && "打开画布后，上传与生成的图像会出现在图库"}
-            {section === "ecology" && "打开画布后，可从生态库将产品落到画布"}
+            {section === "ecology" && "打开画布后，可将产品加入图板或落到画布"}
             {section === "skills" && "打开画布后，可选用技能库中的 AIGC 工作流"}
           </div>
         )}
@@ -298,6 +377,17 @@ export const CanvasL2Sidebar = observer(function CanvasL2Sidebar() {
       <div className="flex h-11 shrink-0 items-center border-t border-subtle px-3">
         <WorkspaceEditionBadge />
       </div>
+
+      <NamePromptModal
+        open={canvasTarget !== null}
+        title={canvasTarget ? `在「${canvasTarget.projectName}」下新建画布` : "新建画布"}
+        placeholder="画布名称"
+        defaultValue="未命名画布"
+        onClose={() => setCanvasTarget(null)}
+        onSubmit={(name) => {
+          if (canvasTarget) createCanvasUnder(canvasTarget.projectId, name);
+        }}
+      />
     </div>
   );
 });
@@ -317,26 +407,6 @@ const PROJECT_CHILDREN = [
   { key: "files", label: "文件", path: "files", icon: ProjectNavIcons.files },
 ] as const;
 
-const EXTRA_PROJECTS_KEY = "fs-extra-projects";
-
-function loadExtraProjects(): PmProject[] {
-  try {
-    const raw = localStorage.getItem(EXTRA_PROJECTS_KEY);
-    if (raw) return JSON.parse(raw) as PmProject[];
-  } catch {
-    /* ignore */
-  }
-  return [];
-}
-
-function saveExtraProjects(list: PmProject[]) {
-  try {
-    localStorage.setItem(EXTRA_PROJECTS_KEY, JSON.stringify(list));
-  } catch {
-    /* ignore */
-  }
-}
-
 export const ProjectsL2Sidebar = observer(function ProjectsL2Sidebar() {
   const { workspaceSlug, projectId: routeProjectId } = useParams();
   const ws = workspaceSlug?.toString() ?? "formscape";
@@ -346,60 +416,27 @@ export const ProjectsL2Sidebar = observer(function ProjectsL2Sidebar() {
   /** 进度 store 变更时刷新阶段徽标 */
   const progressTick = useStudioProgressTick();
 
-  const [extraProjects, setExtraProjects] = useState(loadExtraProjects);
+  const { projects: allProjects } = useProjects();
   const [createOpen, setCreateOpen] = useState(false);
   /** 手风琴：同时只展开一个项目 */
   const [expandedProjectId, setExpandedProjectId] = useState<string | null>(
     () => activeProjectId || "proj-demo-1"
   );
 
-  const allProjects = useMemo(() => [...PM_PROJECTS, ...extraProjects], [extraProjects]);
-
   // 进入某项目路由时，自动展开该项目（并收起其它）
   useEffect(() => {
     if (activeProjectId) setExpandedProjectId(activeProjectId);
   }, [activeProjectId]);
 
-  const addLocalProject = () => {
-    const name = window.prompt("新建项目名称", "未命名项目");
-    if (!name?.trim()) return;
-    const id = `proj-local-${Date.now()}`;
-    const p: PmProject = {
-      id,
-      name: name.trim(),
-      identifier: "NEW",
-      emoji: "",
-      stageLabel: "线索",
-      stageId: "requirements",
-      clientName: "待填写",
-      city: "—",
-      houseType: "—",
-      progress: 0,
-      openTasks: 0,
-      overdueTasks: 0,
-      budgetWan: 0,
-      designFeeWan: 0,
-      feeCollectedWan: 0,
-      updatedAt: "刚刚",
-      risk: "正常",
-      owner: "林设计师",
-      members: ["林设计师"],
-    };
-    setExtraProjects((prev) => {
-      const next = [...prev, p];
-      saveExtraProjects(next);
-      return next;
-    });
-    navigate(`/${ws}/projects/${id}/overview`);
-  };
-
   return (
     <SidebarWrapper title="项目">
-      <CreateProjectModal
-        isOpen={createOpen}
+      <CreateProjectWizard
+        open={createOpen}
         onClose={() => setCreateOpen(false)}
-        setToFavorite={false}
-        workspaceSlug={ws}
+        onCreated={(projectId) => {
+          setExpandedProjectId(projectId);
+          navigate(`/${ws}/projects/${projectId}/overview`);
+        }}
       />
 
       {/* 首页 / 我的工作 / 草稿 */}
@@ -510,13 +547,7 @@ export const ProjectsL2Sidebar = observer(function ProjectsL2Sidebar() {
 
         <TreeAddRow
           label="新建项目"
-          onClick={() => {
-            try {
-              setCreateOpen(true);
-            } catch {
-              addLocalProject();
-            }
-          }}
+          onClick={() => setCreateOpen(true)}
         />
       </TreeRoot>
     </SidebarWrapper>
@@ -527,8 +558,35 @@ export const ProjectsL2Sidebar = observer(function ProjectsL2Sidebar() {
 
 export const CustomersL2Sidebar = observer(function CustomersL2Sidebar() {
   const { workspaceSlug } = useParams();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const ws = workspaceSlug?.toString() ?? "formscape";
-  const stages = ["全部", "线索", "量房", "方案", "施工", "已交付"] as const;
+  const onCustomers = pathname.includes("/customers");
+  const stageParam = searchParams.get("stage");
+  const stages = ["全部", ...CUSTOMER_STAGES] as const;
+
+  // 与 CustomersPage 同源（customers-store），不再读静态 workspace-mock
+  const [counts, setCounts] = useState(() =>
+    typeof window === "undefined"
+      ? ({ 全部: 0 } as Record<CustomerStage | "全部", number>)
+      : countCustomersByStage()
+  );
+  const [recent, setRecent] = useState<CustomerRecord[]>(() =>
+    typeof window === "undefined" ? [] : getCustomers().slice(0, 8)
+  );
+  useEffect(() => {
+    const bump = () => {
+      setCounts(countCustomersByStage());
+      setRecent(getCustomers().slice(0, 8));
+    };
+    bump();
+    window.addEventListener(CUSTOMERS_CHANGE_EVENT, bump);
+    window.addEventListener("storage", bump);
+    return () => {
+      window.removeEventListener(CUSTOMERS_CHANGE_EVENT, bump);
+      window.removeEventListener("storage", bump);
+    };
+  }, []);
 
   return (
     <SidebarWrapper title="客户">
@@ -537,22 +595,32 @@ export const CustomersL2Sidebar = observer(function CustomersL2Sidebar() {
         {stages.map((s) => (
           <NavLink
             key={s}
-            to={`/${ws}/customers`}
+            to={s === "全部" ? `/${ws}/customers` : `/${ws}/customers?stage=${encodeURIComponent(s)}`}
             icon={UserSquare2}
             label={s}
-            meta={
-              s === "全部"
-                ? String(CUSTOMERS.length)
-                : String(CUSTOMERS.filter((c) => c.stage === s).length || "")
-            }
+            meta={(() => {
+              const n = counts[s as CustomerStage | "全部"] ?? 0;
+              return n > 0 ? String(n) : s === "全部" ? "0" : "";
+            })()}
+            active={onCustomers && (s === "全部" ? !stageParam : stageParam === s)}
           />
         ))}
       </TreeRoot>
       <TreeRoot>
         <SectionLabel>最近客户</SectionLabel>
-        {CUSTOMERS.map((c) => (
-          <NavLink key={c.id} to={`/${ws}/customers`} icon={UserSquare2} label={c.name} meta={c.stage} />
-        ))}
+        {recent.length === 0 ? (
+          <p className="px-2 py-1 text-11 text-tertiary">暂无客户 · 在客户页新建</p>
+        ) : (
+          recent.map((c) => (
+            <NavLink
+              key={c.id}
+              to={`/${ws}/customers?stage=${encodeURIComponent(c.stage)}`}
+              icon={UserSquare2}
+              label={c.name}
+              meta={c.stage}
+            />
+          ))
+        )}
       </TreeRoot>
     </SidebarWrapper>
   );
@@ -620,9 +688,10 @@ export const LibraryL2Sidebar = observer(function LibraryL2Sidebar() {
         {ECO_CATEGORIES.filter((c) => c.key !== "combo").map((cat) => (
           <NavLink
             key={cat.key}
-            to={`/${ws}/library?mode=products`}
+            to={`/${ws}/library?mode=products&cat=${cat.key}`}
             icon={Package}
             label={cat.label}
+            active={onLibrary && mode === "products" && searchParams.get("cat") === cat.key}
           />
         ))}
       </TreeRoot>
@@ -630,7 +699,7 @@ export const LibraryL2Sidebar = observer(function LibraryL2Sidebar() {
   );
 });
 
-/** 用户管理 L2 — 成员 / 席位 / 角色（原「团队」并入） */
+/** 团队管理 L2 — 成员 / 席位 / 角色 */
 export const UsersL2Sidebar = observer(function UsersL2Sidebar() {
   const { workspaceSlug } = useParams();
   const pathname = usePathname();
@@ -640,7 +709,7 @@ export const UsersL2Sidebar = observer(function UsersL2Sidebar() {
   const tab = searchParams.get("tab") ?? "members";
 
   return (
-    <SidebarWrapper title="用户管理">
+    <SidebarWrapper title="团队管理">
       <TreeRoot>
         <SectionLabel>管理</SectionLabel>
         <NavLink
@@ -669,10 +738,11 @@ export const UsersL2Sidebar = observer(function UsersL2Sidebar() {
         {TEAM.map((m) => (
           <NavLink
             key={m.id}
-            to={`/${ws}/users?tab=members`}
+            to={`/${ws}/users?tab=members&member=${m.id}`}
             icon={Users}
             label={m.name}
             meta={`${m.load}%`}
+            active={onUsers && searchParams.get("member") === m.id}
           />
         ))}
       </TreeRoot>
@@ -685,20 +755,30 @@ export const TeamL2Sidebar = UsersL2Sidebar;
 
 export const SettingsL2Sidebar = observer(function SettingsL2Sidebar() {
   const { workspaceSlug } = useParams();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const ws = workspaceSlug?.toString() ?? "formscape";
+  const onSettings = pathname.includes("/studio-settings");
+  const section = searchParams.get("section") ?? "plan";
   const items = [
-    { label: "计划与席位", href: `/${ws}/studio-settings` },
-    { label: "算力与用量", href: `/${ws}/studio-settings` },
-    { label: "集成", href: `/${ws}/studio-settings` },
-    { label: "外观", href: `/${ws}/studio-settings` },
-  ];
+    { label: "计划与席位", section: "plan" },
+    { label: "算力与用量", section: "usage" },
+    { label: "集成", section: "integrations" },
+    { label: "外观", section: "appearance" },
+  ] as const;
 
   return (
     <SidebarWrapper title="设置">
       <TreeRoot>
         <SectionLabel>工作室</SectionLabel>
         {items.map((it) => (
-          <NavLink key={it.label} to={it.href} icon={Settings2} label={it.label} />
+          <NavLink
+            key={it.section}
+            to={`/${ws}/studio-settings?section=${it.section}`}
+            icon={Settings2}
+            label={it.label}
+            active={onSettings && section === it.section}
+          />
         ))}
       </TreeRoot>
     </SidebarWrapper>
@@ -709,10 +789,17 @@ export const SettingsL2Sidebar = observer(function SettingsL2Sidebar() {
 export const SpaceL2Sidebar = observer(function SpaceL2Sidebar() {
   const { workspaceSlug } = useParams();
   const navigate = useNavigate();
+  const searchParams = useSearchParams();
   const ws = workspaceSlug?.toString() ?? "formscape";
+  const projectId = searchParams.get("project");
+  const { projects } = useProjects();
+  const selectedProject = projects.find((project) => project.id === projectId);
+  const spaceHref = projectId
+    ? `/${ws}/space?project=${encodeURIComponent(projectId)}`
+    : `/${ws}/space`;
   const fileRef = useRef<HTMLInputElement>(null);
   const [scene, setScene] = useState<SpaceScene | null>(() =>
-    typeof window === "undefined" ? null : getSpaceScene()
+    typeof window === "undefined" ? null : getSpaceScene(projectId)
   );
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
@@ -720,17 +807,37 @@ export const SpaceL2Sidebar = observer(function SpaceL2Sidebar() {
   const [strictness, setStrictness] = useState(() =>
     typeof window === "undefined" ? 50 : loadDetectStrictnessLocal()
   );
-  const [engine, setEngine] = useState<MlEngineId>(() =>
-    typeof window === "undefined" ? "f23d" : getMlEngine()
-  );
   const [mlHealth, setMlHealth] = useState<MlHealth | null>(null);
+  /** 已成功识别过：拖置信度自动重跑，无需重新上传 */
+  const lastPlanRef = useRef<{
+    previewUrl: string;
+    kind: "image" | "pdf";
+    name: string;
+  } | null>(null);
+  const busyRef = useRef(false);
+  const skipConfAutoRef = useRef(true); // 首屏不因 strictness 初值触发
 
   useEffect(() => {
-    const bump = () => setScene(getSpaceScene());
+    setActiveSpaceProject(projectId);
+    setPendingFile(null);
+    setStatus(null);
+    lastPlanRef.current = null;
+    const bump = () => setScene(getSpaceScene(projectId));
     bump();
     window.addEventListener(SPACE_CHANGE_EVENT, bump);
     return () => window.removeEventListener(SPACE_CHANGE_EVENT, bump);
-  }, []);
+  }, [projectId]);
+
+  // 场景已有底图时同步到 lastPlanRef，便于调 conf 重检
+  useEffect(() => {
+    if (scene?.floorPlanDataUrl && scene.sourceKind) {
+      lastPlanRef.current = {
+        previewUrl: scene.floorPlanDataUrl,
+        kind: scene.sourceKind,
+        name: scene.sourceFileName ?? "plan.png",
+      };
+    }
+  }, [scene?.floorPlanDataUrl, scene?.sourceKind, scene?.sourceFileName]);
 
   useEffect(() => {
     let dead = false;
@@ -753,218 +860,245 @@ export const SpaceL2Sidebar = observer(function SpaceL2Sidebar() {
       /^image\//.test(file.type) ||
       /\.(png|jpe?g|webp|gif|bmp|tif{1,2}|heic|heif)$/i.test(file.name);
     if (!isPdf && !isImage) {
-      window.alert("请选择 PNG/JPG/WebP 或 PDF 平面图");
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "暂不支持该文件",
+        message: "请选择 PNG/JPG/WebP 或 PDF 平面图",
+      });
       return;
     }
     setPendingFile(file);
     setStatus(`已选择：${file.name} · 点击下方「开始检测」`);
   };
 
-  const runDetect = async () => {
-    if (busy) return;
+  const applyResult = useCallback(
+    (
+      result: Awaited<ReturnType<typeof importArchitecturalPlan>>,
+      name: string,
+      kind: "image" | "pdf",
+      keepPending: boolean
+    ) => {
+      const polyN = result.f23dPlan
+        ? ["wall", "door", "window"].reduce(
+            (n, k) =>
+              n + ((result.f23dPlan!.polygons as Record<string, unknown[]>)[k]?.length ?? 0),
+            0
+          )
+        : 0;
+      if (!result.walls.length && !polyN) {
+        throw new Error("未检出墙体。可调低置信度后重试");
+      }
+      const preview = result.previewUrl;
+      if (preview) {
+        lastPlanRef.current = { previewUrl: preview, kind, name };
+      }
+      const next = applyDetectedPlan({
+        name,
+        kind,
+        previewUrl: result.previewUrl,
+        walls: result.walls,
+        widthMm: result.widthMm,
+        depthMm: result.depthMm,
+        method: result.method,
+        message: result.message,
+        strictness: result.strictness,
+        f23dPlan: result.f23dPlan ?? null,
+      });
+      setStatus(result.message);
+      if (!keepPending) setPendingFile(null);
+      setScene(next);
+      navigate(spaceHref);
+    },
+    [navigate, spaceHref]
+  );
+
+  const runDetect = useCallback(
+    async (sOverride?: number, opts?: { silent?: boolean }) => {
+      if (busyRef.current) return;
+      if (!selectedProject) {
+        setToast({
+          type: TOAST_TYPE.WARNING,
+          title: "请先选择项目",
+          message: "3D 场景按项目独立保存，选择项目后再导入平面图",
+        });
+        return;
+      }
+      const s = sOverride ?? strictness;
+      saveDetectStrictnessLocal(s);
+      const silent = Boolean(opts?.silent);
+
+      // 1) 有待检测文件 → 完整导入
+      if (pendingFile) {
+        busyRef.current = true;
+        setBusy(true);
+        setStatus("检测中…");
+        try {
+          const isPdf =
+            /\.pdf$/i.test(pendingFile.name) || pendingFile.type === "application/pdf";
+          const result = await importArchitecturalPlan(pendingFile, s);
+          applyResult(result, pendingFile.name, isPdf ? "pdf" : "image", false);
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          setStatus(msg);
+          if (!silent) setToast({ type: TOAST_TYPE.ERROR, title: "检测失败", message: msg });
+        } finally {
+          busyRef.current = false;
+          setBusy(false);
+        }
+        return;
+      }
+
+      // 2) 已有底图（场景或上次成功结果）→ 改 conf 即时重检
+      const plan =
+        lastPlanRef.current ??
+        (scene?.floorPlanDataUrl && scene.sourceKind
+          ? {
+              previewUrl: scene.floorPlanDataUrl,
+              kind: scene.sourceKind,
+              name: scene.sourceFileName ?? "plan.png",
+            }
+          : null);
+
+      if (plan) {
+        busyRef.current = true;
+        setBusy(true);
+        setStatus(silent ? `严格度 ${s} · 重检中…` : "重新检测中…");
+        try {
+          const result = await reimportFromPreview(
+            plan.previewUrl,
+            plan.kind,
+            plan.name,
+            s
+          );
+          applyResult(result, plan.name, plan.kind, true);
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          setStatus(msg);
+          if (!silent) setToast({ type: TOAST_TYPE.ERROR, title: "检测失败", message: msg });
+        } finally {
+          busyRef.current = false;
+          setBusy(false);
+        }
+        return;
+      }
+
+      // 3) 无图 → 选文件
+      fileRef.current?.click();
+      setStatus("请先选择平面图，再点「开始检测」");
+    },
+    [strictness, pendingFile, scene, applyResult, selectedProject]
+  );
+
+  // 拖动置信度：有全量缓存时瞬时过滤（不请求后端，像朋友项目一样实时）
+  useEffect(() => {
+    if (skipConfAutoRef.current) {
+      skipConfAutoRef.current = false;
+      return;
+    }
     saveDetectStrictnessLocal(strictness);
-    setMlEngine(engine);
-    const engLabel = engine === "r2v" ? "栅格矢量化 R2V" : "F23D";
-
-    // 1) 有待检测文件 → 走完整导入
-    if (pendingFile) {
-      setBusy(true);
-      setStatus(`检测中…（${engLabel}）`);
-      try {
-        const isPdf =
-          /\.pdf$/i.test(pendingFile.name) || pendingFile.type === "application/pdf";
-        const result = await importArchitecturalPlan(pendingFile, strictness);
-        const polyN = result.f23dPlan
-          ? ["wall", "door", "window"].reduce(
-              (n, k) =>
-                n + ((result.f23dPlan!.polygons as Record<string, unknown[]>)[k]?.length ?? 0),
-              0
-            )
-          : 0;
-        if (!result.walls.length && !polyN) {
-          throw new Error("未检出线段。可换引擎或调低严格度，线稿图更适合 R2V");
-        }
-        // 必须用返回值，勿再 getSpaceScene()（曾因 localStorage 写失败读到旧场景）
-        const next = applyDetectedPlan({
-          name: pendingFile.name,
-          kind: isPdf ? "pdf" : "image",
-          previewUrl: result.previewUrl,
-          walls: result.walls,
-          widthMm: result.widthMm,
-          depthMm: result.depthMm,
-          method: result.method,
-          message: result.message,
-          strictness: result.strictness,
-          f23dPlan: result.f23dPlan ?? null,
-        });
-        setStatus(result.message);
-        setPendingFile(null);
-        setScene(next);
-        navigate(`/${ws}/space`);
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        setStatus(msg);
-        window.alert(`检测失败：${msg}`);
-      } finally {
-        setBusy(false);
-      }
+    // 优先即时过滤
+    const filtered = applyDetectConfFilter(strictness);
+    if (filtered) {
+      setScene(filtered);
+      setStatus(filtered.detectMessage);
       return;
     }
+    // 尚无缓存时（未跑过 ML）：不自动请求，等用户点检测
+  }, [strictness]);
 
-    // 2) 无新文件但场景有底图 → 重新检测
-    if (scene?.floorPlanDataUrl && scene.sourceKind) {
-      setBusy(true);
-      setStatus(`重新检测中…（${engLabel}）`);
-      try {
-        const result = await reimportFromPreview(
-          scene.floorPlanDataUrl,
-          scene.sourceKind,
-          scene.sourceFileName ?? "plan.png",
-          strictness
-        );
-        const polyN = result.f23dPlan
-          ? ["wall", "door", "window"].reduce(
-              (n, k) =>
-                n + ((result.f23dPlan!.polygons as Record<string, unknown[]>)[k]?.length ?? 0),
-              0
-            )
-          : 0;
-        if (!result.walls.length && !polyN) {
-          throw new Error("未检出墙段。可换引擎或调低严格度后重试");
-        }
-        const next = applyDetectedPlan({
-          name: scene.sourceFileName ?? "plan.png",
-          kind: scene.sourceKind,
-          previewUrl: result.previewUrl,
-          walls: result.walls,
-          widthMm: result.widthMm,
-          depthMm: result.depthMm,
-          method: result.method,
-          message: result.message,
-          strictness: result.strictness,
-          f23dPlan: result.f23dPlan ?? null,
-        });
-        setStatus(result.message);
-        setScene(next);
-        navigate(`/${ws}/space`);
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        setStatus(msg);
-        window.alert(`检测失败：${msg}`);
-      } finally {
-        setBusy(false);
-      }
+  const routeAOk = Boolean(mlHealth?.ok && mlHealth?.engines?.route_a);
+  const canExportObj = Boolean(scene?.walls?.length);
+  const architectOn = mlHealth?.architect_enabled;
+
+  const exportObjFromScene = () => {
+    if (!scene?.walls?.length) {
+      setToast({
+        type: TOAST_TYPE.WARNING,
+        title: "没有可导出的墙体",
+        message: "先完成识别再导出",
+      });
       return;
     }
-
-    // 3) 什么都没有 → 引导选文件
-    fileRef.current?.click();
-    setStatus("请先选择平面图，再点「开始检测」");
+    const base = (scene.sourceFileName ?? "floorplan").replace(/\.[^.]+$/, "");
+    const obj = buildWallsObj(scene.walls, scene.wallHeightMm || 2800, base);
+    downloadTextFile(obj, `${base}.obj`, "model/obj");
+    setToast({
+      type: TOAST_TYPE.SUCCESS,
+      title: "OBJ 已导出",
+      message: `墙 ${scene.walls.length} 段 · 墙高 ${scene.wallHeightMm || 2800}mm`,
+    });
   };
-
-  const engMap = mlHealth?.engines ?? mlHealth?.backends ?? {};
-  const f23dOk = Boolean(engMap.f23d);
-  const r2vOk = Boolean(engMap.r2v);
-  const anyMl = Boolean(mlHealth?.ok && (f23dOk || r2vOk));
-  const canExport =
-    Boolean(scene?.f23dPlan?.svg_b64) || Boolean(scene?.f23dPlan?.dxf_b64);
 
   return (
     <SidebarWrapper title="3D模型">
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-2 pb-3">
+        <SectionLabel>项目归属</SectionLabel>
+        <div className="mx-1 mb-2">
+          <select
+            aria-label="选择 3D 场景所属项目"
+            className={fsInputClass}
+            value={selectedProject?.id ?? ""}
+            disabled={busy}
+            onChange={(event) => {
+              const nextProjectId = event.target.value;
+              navigate(
+                nextProjectId
+                  ? `/${ws}/space?project=${encodeURIComponent(nextProjectId)}`
+                  : `/${ws}/space`
+              );
+            }}
+          >
+            <option value="">请选择项目</option>
+            {projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.name}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-10 leading-snug text-placeholder">
+            {selectedProject
+              ? `独立保存到「${selectedProject.name}」，不会覆盖其他项目`
+              : "先选择项目，再导入平面图或编辑墙体"}
+          </p>
+        </div>
+
         <SectionLabel>导入平面</SectionLabel>
         <p className="mb-2 px-1.5 text-11 leading-snug text-tertiary">
-          F23D 语义 · R2V 栅格描摹（路线 B）
+          上传平面图自动识出墙/门/窗。先检测一次，之后拖严格度就能实时过滤。
         </p>
 
         <div className="mx-1 mb-2 rounded-md border border-subtle bg-surface-2/40 px-2 py-2">
-          <div className="mb-2 text-11 text-tertiary">识别引擎</div>
-          <div className="mb-2 flex flex-col gap-1">
-            <label
-              className={cn(
-                "flex cursor-pointer items-start gap-2 rounded-md border px-2 py-1.5 text-11",
-                engine === "f23d"
-                  ? "border-accent-primary/50 bg-accent-subtle/40"
-                  : "border-subtle"
-              )}
-            >
-              <input
-                type="radio"
-                name="ml-engine"
-                className="mt-0.5"
-                checked={engine === "f23d"}
-                disabled={busy}
-                onChange={() => {
-                  setEngine("f23d");
-                  setMlEngine("f23d");
-                }}
-              />
-              <span>
-                <span className="font-medium text-primary">F23D · 墙门窗语义</span>
-                <span className="mt-0.5 block text-[10px] text-placeholder">
-                  AI 分割 · 适合示意图
-                  {f23dOk ? " · 在线" : mlHealth ? " · 离线" : ""}
-                </span>
-              </span>
-            </label>
-            <label
-              className={cn(
-                "flex cursor-pointer items-start gap-2 rounded-md border px-2 py-1.5 text-11",
-                engine === "r2v"
-                  ? "border-accent-primary/50 bg-accent-subtle/40"
-                  : "border-subtle"
-              )}
-            >
-              <input
-                type="radio"
-                name="ml-engine"
-                className="mt-0.5"
-                checked={engine === "r2v"}
-                disabled={busy}
-                onChange={() => {
-                  setEngine("r2v");
-                  setMlEngine("r2v");
-                }}
-              />
-              <span>
-                <span className="font-medium text-primary">R2V · 栅格矢量化</span>
-                <span className="mt-0.5 block text-[10px] text-placeholder">
-                  描摹线稿 → SVG/DXF · 无门窗语义
-                  {r2vOk ? " · 在线" : mlHealth ? " · 离线" : ""}
-                </span>
-              </span>
-            </label>
-          </div>
-
           <div className="mb-1 flex items-center justify-between text-11">
             <span className="text-tertiary">严格度</span>
-            <span className="font-medium text-primary">{strictness}</span>
+            <span className="font-medium text-primary tabular-nums">{strictness}</span>
           </div>
-          <input
-            type="range"
+          <FsSlider
             min={0}
             max={100}
             step={5}
             value={strictness}
-            disabled={busy}
+            disabled={busy || !selectedProject}
             onChange={(e) => {
               const v = Number(e.target.value);
               setStrictness(v);
               saveDetectStrictnessLocal(v);
             }}
-            className="w-full accent-[var(--color-accent-primary,#3b82f6)]"
+            className="w-full"
           />
-          <div className="mt-0.5 flex justify-between text-[10px] text-placeholder">
-            <span>宽松（更多线）</span>
-            <span>严格（更少噪点）</span>
+          <div className="mt-0.5 flex justify-between text-10 text-placeholder">
+            <span>低·多检出</span>
+            <span>高·更严</span>
           </div>
-          <div className="mt-1.5 text-[10px] leading-snug text-placeholder">
-            {anyMl ? (
+          <div className="mt-1.5 text-10 leading-snug text-placeholder">
+            {routeAOk ? (
               <span className="text-accent-primary">
-                ML 在线 · 当前 {engine === "r2v" ? "R2V" : "F23D"}
+                增强识别已开启
+                {scene?.detectFull ? " · 拖一下就能换严格度" : " · 先检测一次后可实时调严格度"}
+                {architectOn === true ? " · 含非商用模型" : ""}
+                {architectOn === false ? " · 已关非商用模型" : ""}
               </span>
             ) : (
-              <span>ML 离线 · 启动 services/floorplan-ml :8090</span>
+              <span>增强识别未开启 · 需先启动本地识别服务</span>
             )}
           </div>
         </div>
@@ -981,7 +1115,7 @@ export const SpaceL2Sidebar = observer(function SpaceL2Sidebar() {
         />
         <button
           type="button"
-          disabled={busy}
+          disabled={busy || !selectedProject}
           onClick={() => fileRef.current?.click()}
           className={cn(
             "mx-1 flex flex-col items-center gap-1.5 rounded-lg border border-dashed border-subtle px-2 py-4 text-center transition-colors",
@@ -992,18 +1126,15 @@ export const SpaceL2Sidebar = observer(function SpaceL2Sidebar() {
           <span className="text-12 font-medium text-primary">
             {pendingFile ? "更换文件" : "选择平面图 / PDF"}
           </span>
-          <span className="max-w-full truncate px-1 text-[10px] text-tertiary">
+          <span className="max-w-full truncate px-1 text-10 text-tertiary">
             {pendingFile ? pendingFile.name : "PNG · JPG · PDF"}
           </span>
         </button>
 
-        <button
-          type="button"
-          disabled={busy}
+        <FsButton
+          disabled={busy || !selectedProject}
           onClick={() => void runDetect()}
-          className={cn(
-            "mx-1 mt-2 flex w-[calc(100%-0.5rem)] items-center justify-center gap-1.5 rounded-md bg-accent-primary px-2 py-2.5 text-12 font-semibold text-on-color transition-colors hover:opacity-90 disabled:cursor-wait disabled:opacity-70"
-          )}
+          className="mx-1 mt-2 w-[calc(100%-0.5rem)] disabled:cursor-wait"
         >
           <ScanSearch className="size-4" strokeWidth={1.75} />
           {busy
@@ -1013,60 +1144,53 @@ export const SpaceL2Sidebar = observer(function SpaceL2Sidebar() {
               : scene?.floorPlanDataUrl
                 ? "重新检测"
                 : "开始检测"}
-        </button>
-        <p className="mx-1 mt-1 text-[10px] text-placeholder">
+        </FsButton>
+        <p className="mx-1 mt-1 text-10 text-placeholder">
           {pendingFile
             ? `待检测：${pendingFile.name}`
-            : scene?.floorPlanDataUrl
-              ? "可对当前底图重新检测，或先更换文件"
-              : "请先选择平面图，再点检测"}
+            : scene?.detectFull
+              ? "拖严格度即时过滤，完全不用等待"
+              : scene?.floorPlanDataUrl
+                ? "点「重新检测」跑一次后，即可实时调严格度"
+                : "请先选择平面图，再点检测"}
         </p>
         {status && (
-          <p className="mx-1 mt-2 text-[10px] leading-snug text-accent-primary">{status}</p>
+          <p className="mx-1 mt-2 text-10 leading-snug text-accent-primary">{status}</p>
         )}
 
-        {canExport && (
-          <div className="mx-1 mt-2 flex gap-1.5">
-            <button
-              type="button"
-              className="flex-1 rounded-md border border-subtle px-2 py-1.5 text-11 font-medium text-primary hover:bg-surface-2"
+        {canExportObj && (
+          <div className="mx-1 mt-2 flex flex-wrap gap-1.5">
+            <FsButton variant="secondary" size="sm" className="flex-1" onClick={exportObjFromScene}>
+              导出 OBJ
+            </FsButton>
+            <FsButton
+              variant="ghost"
+              size="sm"
+              className="flex-1 text-tertiary"
               onClick={() =>
-                downloadPlanExport(
-                  scene?.f23dPlan,
-                  "svg",
-                  (scene?.sourceFileName ?? "floorplan").replace(/\.[^.]+$/, "")
-                )
+                setToast({
+                  type: TOAST_TYPE.INFO,
+                  title: "GLB 即将支持",
+                  message: "当前请用 OBJ（可由墙体直接生成）",
+                })
               }
             >
-              导出 SVG
-            </button>
-            <button
-              type="button"
-              className="flex-1 rounded-md border border-subtle px-2 py-1.5 text-11 font-medium text-primary hover:bg-surface-2"
-              onClick={() =>
-                downloadPlanExport(
-                  scene?.f23dPlan,
-                  "dxf",
-                  (scene?.sourceFileName ?? "floorplan").replace(/\.[^.]+$/, "")
-                )
-              }
-            >
-              导出 DXF
-            </button>
+              GLB · 即将支持
+            </FsButton>
           </div>
         )}
 
         <div className="mt-3">
           <SectionLabel>当前场景</SectionLabel>
           <NavLink
-            to={`/${ws}/space`}
+            to={spaceHref}
             icon={Box}
             label={scene?.sourceFileName ?? scene?.name ?? "未命名场景"}
             meta={`墙 ${scene?.walls?.length ?? 0} 段`}
             active
           />
           {scene && scene.widthMm > 0 && (
-            <p className="mt-1 px-1.5 text-[10px] text-placeholder">
+            <p className="mt-1 px-1.5 text-10 text-placeholder">
               {(scene.widthMm / 1000).toFixed(1)}×{(scene.depthMm / 1000).toFixed(1)} m
               {scene.detectMessage ? ` · ${scene.detectMessage.slice(0, 48)}` : ""}
             </p>

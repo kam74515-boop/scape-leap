@@ -38,7 +38,6 @@
     "rehype-remark": "catalog:",
     "remark-gfm": "catalog:",
     "remark-stringify": "catalog:",
-    "sanitize-html": "catalog:",
     "tailwind-merge": "catalog:",
     "unified": "catalog:",
     "uuid": "catalog:"
@@ -51,7 +50,6 @@
     "@types/mdast": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
-    "@types/sanitize-html": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:"
   }

@@ -81,7 +81,7 @@ export function SkillsStrip({ open, onClose, onPick }: Props) {
                 type="button"
                 onClick={() => setCat(c.key)}
                 className={cn(
-                  "rounded-md px-2 py-0.5 text-[10px] font-medium transition-colors",
+                  "rounded-md px-2 py-0.5 text-10 font-medium transition-colors",
                   cat === c.key
                     ? "bg-accent-subtle text-accent-primary"
                     : "text-secondary hover:bg-layer-transparent-hover"
@@ -147,7 +147,7 @@ export function SkillsStrip({ open, onClose, onPick }: Props) {
               <div className="flex items-start justify-between gap-1 p-1.5">
                 <div className="min-w-0">
                   <div className="truncate text-11 font-medium text-primary">{s.name}</div>
-                  <div className="line-clamp-1 text-[10px] text-tertiary">{s.desc}</div>
+                  <div className="line-clamp-1 text-10 text-tertiary">{s.desc}</div>
                 </div>
                 <button
                   type="button"

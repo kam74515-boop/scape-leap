@@ -16,7 +16,7 @@ import {
   getPurchaseTotalsForProject,
   PURCHASE_STATUS_META,
 } from "../purchase-store";
-import { projectById } from "../pm-mock";
+import { getProjectById } from "../projects-store";
 import { STAGES } from "../types";
 import { getCanvasAiBridge } from "../canvas/canvas-ai-bridge-registry";
 import type { HarnessTool, ProjectHarnessContext, ToolResult } from "./types";
@@ -40,7 +40,7 @@ export const HARNESS_TOOLS: HarnessTool[] = [
       const miss = needProject(ctx);
       if (miss) return miss;
       const id = ctx.projectId!;
-      const pm = projectById(id);
+      const pm = getProjectById(id);
       const progress = getProjectProgress(id);
       const fee = getDesignFeeProgress(id);
       const design = getDesignStageProgress(id);
@@ -113,6 +113,7 @@ export const HARNESS_TOOLS: HarnessTool[] = [
     name: "advance_biz_node",
     description: "推进经营节点到下一档（并联动设计费已收）",
     requiresProject: true,
+    requiresConfirmation: true,
     run: (ctx) => {
       const miss = needProject(ctx);
       if (miss) return miss;
@@ -247,9 +248,16 @@ export function getTool(name: string): HarnessTool | undefined {
 export async function runTool(
   name: string,
   ctx: ProjectHarnessContext,
-  args: Record<string, unknown> = {}
+  args: Record<string, unknown> = {},
+  options: { confirmed?: boolean } = {}
 ): Promise<ToolResult> {
   const tool = getTool(name);
   if (!tool) return { ok: false, summary: `未知工具：${name}` };
+  if (tool.requiresConfirmation && !options.confirmed) {
+    return {
+      ok: false,
+      summary: `写操作「${tool.description}」尚未执行。请先明确确认。`,
+    };
+  }
   return tool.run(ctx, args);
 }

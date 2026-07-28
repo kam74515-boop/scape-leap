@@ -2,6 +2,7 @@ import { memo } from "react";
 import { type Node, type NodeProps, NodeResizer } from "@xyflow/react";
 import { cn } from "@plane/utils";
 import type { ShapeNodeData } from "../types";
+import { RESIZER_HANDLE, RESIZER_LINE, SELECTED_RING } from "./selection-chrome";
 
 type ShapeNodeType = Node<ShapeNodeData, "shape">;
 
@@ -10,24 +11,28 @@ function ShapeNodeComponent({ data, selected }: NodeProps<ShapeNodeType>) {
   const fill = data.fill || "#E0E7FF";
 
   return (
-    <div
-      className={cn(
-        "relative size-full min-h-[48px] min-w-[48px]",
-        selected && "shadow-[0_0_0_2px_color-mix(in_srgb,var(--bg-accent-primary)_28%,transparent)]"
-      )}
-    >
+    <div className="relative size-full min-h-[48px] min-w-[48px]">
       <NodeResizer
         isVisible={selected}
         minWidth={40}
         minHeight={40}
-        lineClassName="!border-accent-primary"
-        handleClassName="!h-2 !w-2 !rounded-sm !border-accent-primary !bg-surface-1"
+        lineClassName={RESIZER_LINE}
+        handleClassName={RESIZER_HANDLE}
       />
       {data.shape === "ellipse" && (
-        <div className="size-full rounded-full border-2" style={{ background: fill, borderColor: stroke }} />
+        <div
+          className={cn(
+            "size-full rounded-full border-2",
+            selected && "shadow-[0_0_0_2px_color-mix(in_srgb,var(--bg-accent-primary)_40%,transparent)]"
+          )}
+          style={{ background: fill, borderColor: selected ? "var(--bg-accent-primary)" : stroke }}
+        />
       )}
       {(data.shape === "rect" || !data.shape) && (
-        <div className="size-full rounded-md border-2" style={{ background: fill, borderColor: stroke }} />
+        <div
+          className={cn("size-full rounded-md border-2", selected && SELECTED_RING)}
+          style={{ background: fill, borderColor: selected ? undefined : stroke }}
+        />
       )}
       {data.shape === "line" && (
         <div className="flex size-full items-center">

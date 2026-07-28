@@ -50,8 +50,8 @@ export const AppRailRoot = observer(() => {
       <ContextMenu>
         <ContextMenu.Trigger className="h-full">
           <div className="flex h-full flex-col px-2 py-2.5">
-            {/* Logo：与 L1 AppSidebarItem 图标格完全一致 size-8 rounded-md */}
-            <div className="mb-3 flex justify-center">
+            {/* Logo：与 L1 图标格完全一致 size-8 rounded-md；下方间距加大（规范 v3 §8） */}
+            <div className="mb-5 flex justify-center">
               <Tooltip tooltipContent="构境AI" position="right">
                 <Link
                   href={workspaceSlug ? `/${workspaceSlug}/` : "/"}

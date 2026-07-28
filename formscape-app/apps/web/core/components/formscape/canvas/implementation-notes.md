@@ -24,6 +24,20 @@
 - Tools：snapshot / place_gen / edit_selected / place_image
 - 画布页默认 canvas skill；经营/采购仍可触发
 
+## 子画布（2026-07-25）
+- 侧栏每个 **board** = 独立**工作画布**文档：`formscape.canvas.doc.v2::{projectId}::{boardId}`
+- 切换 / 新建：`key=project::board` remount；**一律空白**，不种 moodboard
+
+## 项目图板（风格图板 · 2026-07-25）
+- **与工作画布分离**：图板 = 项目级灵感/选品/镜头容器；画布 = 方案编排与生成
+- Store：`style-boards-store.ts`（localStorage `fs-style-boards-v1`）
+- 默认分类图板：风格参考 / 产品选品 / 材质样板 / 镜头设定（**带 Demo 种子图**）
+- **打开工作画布自动铺图板**：`mergeStyleboardIntoNodes` → 左侧「项目图板 · 技能素材」框
+- **技能轨「从画布选择」**：点槽位 → 点画布图板图 → 填入上传槽 → 一键生成
+- L2 顶栏 **图板**；生态库「加入图板」+「落画布」
+- Pin 类型：product · material · reference · camera · link（Pinterest 占位）
+- 后续：Pinterest / SU 镜头插件
+
 ## 模拟数据（2026-07-24）
 - **技能库 = 精确 14 个**，id 对齐 `lovspark-skill-library-cases` 目录名  
   unfurnished-space-generation / white-model-rendering / architectural-multi-angle /  
@@ -56,10 +70,13 @@
 - 生成落图写入 localStorage 历史  
 
 ### 交互
-- 多结果 **水平并排** 落图；顶栏「并排」重排对比  
+- 多结果 **水平并排** 落图
 - 空白画布：**一键导入 4 张样例**  
 - 右键：再生成/延展/变体/局部改图 + **完整 14 技能**  
-- 选中顶栏：多角度 / 氛围 / 材质 / 白模 / **局部**  
+- **选中功能栏对齐 Lovspark**（图片）：
+  图生视频 | 局部重绘 · 抠图 · 高清放大 · 问 AI · 重新生成 · 下载 · 更多 · 锁定
+  更多：图片扩展 · AI重绘 · 智能消除 · 裁剪 · 调节 · 删除
+  锁定态仅「解锁」；多选：水平排列 · 问 AI · 下载 · 锁定 · 删除
 - **局部改图蒙版壳**：涂选区 → mask + 源图 refs → mock 落图  
 - 技能轨打开：**自动填入 case 示例图**  
 
@@ -72,7 +89,6 @@
 3. 技能库任选 → 一键生成落图  
 4. 图库样例拖到画布；历史可回读  
 5. AI：`生成：空房设计` / `材质替换`  
-
 
 
 

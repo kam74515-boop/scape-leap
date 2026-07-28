@@ -1,4 +1,10 @@
-import type { FormscapeProject } from "./types";
+import type { FormscapeProject, StageId } from "./types";
+import { ensureFsHydrated, putFsDoc, readFsCache, registerFsEntity } from "./fs-data-client";
+import { getProjectById, updateProject } from "./projects-store";
+
+export const DEMO_PROJECT_CHANGE_EVENT = "fs-demo-project-change";
+registerFsEntity("demo_project", DEMO_PROJECT_CHANGE_EVENT);
+ensureFsHydrated(["demo_project"]);
 
 /** 与 mock-api 项目 id 对齐 */
 export const DEMO_PROJECT: FormscapeProject = {
@@ -38,24 +44,63 @@ export const DEMO_PROJECT: FormscapeProject = {
   purchaseIds: ["m1", "m2", "f1"],
 };
 
-const STORAGE_KEY = "formscape.demo.project.v1";
-
-export function loadProject(): FormscapeProject {
-  if (typeof window === "undefined") return DEMO_PROJECT;
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return { ...DEMO_PROJECT, ...JSON.parse(raw) };
-  } catch {
-    /* ignore */
-  }
-  return { ...DEMO_PROJECT, profile: { ...DEMO_PROJECT.profile }, purchaseIds: [...DEMO_PROJECT.purchaseIds] };
+function emptyProject(projectId: string): FormscapeProject {
+  const catalog = getProjectById(projectId);
+  const areaMatch = catalog?.houseType.match(/(\d+(?:\.\d+)?)\s*㎡/);
+  return {
+    id: projectId,
+    name: catalog?.name ?? "未命名项目",
+    identifier: catalog?.identifier ?? "NEW",
+    stage: (catalog?.stageId as StageId) || "requirements",
+    profile: {
+      clientName: catalog?.clientName === "待填写" ? undefined : catalog?.clientName,
+      houseType: catalog?.houseType === "待填写" ? undefined : catalog?.houseType.split("·")[0]?.trim(),
+      area: areaMatch ? Number(areaMatch[1]) : undefined,
+      budget: catalog?.budgetWan || undefined,
+      city: catalog?.city === "待填写" ? undefined : catalog?.city,
+    },
+    moodboard: [],
+    materials: [],
+    furniture: [],
+    purchaseIds: [],
+  };
 }
 
+export function loadProject(projectId = DEMO_PROJECT.id): FormscapeProject {
+  const fallback = projectId === DEMO_PROJECT.id ? DEMO_PROJECT : emptyProject(projectId);
+  if (typeof window === "undefined") return fallback;
+  const doc = readFsCache<FormscapeProject & { id: string }>("demo_project").find((d) => d.id === projectId);
+  if (doc) {
+    return {
+      ...fallback,
+      ...doc,
+      profile: { ...fallback.profile, ...doc.profile },
+    };
+  }
+  return {
+    ...fallback,
+    profile: { ...fallback.profile },
+    moodboard: [...fallback.moodboard],
+    materials: [...fallback.materials],
+    furniture: [...fallback.furniture],
+    purchaseIds: [...fallback.purchaseIds],
+  };
+}
+
+/** 项目档案写回服务端 SQLite（/api/fs/demo_project） */
 export function saveProject(p: FormscapeProject) {
   if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
-  } catch {
-    /* ignore */
-  }
+  putFsDoc("demo_project", { ...p, id: p.id });
+  const houseType = [p.profile.houseType, p.profile.area ? `${p.profile.area}㎡` : null]
+    .filter(Boolean)
+    .join(" · ");
+  updateProject(p.id, {
+    name: p.name,
+    identifier: p.identifier,
+    stageId: p.stage,
+    clientName: p.profile.clientName || "待填写",
+    city: p.profile.city || "待填写",
+    houseType: houseType || "待填写",
+    budgetWan: p.profile.budget ?? 0,
+  });
 }

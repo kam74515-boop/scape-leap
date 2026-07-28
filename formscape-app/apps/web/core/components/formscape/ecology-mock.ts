@@ -79,8 +79,6 @@ export const ECO_CATEGORIES = [
   { key: "decor", label: "装饰" },
 ] as const;
 
-export const ECO_FILTERS = ["风格", "材质", "适用空间", "环保等级", "颜色", "发布时间"] as const;
-
 const data = raw as {
   products: EcoProduct[];
   combos: EcoCombo[];
@@ -108,10 +106,89 @@ const CATEGORY_MAP: Record<string, string[]> = {
   decor: ["装饰"],
 };
 
+/** URL ?cat= 兼容：既接受 key（sofa）也接受中文品类值（沙发） */
+export function resolveEcoCategoryKey(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const v = raw.trim();
+  if (!v) return null;
+  if (ECO_CATEGORIES.some((c) => c.key === v)) return v;
+  const byLabel = ECO_CATEGORIES.find((c) => c.label === v);
+  if (byLabel) return byLabel.key;
+  // 数据里的品类原值（如「茶几」「家纺」）→ 反查 CATEGORY_MAP
+  for (const [key, labels] of Object.entries(CATEGORY_MAP)) {
+    if (labels.some((l) => l === v || l.includes(v) || v.includes(l))) return key;
+  }
+  return null;
+}
+
+/* ─── 真筛选：按数据现有字段（风格 / 材质 / 价格区间）───────────── */
+
+export type EcoFilterKey = "style" | "material" | "price";
+
+export type EcoFilterDef = {
+  key: EcoFilterKey;
+  label: string;
+  options: { value: string; label: string }[];
+};
+
+export type EcoFilterState = Partial<Record<EcoFilterKey, string | null>>;
+
+/** 价格区间（数据实际价格 76 – 45209 元） */
+export const ECO_PRICE_BUCKETS: { value: string; label: string; min: number; max: number }[] = [
+  { value: "0-500", label: "500 元以下", min: 0, max: 500 },
+  { value: "500-2000", label: "500 – 2000 元", min: 500, max: 2000 },
+  { value: "2000-5000", label: "2000 – 5000 元", min: 2000, max: 5000 },
+  { value: "5000-10000", label: "5000 – 1 万元", min: 5000, max: 10000 },
+  { value: "10000-", label: "1 万元以上", min: 10000, max: Infinity },
+];
+
+function uniqueValues(pick: (p: EcoProduct) => string | undefined): string[] {
+  const count = new Map<string, number>();
+  for (const p of ECO_PRODUCTS) {
+    const v = pick(p);
+    if (!v) continue;
+    count.set(v, (count.get(v) ?? 0) + 1);
+  }
+  return Array.from(count.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([v]) => v);
+}
+
+/** 下拉筛选定义：全部选项从 mock 数据实际字段推导，选了就真生效 */
+export const ECO_FILTER_DEFS: EcoFilterDef[] = [
+  {
+    key: "style",
+    label: "风格",
+    options: uniqueValues((p) => p.style).map((v) => ({ value: v, label: v })),
+  },
+  {
+    key: "material",
+    label: "材质",
+    options: uniqueValues((p) => p.material)
+      .slice(0, 12)
+      .map((v) => ({ value: v, label: v })),
+  },
+  {
+    key: "price",
+    label: "价格区间",
+    options: ECO_PRICE_BUCKETS.map((b) => ({ value: b.value, label: b.label })),
+  },
+];
+
+/** @deprecated 旧死下拉占位标签，改用 ECO_FILTER_DEFS（真筛选） */
+export const ECO_FILTERS = ECO_FILTER_DEFS.map((f) => f.label);
+
+function matchEcoPrice(price: number, bucketValue: string): boolean {
+  const bucket = ECO_PRICE_BUCKETS.find((b) => b.value === bucketValue);
+  if (!bucket) return true;
+  return price >= bucket.min && price < bucket.max;
+}
+
 export function filterEcoProducts(
   products: EcoProduct[],
   categoryKey: string,
-  brand: string
+  brand: string,
+  filters?: EcoFilterState
 ): EcoProduct[] {
   if (categoryKey === "combo") return [];
   return products.filter((p) => {
@@ -121,7 +198,10 @@ export function filterEcoProducts(
       !labels ||
       labels.some((l) => p.category.includes(l) || l.includes(p.category));
     const matchBrand = brand === "全部" || p.brand === brand;
-    return matchCat && matchBrand;
+    const matchStyle = !filters?.style || p.style === filters.style;
+    const matchMaterial = !filters?.material || p.material === filters.material;
+    const matchPrice = !filters?.price || matchEcoPrice(p.price, filters.price);
+    return matchCat && matchBrand && matchStyle && matchMaterial && matchPrice;
   });
 }
 

@@ -10,7 +10,7 @@ export const HARNESS_SKILLS: HarnessSkill[] = [
     label: "项目经营",
     description: "双轴进度、设计费、经营节点",
     triggers: ["进度", "经营", "设计费", "节点", "回款", "概览", "推进"],
-    tools: ["get_project_snapshot", "advance_biz_node", "suggest_next_actions"],
+    tools: ["get_project_snapshot", "suggest_next_actions"],
     systemHint: "你是构境工作室的项目经营助手，以项目为边界，经营节点与设计费同源。",
   },
   {

@@ -31,10 +31,17 @@ export function saveDetectStrictness(v: DetectStrictness) {
 }
 
 export function strictnessLabel(v: DetectStrictness): string {
-  if (v <= 25) return "宽松";
-  if (v <= 60) return "标准";
-  if (v <= 85) return "偏严";
-  return "严格";
+  // 映射到 YOLO 置信度语义：低=多检出，高=更严
+  if (v <= 25) return "低置信·多检出";
+  if (v <= 60) return "中置信·标准";
+  if (v <= 85) return "高置信·偏严";
+  return "最高置信";
+}
+
+/** 与后端 conf_from_strictness 一致：0→0.08 … 100→0.42（偏低 conf 减漏检） */
+export function confFromStrictness(v: DetectStrictness): number {
+  const t = clampStrictness(v) / 100;
+  return Math.round((0.08 + t * 0.34) * 100) / 100;
 }
 
 /**

@@ -6,9 +6,9 @@ import { observer } from "mobx-react";
 import { Outlet } from "react-router";
 import { Row } from "@plane/ui";
 import { FormscapeAiHeaderButton } from "@/components/formscape";
+import { FormscapeProjectGuard } from "@/components/formscape/project-guard";
 import { AppSidebarToggleButton } from "@/components/sidebar/sidebar-toggle-button";
 import { useAppTheme } from "@/hooks/store/use-app-theme";
-import { ProjectAuthWrapper } from "@/layouts/auth-layout/project-wrapper";
 import type { Route } from "./+types/layout";
 
 function ProjectLayout({ params }: Route.ComponentProps) {
@@ -28,9 +28,10 @@ function ProjectLayout({ params }: Route.ComponentProps) {
           <FormscapeAiHeaderButton />
         </Row>
       </div>
-      <ProjectAuthWrapper workspaceSlug={workspaceSlug} projectId={projectId}>
+      {/* 构境项目守卫（本地目录校验，不再走 Plane API 鉴权） */}
+      <FormscapeProjectGuard workspaceSlug={workspaceSlug} projectId={projectId}>
         <Outlet />
-      </ProjectAuthWrapper>
+      </FormscapeProjectGuard>
     </>
   );
 }

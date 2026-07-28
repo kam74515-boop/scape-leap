@@ -1,43 +1,33 @@
-import type { ReactNode } from "react";
+/**
+ * 选中节点功能栏 — 对齐 Lovspark Toolbar/Index.vue + config.ts（图片选中）
+ *
+ * 图片单选主区：图生视频 | 局部重绘 · 抠图 · 高清放大 · 问 AI · 重新生成 · 下载 · 更多 · 锁定
+ * 更多：图片扩展 · AI重绘 · 智能消除 · 裁剪 · 调节 · 删除
+ * 锁定态：仅解锁
+ * 多选：水平排列 · 问 AI · 下载 · 锁定 · 删除
+ * 非图片：复制 · 锁定 · 置顶 · 置底 · 删除
+ */
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
-  AlignCenterHorizontal,
-  AlignCenterVertical,
-  AlignEndHorizontal,
-  AlignEndVertical,
-  AlignStartHorizontal,
-  AlignStartVertical,
   ArrowDownToLine,
   ArrowUpToLine,
   Copy,
+  Crop,
+  Download,
+  Eraser,
+  Expand,
+  Film,
+  ImagePlus,
   Lock,
   LockOpen,
+  MoreHorizontal,
+  Paintbrush,
+  Scissors,
   Sparkles,
   Trash2,
+  Wand2,
 } from "lucide-react";
-import { getQuickEditSkills } from "../skills/match-skill";
-
-type Props = {
-  count: number;
-  locked: boolean;
-  showImageActions?: boolean;
-  onDuplicate: () => void;
-  onDelete: () => void;
-  onToggleLock: () => void;
-  onBringFront?: () => void;
-  onSendBack?: () => void;
-  onRegenerate?: () => void;
-  /** 交互式改图 */
-  onStyleExtend?: () => void;
-  onVariant?: () => void;
-  onAskAi?: () => void;
-  /** 对选中图应用技能（mock 落图） */
-  onApplySkill?: (skillId: string) => void;
-  /** 局部改图（蒙版壳） */
-  onMaskEdit?: () => void;
-  /** 多选图像水平并排对比 */
-  onArrangeRow?: () => void;
-  onAlign?: (mode: AlignMode) => void;
-};
+import { cn } from "@plane/utils";
 
 export type AlignMode =
   | "left"
@@ -47,152 +37,329 @@ export type AlignMode =
   | "center-y"
   | "bottom";
 
-/** 选中节点浮出工具条 */
+export type SelectionToolbarAction =
+  | "video"
+  | "partialRedraw"
+  | "removeBg"
+  | "upscale"
+  | "askAi"
+  | "regenerate"
+  | "download"
+  | "expand"
+  | "aiRedraw"
+  | "erase"
+  | "crop"
+  | "adjust"
+  | "delete"
+  | "tidyH";
+
+type Props = {
+  count: number;
+  locked: boolean;
+  /** 选中项是否为图片/生成器 */
+  showImageActions?: boolean;
+  /** 对齐 Lovspark canvasSettings.showToolNames */
+  showToolNames?: boolean;
+  onDuplicate: () => void;
+  onDelete: () => void;
+  onToggleLock: () => void;
+  onBringFront?: () => void;
+  onSendBack?: () => void;
+  /** 图片工具动作（与 Lovspark 菜单 id 对齐） */
+  onImageAction?: (action: SelectionToolbarAction) => void;
+};
+
+type Item = {
+  id: string;
+  label: string;
+  title?: string;
+  icon: ReactNode;
+  danger?: boolean;
+  /** AI 能力按钮：ai 紫 */
+  ai?: boolean;
+  action: () => void;
+};
+
+/** 选中节点浮出工具条 — Lovspark toolbar-merged 形态 */
 export function SelectionToolbar({
   count,
   locked,
   showImageActions,
+  showToolNames = true,
   onDuplicate,
   onDelete,
   onToggleLock,
   onBringFront,
   onSendBack,
-  onRegenerate,
-  onStyleExtend,
-  onVariant,
-  onAskAi,
-  onApplySkill,
-  onMaskEdit,
-  onArrangeRow,
-  onAlign,
+  onImageAction,
 }: Props) {
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!moreOpen) return;
+    const onDoc = (e: MouseEvent) => {
+      if (!moreRef.current?.contains(e.target as Node)) setMoreOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [moreOpen]);
+
+  useEffect(() => {
+    setMoreOpen(false);
+  }, [count, locked, showImageActions]);
+
   if (count === 0) return null;
-  const quickSkills = showImageActions && onApplySkill ? getQuickEditSkills() : [];
+
+  const run = (a: SelectionToolbarAction) => {
+    setMoreOpen(false);
+    onImageAction?.(a);
+  };
+
+  // —— 锁定态：仅解锁 ——
+  if (locked) {
+    return (
+      <div className="pointer-events-none absolute left-1/2 top-3 z-20 -translate-x-1/2">
+        <div className="fs-sel-toolbar pointer-events-auto">
+          <ToolBtn
+            title="解锁"
+            label={showToolNames ? "解锁" : undefined}
+            onClick={onToggleLock}
+          >
+            <LockOpen className="size-4" />
+          </ToolBtn>
+        </div>
+      </div>
+    );
+  }
+
+  // —— 非图片节点 ——
+  if (!showImageActions) {
+    return (
+      <div className="pointer-events-none absolute left-1/2 top-3 z-20 -translate-x-1/2">
+        <div className="fs-sel-toolbar pointer-events-auto">
+          <ToolBtn title="复制 ⌘D" label={showToolNames ? "复制" : undefined} onClick={onDuplicate}>
+            <Copy className="size-4" />
+          </ToolBtn>
+          <ToolBtn title="锁定" label={showToolNames ? "锁定" : undefined} onClick={onToggleLock}>
+            <Lock className="size-4" />
+          </ToolBtn>
+          {onBringFront && (
+            <ToolBtn title="置于顶层 ]" label={showToolNames ? "顶层" : undefined} onClick={onBringFront}>
+              <ArrowUpToLine className="size-4" />
+            </ToolBtn>
+          )}
+          {onSendBack && (
+            <ToolBtn title="置于底层 [" label={showToolNames ? "底层" : undefined} onClick={onSendBack}>
+              <ArrowDownToLine className="size-4" />
+            </ToolBtn>
+          )}
+          <Divider />
+          <ToolBtn title="删除" label={showToolNames ? "删除" : undefined} onClick={onDelete} danger>
+            <Trash2 className="size-4" />
+          </ToolBtn>
+        </div>
+      </div>
+    );
+  }
+
+  // —— 图片多选 ——
+  if (count >= 2) {
+    return (
+      <div className="pointer-events-none absolute left-1/2 top-3 z-20 -translate-x-1/2">
+        <div className="fs-sel-toolbar pointer-events-auto">
+          <ToolBtn
+            title="水平排列"
+            label={showToolNames ? "水平排列" : undefined}
+            onClick={() => run("tidyH")}
+          >
+            <Expand className="size-4" />
+          </ToolBtn>
+          <ToolBtn title="问 AI" label={showToolNames ? "问 AI" : undefined} ai onClick={() => run("askAi")}>
+            <Sparkles className="size-4" strokeWidth={1.75} />
+          </ToolBtn>
+          <ToolBtn title="下载" label={showToolNames ? "下载" : undefined} onClick={() => run("download")}>
+            <Download className="size-4" />
+          </ToolBtn>
+          <ToolBtn title="锁定" label={showToolNames ? "锁定" : undefined} onClick={onToggleLock}>
+            <Lock className="size-4" />
+          </ToolBtn>
+          <Divider />
+          <ToolBtn title="删除" label={showToolNames ? "删除" : undefined} onClick={onDelete} danger>
+            <Trash2 className="size-4" />
+          </ToolBtn>
+        </div>
+      </div>
+    );
+  }
+
+  // —— 图片单选：对齐 Lovspark menuItems + moreItems + left Seedance ——
+  const main: Item[] = [
+    {
+      id: "partialRedraw",
+      label: "局部重绘",
+      icon: <Paintbrush className="size-4" />,
+      action: () => run("partialRedraw"),
+    },
+    {
+      id: "removeBg",
+      label: "抠图",
+      icon: <Scissors className="size-4" />,
+      action: () => run("removeBg"),
+    },
+    {
+      id: "upscale",
+      label: "高清放大",
+      icon: <ImagePlus className="size-4" />,
+      action: () => run("upscale"),
+    },
+    {
+      id: "askAi",
+      label: "问 AI",
+      icon: <Sparkles className="size-4" strokeWidth={1.75} />,
+      ai: true,
+      action: () => run("askAi"),
+    },
+    {
+      id: "regenerate",
+      label: "重新生成",
+      icon: <Wand2 className="size-4" />,
+      action: () => run("regenerate"),
+    },
+    {
+      id: "download",
+      label: "下载",
+      icon: <Download className="size-4" />,
+      action: () => run("download"),
+    },
+  ];
+
+  const more: Item[] = [
+    {
+      id: "expand",
+      label: "图片扩展",
+      icon: <Expand className="size-4" />,
+      action: () => run("expand"),
+    },
+    {
+      id: "aiRedraw",
+      label: "AI重绘",
+      icon: <Wand2 className="size-4" />,
+      action: () => run("aiRedraw"),
+    },
+    {
+      id: "erase",
+      label: "智能消除",
+      icon: <Eraser className="size-4" />,
+      action: () => run("erase"),
+    },
+    {
+      id: "crop",
+      label: "裁剪",
+      icon: <Crop className="size-4" />,
+      action: () => run("crop"),
+    },
+    {
+      id: "adjust",
+      label: "调节",
+      icon: <Paintbrush className="size-4" />,
+      action: () => run("adjust"),
+    },
+    {
+      id: "delete",
+      label: "删除",
+      icon: <Trash2 className="size-4" />,
+      danger: true,
+      action: () => {
+        setMoreOpen(false);
+        onDelete();
+      },
+    },
+  ];
 
   return (
     <div className="pointer-events-none absolute left-1/2 top-3 z-20 -translate-x-1/2">
-      <div className="pointer-events-auto flex max-w-[min(96vw,920px)] items-center gap-0.5 overflow-x-auto rounded-md border border-subtle bg-surface-1 px-1 py-0.5 shadow-sm">
-        <span className="shrink-0 px-2 text-11 font-medium text-tertiary">
-          {count > 1 ? `${count} 项` : "已选中"}
-        </span>
-        <span className="h-4 w-px shrink-0 bg-subtle" />
-        <Btn title="复制 ⌘D" onClick={onDuplicate}>
-          <Copy className="size-3.5" />
-        </Btn>
-        <Btn title={locked ? "解锁" : "锁定"} onClick={onToggleLock}>
-          {locked ? <LockOpen className="size-3.5" /> : <Lock className="size-3.5" />}
-        </Btn>
-        {onBringFront && (
-          <Btn title="置于顶层 ]" onClick={onBringFront}>
-            <ArrowUpToLine className="size-3.5" />
-          </Btn>
-        )}
-        {onSendBack && (
-          <Btn title="置于底层 [" onClick={onSendBack}>
-            <ArrowDownToLine className="size-3.5" />
-          </Btn>
-        )}
-        {count >= 2 && onArrangeRow && showImageActions && (
-          <>
-            <span className="h-4 w-px shrink-0 bg-subtle" />
-            <Btn title="水平并排对比" onClick={onArrangeRow}>
-              <span className="text-[10px]">并排</span>
-            </Btn>
-          </>
-        )}
-        {count >= 2 && onAlign && (
-          <>
-            <span className="h-4 w-px shrink-0 bg-subtle" />
-            <Btn title="左对齐" onClick={() => onAlign("left")}>
-              <AlignStartVertical className="size-3.5" />
-            </Btn>
-            <Btn title="水平居中" onClick={() => onAlign("center-x")}>
-              <AlignCenterVertical className="size-3.5" />
-            </Btn>
-            <Btn title="右对齐" onClick={() => onAlign("right")}>
-              <AlignEndVertical className="size-3.5" />
-            </Btn>
-            <Btn title="顶对齐" onClick={() => onAlign("top")}>
-              <AlignStartHorizontal className="size-3.5" />
-            </Btn>
-            <Btn title="垂直居中" onClick={() => onAlign("center-y")}>
-              <AlignCenterHorizontal className="size-3.5" />
-            </Btn>
-            <Btn title="底对齐" onClick={() => onAlign("bottom")}>
-              <AlignEndHorizontal className="size-3.5" />
-            </Btn>
-          </>
-        )}
-        {showImageActions && (
-          <>
-            <span className="h-4 w-px shrink-0 bg-subtle" />
-            {onRegenerate && (
-              <Btn title="再生成" onClick={onRegenerate}>
-                <Sparkles className="size-3.5" />
-                <span className="ml-0.5 text-[10px]">再生成</span>
-              </Btn>
-            )}
-            {onStyleExtend && (
-              <Btn title="风格延展" onClick={onStyleExtend}>
-                <span className="text-[10px]">延展</span>
-              </Btn>
-            )}
-            {onVariant && (
-              <Btn title="出变体" onClick={onVariant}>
-                <span className="text-[10px]">变体</span>
-              </Btn>
-            )}
-            {onAskAi && (
-              <Btn title="画布 Agent 改图" onClick={onAskAi}>
-                <span className="text-[10px]">AI</span>
-              </Btn>
-            )}
-            {onMaskEdit && (
-              <Btn title="局部改图（蒙版）" onClick={onMaskEdit}>
-                <span className="text-[10px]">局部</span>
-              </Btn>
-            )}
-            {quickSkills.length > 0 && (
-              <>
-                <span className="h-4 w-px shrink-0 bg-subtle" />
-                {quickSkills.map((s) => {
-                  const short =
-                    s.id === "architectural-multi-angle"
-                      ? "多角度"
-                      : s.id === "space-atmosphere-transformation"
-                        ? "氛围"
-                        : s.id === "material-replacement"
-                          ? "材质"
-                          : s.id === "white-model-rendering"
-                            ? "白模"
-                            : s.name.slice(0, 4);
-                  return (
-                    <Btn key={s.id} title={`技能：${s.name}`} onClick={() => onApplySkill?.(s.id)}>
-                      <span className="text-[10px]">{short}</span>
-                    </Btn>
-                  );
-                })}
-              </>
-            )}
-          </>
-        )}
-        <Btn title="删除 ⌫" onClick={onDelete} danger>
-          <Trash2 className="size-3.5" />
-        </Btn>
+      <div className="fs-sel-toolbar pointer-events-auto">
+        {/* leftItems: 图生视频 */}
+        <ToolBtn
+          title="图生视频"
+          label={showToolNames ? "图生视频" : undefined}
+          onClick={() => run("video")}
+        >
+          <Film className="size-4" />
+        </ToolBtn>
+        <Divider />
+
+        {main.map((it) => (
+          <ToolBtn
+            key={it.id}
+            title={it.title || it.label}
+            label={showToolNames ? it.label : undefined}
+            ai={it.ai}
+            onClick={it.action}
+          >
+            {it.icon}
+          </ToolBtn>
+        ))}
+
+        {/* 更多 */}
+        <div className="relative" ref={moreRef}>
+          <ToolBtn
+            title="更多"
+            label={showToolNames ? "更多" : undefined}
+            onClick={() => setMoreOpen((v) => !v)}
+            active={moreOpen}
+          >
+            <MoreHorizontal className="size-4" />
+          </ToolBtn>
+          {moreOpen && (
+            <div className="fs-sel-more absolute right-0 top-[calc(100%+6px)] z-30 min-w-[148px] py-1">
+              {more.map((it) => (
+                <button
+                  key={it.id}
+                  type="button"
+                  onClick={it.action}
+                  className={cn(
+                    "flex w-full items-center gap-2 px-3 py-1.5 text-left text-11 hover:bg-layer-transparent-hover",
+                    it.danger ? "text-danger-primary" : "text-secondary"
+                  )}
+                >
+                  <span className="shrink-0 opacity-80">{it.icon}</span>
+                  {it.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <ToolBtn title="锁定" label={showToolNames ? "锁定" : undefined} onClick={onToggleLock}>
+          <Lock className="size-4" />
+        </ToolBtn>
       </div>
     </div>
   );
 }
 
-function Btn({
+function Divider() {
+  return <span className="mx-0.5 h-4 w-px shrink-0 bg-subtle" aria-hidden />;
+}
+
+function ToolBtn({
   title,
+  label,
   onClick,
   danger,
+  active,
+  ai,
   children,
 }: {
   title: string;
+  label?: string;
   onClick: () => void;
   danger?: boolean;
+  active?: boolean;
+  /** AI 能力按钮：ai 紫（v3 AI 专属色） */
+  ai?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -200,13 +367,19 @@ function Btn({
       type="button"
       title={title}
       onClick={onClick}
-      className={
+      className={cn(
+        "fs-sel-btn inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 transition-colors duration-150 ease-out",
         danger
-          ? "shrink-0 rounded-md p-1.5 text-danger-primary hover:bg-danger-subtle"
-          : "shrink-0 rounded-md p-1.5 text-secondary hover:bg-layer-transparent-hover"
-      }
+          ? "text-danger-primary hover:bg-danger-subtle"
+          : ai
+            ? "text-ai-primary hover:bg-ai-subtle"
+            : active
+              ? "bg-accent-subtle text-accent-primary"
+              : "text-secondary hover:bg-layer-transparent-hover hover:text-primary"
+      )}
     >
       {children}
+      {label ? <span className="text-[11px] font-medium leading-none">{label}</span> : null}
     </button>
   );
 }

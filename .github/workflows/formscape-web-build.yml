@@ -1,0 +1,72 @@
+name: Formscape web build
+
+on:
+  push:
+    branches:
+      - main
+      - "codex/**"
+    paths:
+      - "formscape-app/**"
+      - ".github/workflows/formscape-web-build.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "formscape-app/**"
+      - ".github/workflows/formscape-web-build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: formscape-web-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Test, type-check, and build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: formscape-app
+
+    steps:
+      - name: Check out the pushed commit
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.3.0
+          run_install: false
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.18.0
+          cache: pnpm
+          cache-dependency-path: formscape-app/pnpm-lock.yaml
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Formscape tests
+        run: pnpm --filter=web test
+
+      - name: Type-check web and shared utilities
+        run: |
+          pnpm --filter=web check:types
+          pnpm --filter=@plane/utils check:types
+
+      - name: Build the web application
+        run: pnpm build:web
+
+      - name: Upload the immutable web build
+        uses: actions/upload-artifact@v4
+        with:
+          name: formscape-web-${{ github.sha }}
+          path: formscape-app/apps/web/build/client
+          if-no-files-found: error
+          retention-days: 14

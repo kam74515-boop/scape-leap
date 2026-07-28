@@ -4,12 +4,12 @@
 import { observer } from "mobx-react";
 import { PageHead } from "@/components/core/page-title";
 import { FormscapeProjectTasksPage } from "@/components/formscape/ProjectTasksPage";
-import { projectById } from "@/components/formscape/pm-mock";
+import { getProjectById } from "@/components/formscape/projects-store";
 import type { Route } from "./+types/page";
 
 function ProjectIssuesPage({ params }: Route.ComponentProps) {
   const { workspaceSlug, projectId } = params;
-  const project = projectById(projectId);
+  const project = getProjectById(projectId);
   const pageTitle = project ? `${project.name} · 任务` : "任务";
 
   return (

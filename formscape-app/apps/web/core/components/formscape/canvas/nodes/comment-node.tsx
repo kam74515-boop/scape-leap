@@ -22,7 +22,9 @@ function CommentNodeComponent({ id, data, selected }: NodeProps<CommentNodeType>
       <div
         className={cn(
           "flex size-8 items-center justify-center rounded-full border bg-surface-1 shadow-sm",
-          selected ? "border-accent-primary" : "border-subtle"
+          selected
+            ? "border-accent-primary shadow-[0_0_0_2px_color-mix(in_srgb,var(--bg-accent-primary)_40%,transparent)]"
+            : "border-subtle"
         )}
         onDoubleClick={(e) => {
           e.stopPropagation();
@@ -34,7 +36,7 @@ function CommentNodeComponent({ id, data, selected }: NodeProps<CommentNodeType>
       </div>
       {(selected || data.text || editing) && (
         <div className="absolute left-10 top-0 w-48 rounded-md border border-subtle bg-surface-1 p-2 shadow-sm">
-          <div className="text-[10px] font-medium text-tertiary">{data.author || "我"}</div>
+          <div className="text-10 font-medium text-tertiary">{data.author || "我"}</div>
           {editing ? (
             <textarea
               autoFocus

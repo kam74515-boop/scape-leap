@@ -19,7 +19,22 @@ import { useParams, usePathname } from "next/navigation";
 import { runHarnessTurn } from "./agent/runtime";
 import type { ProjectHarnessContext, ToolTrace } from "./agent/types";
 import { getProjectProgress } from "./project-progress-store";
-import { projectById } from "./pm-mock";
+import { getProjectById } from "./projects-store";
+import {
+  archiveSession,
+  listAiSessions,
+  loadAiMsgs,
+  loadAiSessionId,
+  newAiSessionId,
+  persistAiSessionId,
+  saveAiMsgs,
+  saveAiSessions,
+  sessionTitleFrom,
+  type AiSessionArchive,
+} from "./ai-sessions";
+
+export type { AiSessionArchive } from "./ai-sessions";
+export { listAiSessions } from "./ai-sessions";
 
 export type FormscapeAiMsg =
   | { id: string; role: "user"; text: string }
@@ -70,7 +85,14 @@ type FormscapeAiContextValue = {
   msgs: FormscapeAiMsg[];
   busy: boolean;
   send: (text: string) => void;
+  /** 归档当前对话并开新会话 */
   clearMsgs: () => void;
+  /** 历史会话（localStorage） */
+  listSessions: () => AiSessionArchive[];
+  /** 加载某条历史到当前面板 */
+  loadSession: (id: string) => boolean;
+  /** 删除一条历史 */
+  deleteSession: (id: string) => void;
 };
 
 const FormscapeAiContext = createContext<FormscapeAiContextValue | null>(null);
@@ -81,10 +103,6 @@ const DEFAULT_PLACE: CanvasPlacePayload = {
   colors: ["#EDE9FE", "#C4B5FD", "#8B5CF6"],
 };
 
-function newSessionId() {
-  return `sess-${Date.now().toString(36)}`;
-}
-
 export function FormscapeAiProvider({ children }: { children: ReactNode }) {
   const params = useParams();
   const pathname = usePathname() ?? "";
@@ -92,14 +110,19 @@ export function FormscapeAiProvider({ children }: { children: ReactNode }) {
   const routeProjectId = params.projectId?.toString() ?? null;
 
   const [open, setOpenState] = useState(false);
-  const [msgs, setMsgs] = useState<FormscapeAiMsg[]>([]);
+  const [msgs, setMsgs] = useState<FormscapeAiMsg[]>(() => loadAiMsgs() as FormscapeAiMsg[]);
   const [busy, setBusy] = useState(false);
   const [canvasActive, setCanvasActive] = useState(false);
   const [canvasProjectName, setCanvasProjectName] = useState<string | null>(null);
-  const [sessionId] = useState(newSessionId);
+  const [sessionId, setSessionId] = useState(loadAiSessionId);
   const bridgeRef = useRef<CanvasAiBridge | null>(null);
   const busyRef = useRef(false);
   const harnessRef = useRef<ProjectHarnessContext | null>(null);
+  const msgsRef = useRef(msgs);
+  useEffect(() => {
+    msgsRef.current = msgs;
+    saveAiMsgs(msgs);
+  }, [msgs]);
 
   // 从路由 / 画布推导项目上下文
   const harness = useMemo<ProjectHarnessContext>(() => {
@@ -109,7 +132,7 @@ export function FormscapeAiProvider({ children }: { children: ReactNode }) {
       // 仅有名称时不强行解析 id
       projectId = null;
     }
-    const pm = projectId ? projectById(projectId) : undefined;
+    const pm = projectId ? getProjectById(projectId) : undefined;
     let focusStage = null as ProjectHarnessContext["focusStage"];
     if (projectId) {
       try {
@@ -162,7 +185,37 @@ export function FormscapeAiProvider({ children }: { children: ReactNode }) {
 
 
 
-  const clearMsgs = useCallback(() => setMsgs([]), []);
+  const clearMsgs = useCallback(() => {
+    archiveSession(sessionId, msgsRef.current);
+    const nextId = newAiSessionId();
+    setSessionId(nextId);
+    persistAiSessionId(nextId);
+    setMsgs([]);
+    saveAiMsgs([]);
+  }, [sessionId]);
+
+  const listSessions = useCallback(() => listAiSessions(), []);
+
+  const loadSession = useCallback(
+    (id: string) => {
+      const hit = listAiSessions().find((s) => s.id === id);
+      if (!hit) return false;
+      const cur = msgsRef.current.filter((m) => m.role !== "thinking");
+      if (cur.length > 0 && sessionId !== id) {
+        archiveSession(sessionId, cur);
+      }
+      setSessionId(hit.id);
+      persistAiSessionId(hit.id);
+      setMsgs(hit.msgs as FormscapeAiMsg[]);
+      saveAiMsgs(hit.msgs);
+      return true;
+    },
+    [sessionId]
+  );
+
+  const deleteSession = useCallback((id: string) => {
+    saveAiSessions(listAiSessions().filter((s) => s.id !== id));
+  }, []);
 
   const send = useCallback((text: string) => {
     const t = text.trim();
@@ -229,6 +282,9 @@ export function FormscapeAiProvider({ children }: { children: ReactNode }) {
       busy,
       send,
       clearMsgs,
+      listSessions,
+      loadSession,
+      deleteSession,
     }),
     [
       open,
@@ -243,6 +299,9 @@ export function FormscapeAiProvider({ children }: { children: ReactNode }) {
       busy,
       send,
       clearMsgs,
+      listSessions,
+      loadSession,
+      deleteSession,
     ]
   );
 
@@ -275,6 +334,9 @@ export function useFormscapeAi(): FormscapeAiContextValue {
       busy: false,
       send: () => undefined,
       clearMsgs: () => undefined,
+      listSessions: () => [],
+      loadSession: () => false,
+      deleteSession: () => undefined,
     };
   }
   return ctx;

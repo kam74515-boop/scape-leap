@@ -107,7 +107,6 @@ export class UserStore implements IUserStore {
 
   /**
    * @description fetches the current user
-   * 本地开发：API 失败时注入 mock 用户并仍标记已登录（构境）
    * @returns {Promise<IUser>}
    */
   fetchCurrentUser = async (): Promise<IUser> => {
@@ -135,48 +134,17 @@ export class UserStore implements IUserStore {
           this.isAuthenticated = false;
         });
       return user;
-    } catch {
-      // 无后端 / 鉴权失败：注入本地 mock 用户，尽量拉 profile/settings/workspaces
-      const mockUser: IUser = {
-        id: "user-local-1",
-        avatar_url: "",
-        cover_image_url: null,
-        date_joined: new Date().toISOString(),
-        display_name: "林设计师",
-        email: "designer@formscape.local",
-        first_name: "林",
-        last_name: "设计师",
-        is_active: true,
-        is_bot: false,
-        is_email_verified: true,
-        is_password_autoset: false,
-        is_tour_completed: true,
-        mobile_number: null,
-        last_workspace_id: "ws-demo",
-        user_timezone: "Asia/Shanghai",
-        username: "lin-designer",
-        last_login_medium: "email" as IUser["last_login_medium"],
-        theme: {
-          theme: "system",
-          primary: undefined,
-          background: undefined,
-          darkPalette: false,
-        },
-      };
-
-      await Promise.all([
-        this.userProfile.fetchUserProfile().catch(() => undefined),
-        this.userSettings.fetchCurrentUserSettings().catch(() => undefined),
-        this.store.workspaceRoot.fetchWorkspaces().catch(() => undefined),
-      ]);
-
+    } catch (error) {
       runInAction(() => {
-        this.data = mockUser;
+        this.data = undefined;
         this.isLoading = false;
-        this.isAuthenticated = true;
-        this.error = undefined;
+        this.isAuthenticated = false;
+        this.error = {
+          status: "unauthenticated",
+          message: "Authentication is required",
+        };
       });
-      return mockUser;
+      throw error;
     }
   };
 

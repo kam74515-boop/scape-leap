@@ -1,7 +1,9 @@
 /**
- * 生成结果历史（localStorage · Demo）
+ * 生成结果历史（SQLite via fs-data-client）
  * 一键落图 / 样例落点后写入，图库「历史」可读回
+ * 真源 = 服务端 SQLite（/api/fs/gen_history）
  */
+import { ensureFsHydrated, readFsCache, registerFsEntity, replaceFsDocs } from "../../fs-data-client";
 
 export type GenHistoryItem = {
   id: string;
@@ -13,30 +15,20 @@ export type GenHistoryItem = {
   createdAt: string;
 };
 
-const KEY = "formscape.canvas.gen.history.v1";
 const MAX = 48;
 
+/** 历史变更事件：生成落图后图库「历史」标签即时刷新 */
+export const GEN_HISTORY_CHANGE_EVENT = "fs-gen-history-change";
+
+registerFsEntity("gen_history", GEN_HISTORY_CHANGE_EVENT);
+ensureFsHydrated(["gen_history"]);
+
 export function loadGenHistory(): GenHistoryItem[] {
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return [];
-    const arr = JSON.parse(raw) as unknown;
-    if (!Array.isArray(arr)) return [];
-    return arr.filter(
-      (x): x is GenHistoryItem =>
-        !!x && typeof x === "object" && typeof (x as GenHistoryItem).id === "string"
-    );
-  } catch {
-    return [];
-  }
+  return readFsCache<GenHistoryItem>("gen_history");
 }
 
 export function saveGenHistory(items: GenHistoryItem[]) {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(items.slice(0, MAX)));
-  } catch {
-    /* ignore quota */
-  }
+  replaceFsDocs("gen_history", items.slice(0, MAX));
 }
 
 export function pushGenHistory(item: Omit<GenHistoryItem, "id" | "createdAt"> & { id?: string }) {
@@ -75,11 +67,7 @@ export function pushGenHistoryMany(
 }
 
 export function clearGenHistory() {
-  try {
-    localStorage.removeItem(KEY);
-  } catch {
-    /* ignore */
-  }
+  replaceFsDocs("gen_history", []);
 }
 
 /** 图库拖拽 MIME */

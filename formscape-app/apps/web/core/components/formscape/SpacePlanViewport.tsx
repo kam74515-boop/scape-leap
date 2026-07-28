@@ -294,7 +294,7 @@ export function SpacePlanViewport({
                 y1={w.y1}
                 x2={w.x2}
                 y2={w.y2}
-                stroke={active ? "#6366f1" : "#334155"}
+                stroke={active ? "var(--fs-plan-accent)" : "var(--fs-plan-wall)"}
                 strokeWidth={active ? w.thickness * 1.35 : w.thickness}
                 strokeLinecap="square"
                 className="pointer-events-none"
@@ -307,8 +307,8 @@ export function SpacePlanViewport({
                     width={440}
                     height={140}
                     rx={20}
-                    fill={active ? "#eef2ff" : "rgba(255,255,255,0.85)"}
-                    stroke={active ? "#6366f1" : "#cbd5e1"}
+                    fill={active ? "var(--fs-plan-accent-subtle)" : "var(--fs-plan-surface)"}
+                    stroke={active ? "var(--fs-plan-accent)" : "var(--neutral-700)"}
                     strokeWidth={8}
                     className="pointer-events-none"
                   />
@@ -317,7 +317,7 @@ export function SpacePlanViewport({
                     dominantBaseline="middle"
                     y={-20}
                     fontSize={110}
-                    fill={active ? "#4338ca" : "#475569"}
+                    fill={active ? "var(--fs-plan-accent-strong)" : "var(--fs-plan-label)"}
                     className="pointer-events-none"
                   >
                     {(len / 1000).toFixed(2)}m
@@ -367,18 +367,18 @@ export function SpacePlanViewport({
               y1={drawFrom.y}
               x2={previewEnd.x}
               y2={previewEnd.y}
-              stroke="#6366f1"
+              stroke="var(--fs-plan-accent)"
               strokeWidth={scene.wallThicknessMm}
               strokeDasharray="80 60"
               opacity={0.85}
             />
-            <circle cx={drawFrom.x} cy={drawFrom.y} r={70} fill="#6366f1" />
+            <circle cx={drawFrom.x} cy={drawFrom.y} r={70} fill="var(--fs-plan-accent)" />
             <circle
               cx={previewEnd.x}
               cy={previewEnd.y}
               r={70}
               fill="none"
-              stroke="#6366f1"
+              stroke="var(--fs-plan-accent)"
               strokeWidth={24}
             />
             <text
@@ -386,7 +386,7 @@ export function SpacePlanViewport({
               y={(drawFrom.y + previewEnd.y) / 2 - 120}
               textAnchor="middle"
               fontSize={120}
-              fill="#4338ca"
+              fill="var(--fs-plan-accent-strong)"
             >
               {(Math.hypot(previewEnd.x - drawFrom.x, previewEnd.y - drawFrom.y) / 1000).toFixed(2)}m
             </text>
@@ -399,7 +399,7 @@ export function SpacePlanViewport({
             cy={snapHint.y}
             r={90}
             fill="none"
-            stroke="#22c55e"
+            stroke="var(--border-success-strong)"
             strokeWidth={28}
             className="pointer-events-none"
           />
@@ -471,8 +471,8 @@ function EndpointHandle({
   return (
     <g className="cursor-nwse-resize" onPointerDown={onPointerDown} onClick={(e) => e.stopPropagation()}>
       <circle cx={x} cy={y} r={r + 40} fill="transparent" />
-      <circle cx={x} cy={y} r={r} fill="#fff" stroke="#6366f1" strokeWidth={28} />
-      <circle cx={x} cy={y} r={36} fill="#6366f1" />
+      <circle cx={x} cy={y} r={r} fill="var(--fs-plan-surface)" stroke="var(--fs-plan-accent)" strokeWidth={28} />
+      <circle cx={x} cy={y} r={36} fill="var(--fs-plan-accent)" />
     </g>
   );
 }
@@ -503,7 +503,7 @@ function BlockShape({
         height={pl.dMm}
         fill={pl.color}
         opacity={0.88}
-        stroke={active ? "#6366f1" : "#0f172a"}
+        stroke={active ? "var(--fs-plan-accent)" : "var(--fs-plan-wall)"}
         strokeWidth={active ? 40 : 16}
         rx={40}
       />
@@ -513,6 +513,7 @@ function BlockShape({
         textAnchor="middle"
         dominantBaseline="middle"
         fontSize={Math.min(220, pl.wMm / 5)}
+        /* 文字印在 pl.color 数据色块上（色块不随主题变），故保持固定深色 */
         fill="#0f172a"
         opacity={0.75}
         className="pointer-events-none"

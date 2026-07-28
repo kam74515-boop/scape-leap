@@ -1,10 +1,26 @@
 /**
- * 画布壳层 — 对齐 Plane / 构境 UI
- * - token: surface / subtle / layer-transparent / accent
- * - 形状: rounded-md / rounded-lg（不用 Lovspark 大 pill / 18px 圆角）
- * - 阴影: shadow-sm 级别，无紫调
- * - 交互: layer-transparent-hover / selected（同侧栏）
+ * 画布壳层 — 遵循《构境AI 设计规范 v3 · 年轻化扁平化》
+ * （research/构境AI-设计规范-v3-年轻化扁平化.md；旧契约「不用大 pill / 18px 圆角」
+ *  「无紫调」已废止）
+ * - token: surface / subtle / layer-transparent / brand(accent) / ai-*（AI 能力专属紫）
+ * - 形状: 卡片 rounded-lg(12px)、面板 rounded-xl(16px)、主按钮 pill；图片节点保持直角无容器（红线）
+ * - 阴影: 扁平优先，1px border + 轻阴影；浮层用 overlay 级
+ * - 交互: hover 120–200ms ease-out 微动效；选中环 / 缩放把手统一 brand（var(--brand-default)）
  */
+
+/* 画布局部语义变量（minimap 等原 rgba 硬编码收口于此，light/dark 随 token 自适应） */
+.fs-canvas-root {
+  --fs-mm-mask: color-mix(in srgb, var(--txt-primary) 20%, transparent);
+  --fs-mm-frame: color-mix(in srgb, var(--brand-default) 14%, transparent);
+  --fs-mm-frame-stroke: color-mix(in srgb, var(--brand-default) 70%, transparent);
+  --fs-mm-image: color-mix(in srgb, var(--brand-default) 32%, transparent);
+  --fs-mm-image-stroke: color-mix(in srgb, var(--brand-default) 45%, transparent);
+  --fs-mm-gen: color-mix(in srgb, var(--ai-default) 30%, transparent);
+  --fs-mm-gen-stroke: color-mix(in srgb, var(--ai-default) 45%, transparent);
+  --fs-mm-sticky: color-mix(in srgb, var(--bg-warning-primary) 32%, transparent);
+  --fs-mm-node: color-mix(in srgb, var(--txt-tertiary) 24%, transparent);
+  --fs-mm-node-stroke: color-mix(in srgb, var(--txt-tertiary) 35%, transparent);
+}
 
 /* ========== 左侧 Library 面板（对齐 Plane floating sidebar） ========== */
 .fs-lib-panel {
@@ -18,7 +34,7 @@
   overflow: hidden;
   border: 1px solid var(--border-subtle);
   border-left: none;
-  border-radius: 0 8px 8px 0;
+  border-radius: 0 12px 12px 0;
   background: var(--bg-surface-1);
   box-shadow: 0 1px 2px var(--alpha-black-100), 0 4px 12px var(--alpha-black-100);
   contain: layout style paint;
@@ -131,7 +147,7 @@
   gap: 6px;
   margin: 8px 12px 0;
   border: 1px solid var(--border-subtle);
-  border-radius: 6px;
+  border-radius: 8px; /* 与全局输入框 fsInputClass 一致（v3 输入规范） */
   background: var(--bg-surface-1);
   padding: 6px 10px;
 }
@@ -159,7 +175,7 @@
   scrollbar-width: thin;
 }
 
-/* ========== 底部工具坞（对齐 Plane 工具条：rounded-lg + shadow-sm） ========== */
+/* ========== 底部工具坞（v3：pill 坞 + brand 主按钮 + 120-200ms 微动效） ========== */
 .fs-canvas-toolbar {
   position: absolute;
   bottom: 16px;
@@ -175,9 +191,9 @@
   gap: 2px;
   overflow: visible;
   border: 1px solid var(--border-subtle);
-  border-radius: 8px;
+  border-radius: 999px;
   background: var(--bg-surface-1);
-  padding: 4px;
+  padding: 4px 6px;
   box-shadow: 0 1px 2px var(--alpha-black-100), 0 4px 12px var(--alpha-black-100);
   transition:
     left 200ms ease,
@@ -220,9 +236,9 @@
 }
 .fs-tool-kbd {
   position: absolute;
-  top: 1px;
-  right: 3px;
-  font-size: 8px;
+  top: 0;
+  right: 2px;
+  font-size: 10px; /* 微字 ≥10px（v3） */
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
@@ -230,7 +246,7 @@
   pointer-events: none;
 }
 
-/* + 主按钮：品牌色（对齐 FsPrimary / accent-primary） */
+/* + 主按钮：brand 圆形 pill + hover 轻微上浮（v3 主按钮规格） */
 .fs-tool-add-wrap {
   position: relative;
   display: inline-flex;
@@ -238,13 +254,21 @@
 }
 .fs-tool-add {
   margin-right: 0;
+  border-radius: 999px;
   background: var(--bg-accent-primary);
   color: var(--txt-on-color);
+  transition:
+    background-color 150ms ease-out,
+    transform 150ms ease-out;
 }
 .fs-tool-add:hover {
   background: var(--bg-accent-primary-hover);
   color: var(--txt-on-color);
+  transform: translateY(-1px);
   opacity: 1;
+}
+.fs-tool-add:active {
+  transform: translateY(0);
 }
 .fs-tool-add-pop {
   position: absolute;
@@ -256,12 +280,12 @@
   flex-direction: column;
   gap: 1px;
   border: 1px solid var(--border-subtle);
-  border-radius: 8px;
+  border-radius: 12px;
   background: var(--bg-surface-1);
   padding: 4px;
   box-shadow: 0 4px 16px var(--alpha-black-200);
   transform-origin: bottom left;
-  animation: fs-pop-in 120ms ease-out;
+  animation: fs-pop-in 150ms ease-out;
 }
 .fs-tool-add-pop::before {
   content: "";
@@ -306,11 +330,12 @@
   color: var(--txt-placeholder);
 }
 
-/* Skills / Libraries 文字按钮 */
+/* Skills / Libraries 文字按钮：pill 形 + brand 软色块选中态 */
 .fs-tool-pill {
   width: auto;
   gap: 5px;
-  padding: 0 10px;
+  padding: 0 12px;
+  border-radius: 999px;
   font-size: 12px;
   font-weight: 500;
   color: var(--txt-secondary);
@@ -322,6 +347,14 @@
 .fs-tool-pill.is-active .fs-tool-kbd {
   color: var(--txt-accent-secondary);
 }
+/* AI 能力入口（技能库）：选中态用 ai 紫软色块（v3：AI 紫只用于 AI 能力） */
+.fs-tool-pill.is-ai.is-active {
+  background: var(--bg-ai-subtle);
+  color: var(--txt-ai-primary);
+}
+.fs-tool-pill.is-ai.is-active .fs-tool-kbd {
+  color: var(--txt-ai-secondary);
+}
 
 .fs-tool-sep {
   width: 1px;
@@ -331,7 +364,7 @@
   margin: 0 3px;
 }
 
-/* 左下缩放 / 历史控件 */
+/* 左下缩放 / 历史控件：与主坞同一 pill 语言 */
 .fs-zoom-controls {
   position: absolute;
   bottom: 16px;
@@ -343,9 +376,9 @@
   gap: 0;
   overflow: hidden;
   border: 1px solid var(--border-subtle);
-  border-radius: 6px;
+  border-radius: 999px;
   background: var(--bg-surface-1);
-  box-shadow: 0 1px 2px var(--alpha-black-100);
+  box-shadow: var(--shadow-overlay-100);
   transition: left 200ms ease;
 }
 .fs-zoom-controls button {
@@ -403,10 +436,43 @@
 .fs-canvas-flow .react-flow__selection {
   background: color-mix(in srgb, var(--bg-accent-primary) 12%, transparent);
   border: 1px solid var(--bg-accent-primary);
+  border-radius: 8px;
 }
 .fs-canvas-flow .react-flow__nodesselection-rect {
   border: 1px solid var(--bg-accent-primary);
   background: color-mix(in srgb, var(--bg-accent-primary) 6%, transparent);
+  border-radius: 8px;
+}
+
+/* 去掉 xyflow 默认方形 outline；选中环由节点内部 rounded + box-shadow 负责 */
+.fs-canvas-flow .react-flow__node {
+  outline: none !important;
+  box-shadow: none !important;
+}
+.fs-canvas-flow .react-flow__node.selected,
+.fs-canvas-flow .react-flow__node:focus,
+.fs-canvas-flow .react-flow__node:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* NodeResizer：隐藏直角边线，只留圆角把手（全局兜底） */
+.fs-canvas-flow .react-flow__resize-control.line,
+.fs-canvas-flow .react-flow__resize-control.top,
+.fs-canvas-flow .react-flow__resize-control.bottom,
+.fs-canvas-flow .react-flow__resize-control.left,
+.fs-canvas-flow .react-flow__resize-control.right {
+  border: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+.fs-canvas-flow .react-flow__resize-control.handle {
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 999px !important;
+  border: 1px solid var(--bg-accent-primary) !important;
+  background: var(--bg-surface-1) !important;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--bg-accent-primary) 20%, transparent);
 }
 /* 无连线：隐藏 handle / edge */
 .fs-canvas-flow .react-flow__handle,
@@ -416,14 +482,31 @@
 }
 .fs-canvas-flow .react-flow__minimap {
   border: 1px solid var(--border-subtle) !important;
-  border-radius: 6px !important;
+  border-radius: 12px !important; /* 面板圆角（v3：卡片/浮层 12px 起步） */
   background: var(--bg-surface-1) !important;
-  box-shadow: 0 1px 2px var(--alpha-black-100) !important;
+  box-shadow: var(--shadow-overlay-100) !important;
   overflow: hidden;
   /* 右下与底栏（toolbar / zoom）同一底边 bottom: 16px */
   left: auto !important;
   right: 12px !important;
   bottom: 16px !important;
+  width: 160px !important;
+  height: 110px !important;
+}
+/* 勿改 mask 的 fill-opacity：xyflow 用 evenodd 镂空视窗，改 opacity 会坏掉视窗 */
+.fs-canvas-flow .react-flow__minimap-svg {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+.fs-canvas-flow .react-flow__minimap-node {
+  /* 半透明由 nodeColor 的 rgba 控制，不要再叠一层 opacity */
+  opacity: 1;
+}
+.fs-canvas-flow .react-flow__minimap-mask {
+  /* 恢复默认：仅用 maskColor，不强制 fill-opacity */
+  fill-opacity: 1 !important;
+  pointer-events: none;
 }
 
 /* 浮层控件始终可点 */
@@ -433,7 +516,7 @@
   pointer-events: auto;
 }
 
-/* L3 技能参数轨：画布内基本通高，Plane 紧凑控件 */
+/* L3 技能参数轨：画布内基本通高，v3 面板圆角 + 弹入 */
 .fs-skill-rail {
   position: absolute;
   top: 8px;
@@ -446,9 +529,10 @@
   flex-direction: column;
   overflow: hidden;
   border: 1px solid var(--border-subtle);
-  border-radius: 8px;
+  border-radius: 12px;
   background: var(--bg-surface-1);
   box-shadow: 0 1px 2px var(--alpha-black-100), 0 4px 12px var(--alpha-black-100);
+  animation: fs-lib-in 200ms ease-out;
 }
 
 .fs-csp-header {
@@ -491,7 +575,8 @@
 }
 
 /* 上传区：空间图 / 参考图 4:3 */
-.fs-skill-upload {
+.fs-skill-upload,
+.fs-skill-upload-slot {
   position: relative;
   display: flex;
   width: 100%;
@@ -508,7 +593,8 @@
   font-weight: 500;
   overflow: hidden;
 }
-.fs-skill-upload.is-filled {
+.fs-skill-upload.is-filled,
+.fs-skill-upload-slot.is-filled {
   aspect-ratio: 4 / 3;
   height: auto;
   border-style: solid;
@@ -540,7 +626,7 @@
   background: var(--bg-surface-1);
   padding: 2px 6px;
   color: var(--text-secondary);
-  font-size: 9px;
+  font-size: 10px; /* 微字 ≥10px */
   font-weight: 500;
   cursor: pointer;
 }
@@ -565,8 +651,8 @@
   justify-content: center;
   border: none;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.65);
-  color: #fff;
+  background: color-mix(in srgb, var(--neutral-black) 65%, transparent);
+  color: var(--txt-on-color);
   opacity: 0;
   cursor: pointer;
 }
@@ -631,8 +717,8 @@
   justify-content: center;
   border: none;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.7);
-  color: #fff;
+  background: color-mix(in srgb, var(--neutral-black) 70%, transparent);
+  color: var(--txt-on-color);
   opacity: 0;
   cursor: pointer;
 }
@@ -664,8 +750,9 @@
   border-radius: 2px;
   background: var(--bg-surface-1);
   color: var(--text-secondary);
-  font-size: 9px;
+  font-size: 10px; /* 微字 ≥10px */
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 .fs-skill-size-slider {
   width: 100%;
@@ -685,22 +772,25 @@
   align-items: center;
   justify-content: center;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: 999px;
   background: var(--bg-surface-2);
   color: var(--text-secondary);
   font-size: 12px;
   font-weight: 500;
+  font-variant-numeric: tabular-nums;
   cursor: pointer;
+  transition:
+    background-color 150ms ease-out,
+    color 150ms ease-out;
 }
 .fs-skill-gen-btn:hover {
   color: var(--text-primary);
 }
 .fs-skill-gen-btn.is-active {
-  border-color: var(--border-subtle);
-  background: var(--bg-surface-1);
-  color: var(--text-primary);
+  border-color: transparent;
+  background: var(--bg-accent-subtle);
+  color: var(--txt-accent-primary);
   font-weight: 600;
-  box-shadow: 0 1px 2px var(--alpha-black-100);
 }
 
 .fs-skill-rail-foot {
@@ -710,30 +800,7 @@
   padding: 8px 10px 10px;
   background: var(--bg-surface-1);
 }
-
-.fs-skill-action {
-  display: inline-flex;
-  width: 100%;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  border: 1px solid var(--border-subtle);
-  border-radius: 6px;
-  background: var(--bg-surface-2);
-  padding: 8px 10px;
-  color: var(--text-primary);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity 0.12s ease, background 0.12s ease;
-}
-.fs-skill-action:hover:not(.is-disabled) {
-  background: color-mix(in srgb, var(--bg-surface-2) 80%, var(--bg-surface-1));
-}
-.fs-skill-action.is-disabled {
-  cursor: not-allowed;
-  opacity: 0.45;
-}
+/* 旧 .fs-skill-action 灰底生成按钮已由 FsButton variant=ai 取代（v3 AI 紫收口） */
 
 /* L2 技能库卡片（SkillsBank） */
 .fs-skill-card {
@@ -747,4 +814,68 @@
 }
 .fs-skill-card:hover .fs-skill-card-image {
   box-shadow: 0 0 0 1px var(--border-strong, var(--border-subtle));
+}
+
+/* ========== 选中功能栏 — 行为对齐 Lovspark toolbar-merged，外观走 v3 pill ========== */
+.fs-sel-toolbar {
+  display: flex;
+  max-width: min(96vw, 920px);
+  align-items: center;
+  gap: 1px;
+  overflow-x: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  background: var(--bg-surface-1);
+  padding: 4px 8px;
+  box-shadow:
+    0 1px 2px var(--alpha-black-100, rgba(0, 0, 0, 0.06)),
+    0 6px 20px var(--alpha-black-100, rgba(0, 0, 0, 0.08));
+  backdrop-filter: blur(8px);
+}
+
+.fs-sel-btn {
+  white-space: nowrap;
+}
+
+.fs-sel-more {
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background: var(--bg-surface-1);
+  box-shadow:
+    0 4px 16px var(--alpha-black-100, rgba(0, 0, 0, 0.1));
+}
+
+/* 技能「从画布选择」点选态 */
+.fs-canvas-picking {
+  cursor: crosshair !important;
+}
+.fs-canvas-picking .react-flow__node-image {
+  cursor: pointer !important;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--bg-accent-primary) 35%, transparent);
+}
+
+/* 图片节点：无容器观感，直角、无默认边框；选中高亮同为直角细线 */
+.fs-canvas-flow .react-flow__node-image {
+  border-radius: 0 !important;
+  background: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+.fs-canvas-flow .react-flow__node-image.selected {
+  outline: none !important;
+  box-shadow: none !important;
+}
+.fs-canvas-flow .react-flow__node-image img {
+  border-radius: 0 !important;
+  display: block;
+}
+/* 图片节点缩放把手：小直角，贴边 */
+.fs-canvas-flow .react-flow__node-image .react-flow__resize-control.handle {
+  width: 6px !important;
+  height: 6px !important;
+  border-radius: 0 !important;
+  border: 1px solid var(--bg-accent-primary) !important;
+  background: var(--bg-surface-1) !important;
+  box-shadow: none !important;
 }

@@ -1,9 +1,11 @@
 /**
- * 项目双轴进度状态（Demo · localStorage）
+ * 项目双轴进度状态（Demo · SQLite 持久化）
  * A 经营节点 · B 设计阶段三态 · 与设计费同源
+ * 真源 = 服务端 SQLite（/api/fs/progress，种子由 fs-seed 首次播种）
  */
 import { STAGES, type StageId } from "./types";
-import { PM_PROJECTS } from "./pm-mock";
+import { ensureFsHydrated, isFsHydrated, putFsDoc, readFsCache, registerFsEntity } from "./fs-data-client";
+import { getProjectById, listProjects } from "./projects-store";
 
 export type StageState = "not_started" | "in_progress" | "confirmed";
 export type BizNodeStatus = "todo" | "current" | "done" | "blocked";
@@ -39,7 +41,6 @@ export type ProjectProgressState = {
   updatedAt: string;
 };
 
-const STORAGE_KEY = "fs-project-progress-v1";
 /** 跨组件同步：概览/阶段页写入后，L2 徽标与仪表盘刷新 */
 export const PROGRESS_CHANGE_EVENT = "fs-project-progress-change";
 
@@ -60,7 +61,7 @@ function defaultStageStates(focus: StageId): Record<StageId, StageState> {
 }
 
 function seedForProject(projectId: string): ProjectProgressState {
-  const pm = PM_PROJECTS.find((p) => p.id === projectId);
+  const pm = getProjectById(projectId);
   const focus = (pm?.stageId as StageId) || "requirements";
   const validFocus = STAGES.some((s) => s.id === focus) ? focus : "requirements";
   // Demo：经营进度与 mock risk 略对齐
@@ -76,39 +77,59 @@ function seedForProject(projectId: string): ProjectProgressState {
   };
 }
 
+type ProgressDoc = ProjectProgressState & { id: string };
+
+registerFsEntity("progress", PROGRESS_CHANGE_EVENT);
+ensureFsHydrated(["progress"]);
+
 function loadAll(): Record<string, ProjectProgressState> {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as Record<string, ProjectProgressState>;
-  } catch {
-    /* ignore */
+  const map: Record<string, ProjectProgressState> = {};
+  for (const d of readFsCache<ProgressDoc>("progress")) {
+    const { id, ...state } = d;
+    map[id] = state;
   }
-  return {};
+  return map;
 }
 
 function saveAll(map: Record<string, ProjectProgressState>) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
-  } catch {
-    /* ignore */
+  for (const [id, state] of Object.entries(map)) {
+    putFsDoc("progress", { id, ...state });
   }
 }
 
 export function getProjectProgress(projectId: string): ProjectProgressState {
   const all = loadAll();
   if (!all[projectId]) {
-    all[projectId] = seedForProject(projectId);
-    saveAll(all);
+    const seeded = seedForProject(projectId);
+    // seed-on-miss 守卫：未 hydrate 前只在内存给种子，不写服务端（防覆盖）
+    if (isFsHydrated("progress")) putFsDoc("progress", { id: projectId, ...seeded });
+    all[projectId] = seeded;
   }
   return all[projectId];
 }
 
 export function setProjectProgress(projectId: string, next: ProjectProgressState) {
-  const all = loadAll();
-  all[projectId] = { ...next, updatedAt: new Date().toISOString() };
-  saveAll(all);
+  const doc = { ...next, updatedAt: new Date().toISOString() };
+  putFsDoc("progress", { id: projectId, ...doc });
   emitProgressChange(projectId);
-  return all[projectId];
+  return doc;
+}
+
+/** 新建项目：需求分析显式进入进行中，经营轴仍停留在线索节点 */
+export function initializeProjectProgress(projectId: string, designFeeWan: number): ProjectProgressState {
+  const existing = readFsCache<ProgressDoc>("progress").find((doc) => doc.id === projectId);
+  if (existing) {
+    const { id: _id, ...state } = existing;
+    return state;
+  }
+  return setProjectProgress(projectId, {
+    stageStates: defaultStageStates("requirements"),
+    focusStage: "requirements",
+    bizDoneMax: -1,
+    designFeeWan,
+    staleStages: [],
+    updatedAt: new Date().toISOString(),
+  });
 }
 
 /** 进入某阶段：设为进行中（若未确认），并设为焦点 */
@@ -203,7 +224,7 @@ export function stageStateLabel(s: StageState): string {
 }
 
 export function getStudioBizSnapshots() {
-  return PM_PROJECTS.map((p) => {
+  return listProjects().map((p) => {
     const progress = getProjectProgress(p.id);
     const nodes = getBizNodesView(p.id);
     const fee = getDesignFeeProgress(p.id);
@@ -217,6 +238,7 @@ export function getStudioBizSnapshots() {
       nodes,
       fee,
       currentLabel: current?.label ?? "已交付",
+      focusStage: progress.focusStage,
       focusStageLabel: focusMeta?.label ?? "—",
       designPct,
       confirmedStages,

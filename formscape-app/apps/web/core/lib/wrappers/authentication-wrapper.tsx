@@ -1,7 +1,4 @@
-/**
- * 构境前端：拉用户 bootstrap，但不做登录门禁。
- * NON_AUTHENTICATED（/）自动进工作区 formscape。
- */
+/** 登录态边界：工作台必须有用户；登录/注册页仅在已有会话时跳进工作区。 */
 import type { ReactNode } from "react";
 import { observer } from "mobx-react";
 import useSWR from "swr";
@@ -39,8 +36,13 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
     );
   }
 
-  // 登录页 / 注册类页：有用户则直接进工作区
-  if (pageType === EPageTypes.NON_AUTHENTICATED || pageType === EPageTypes.ONBOARDING) {
+  if (pageType === EPageTypes.PUBLIC || pageType === EPageTypes.SET_PASSWORD) {
+    return <>{children}</>;
+  }
+
+  // 登录页 / 注册类页：仅在已有用户时进工作区，无会话时正常展示表单。
+  if (pageType === EPageTypes.NON_AUTHENTICATED) {
+    if (!currentUser?.id) return <>{children}</>;
     const firstSlug = Object.values(workspaces || {})[0]?.slug;
     const target = `/${firstSlug || DEFAULT_WORKSPACE}`;
     router.replace(target);
@@ -51,6 +53,14 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
     );
   }
 
-  // 其余页面：始终放行（无鉴权）
+  if (!currentUser?.id) {
+    router.replace("/");
+    return (
+      <div className="relative flex h-screen w-full items-center justify-center">
+        <LogoSpinner />
+      </div>
+    );
+  }
+
   return <>{children}</>;
 });

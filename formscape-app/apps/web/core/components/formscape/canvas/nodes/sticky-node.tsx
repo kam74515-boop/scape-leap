@@ -3,6 +3,7 @@ import { type Node, type NodeProps, NodeResizer } from "@xyflow/react";
 import { cn } from "@plane/utils";
 import { useCanvasNodeActions } from "../canvas-node-actions";
 import type { StickyNodeData } from "../types";
+import { RESIZER_HANDLE, RESIZER_LINE, SELECTED_RING } from "./selection-chrome";
 
 type StickyNodeType = Node<StickyNodeData, "sticky">;
 
@@ -20,9 +21,7 @@ function StickyNodeComponent({ id, data, selected }: NodeProps<StickyNodeType>) 
     <div
       className={cn(
         "relative flex h-full min-h-[100px] w-full min-w-[140px] flex-col rounded-md border p-2.5 shadow-sm",
-        selected
-          ? "border-accent-primary shadow-[0_0_0_2px_color-mix(in_srgb,var(--bg-accent-primary)_28%,transparent)]"
-          : "border-subtle/60"
+        selected ? SELECTED_RING : "border-subtle/60"
       )}
       style={{ background: data.color }}
       onDoubleClick={(e) => {
@@ -35,10 +34,10 @@ function StickyNodeComponent({ id, data, selected }: NodeProps<StickyNodeType>) 
         isVisible={selected}
         minWidth={120}
         minHeight={90}
-        lineClassName="!border-accent-primary"
-        handleClassName="!h-2 !w-2 !rounded-sm !border-accent-primary !bg-surface-1"
+        lineClassName={RESIZER_LINE}
+        handleClassName={RESIZER_HANDLE}
       />
-      <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-secondary/70">便签</div>
+      <div className="mb-1 text-10 font-semibold uppercase tracking-wide text-secondary/70">便签</div>
       {editing ? (
         <textarea
           autoFocus

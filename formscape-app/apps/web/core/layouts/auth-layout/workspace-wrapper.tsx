@@ -137,18 +137,6 @@ export const WorkspaceAuthWrapper = observer(function WorkspaceAuthWrapper(props
     );
   };
 
-  // 本地开发：有 workspaceSlug 时尽快进入（不等权限 loader，不卡 not found）
-  if (workspaceSlug) {
-    if (isParentLoading && allWorkspaces === undefined) {
-      return (
-        <div className="grid h-full place-items-center rounded-lg border border-subtle p-4">
-          <LogoSpinner />
-        </div>
-      );
-    }
-    return <>{children}</>;
-  }
-
   if (isParentLoading || allWorkspaces === undefined || loader) {
     return (
       <div className="grid h-full place-items-center rounded-lg border border-subtle p-4">

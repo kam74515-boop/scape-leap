@@ -74,7 +74,7 @@ export function CanvasContextMenu({ menu, onClose, onAction, nodeMode = false }:
     <>
       <div className="fixed inset-0 z-40" onClick={onClose} onContextMenu={(e) => e.preventDefault()} />
       <div
-        className="fixed z-50 max-h-[min(80vh,520px)] min-w-[220px] overflow-y-auto overflow-x-hidden rounded-md border border-subtle bg-surface-1 py-1 shadow-lg"
+        className="fixed z-50 max-h-[min(80vh,520px)] min-w-[220px] overflow-y-auto overflow-x-hidden rounded-md border border-subtle bg-surface-1 py-1 shadow-overlay-200"
         style={{ left: menu.x, top: menu.y }}
       >
         {ITEMS.filter((it) => {
@@ -108,7 +108,7 @@ export function CanvasContextMenu({ menu, onClose, onAction, nodeMode = false }:
         {isImageNode && (
           <>
             <div className="my-1 border-t border-subtle" />
-            <div className="px-3 py-1 text-[9px] font-semibold uppercase tracking-wide text-placeholder">
+            <div className="px-3 py-1 text-10 font-semibold uppercase tracking-wide text-placeholder">
               应用技能（14）
             </div>
             {CANVAS_SKILLS.map((s) => (
@@ -138,7 +138,7 @@ export function CanvasContextMenu({ menu, onClose, onAction, nodeMode = false }:
         {!hasNode && (
           <>
             <div className="my-1 border-t border-subtle" />
-            <div className="px-3 py-1 text-[9px] font-semibold uppercase tracking-wide text-placeholder">
+            <div className="px-3 py-1 text-10 font-semibold uppercase tracking-wide text-placeholder">
               快捷技能
             </div>
             {CANVAS_SKILLS.filter((s) => s.popular)

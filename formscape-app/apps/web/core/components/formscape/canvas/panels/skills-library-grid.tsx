@@ -176,13 +176,13 @@ function SkillBankCard({
           )}
         >
           <Star
-            className={cn("size-3.5", favorited ? "fill-[#EBB95E] text-[#EBB95E]" : "text-white")}
+            className={cn("size-3.5", favorited ? "fill-warning-secondary text-icon-warning-secondary" : "text-white")}
             strokeWidth={2}
           />
         </span>
 
         {skill.isNew && (
-          <span className="absolute right-1.5 top-1.5 z-[1] rounded bg-accent-primary px-1 py-px text-[8px] font-semibold text-on-color">
+          <span className="absolute right-1.5 top-1.5 z-[1] rounded-full bg-ai-primary px-1.5 py-px text-10 font-semibold text-on-color">
             NEW
           </span>
         )}

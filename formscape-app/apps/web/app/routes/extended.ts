@@ -5,6 +5,8 @@ import { layout, route } from "@react-router/dev/routes";
 import type { RouteConfigEntry } from "@react-router/dev/routes";
 
 export const extendedRoutes: RouteConfigEntry[] = [
+  // 业主 Client Portal：业主唯一触点，独立于工作台壳（无 L1/L2 导航、无登录墙）
+  route("portal/:projectId/:token", "./portal/[projectId]/page.tsx"),
   layout("./(all)/layout.tsx", [
     layout("./(all)/[workspaceSlug]/layout.tsx", [
       layout("./(all)/[workspaceSlug]/(projects)/layout.tsx", [
@@ -14,8 +16,8 @@ export const extendedRoutes: RouteConfigEntry[] = [
         route(":workspaceSlug/customers", "./(all)/[workspaceSlug]/(projects)/customers/page.tsx"),
         route(":workspaceSlug/library", "./(all)/[workspaceSlug]/(projects)/library/page.tsx"),
         route(":workspaceSlug/users", "./(all)/[workspaceSlug]/(projects)/users/page.tsx"),
-        // 兼容旧链接 /team → 同一用户管理页
-        route(":workspaceSlug/team", "./(all)/[workspaceSlug]/(projects)/users/page.tsx"),
+        // 兼容旧链接 /team → loader 重定向到 /users（同文件别名会导致 route id 冲突，故独立文件）
+        route(":workspaceSlug/team", "./(all)/[workspaceSlug]/(projects)/team/page.tsx"),
         route(":workspaceSlug/studio-settings", "./(all)/[workspaceSlug]/(projects)/formscape-settings/page.tsx"),
 
         // L3 项目

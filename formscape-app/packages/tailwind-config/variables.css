@@ -162,19 +162,57 @@
     --neutral-1100: oklch(0.4377 0.0066 230.87);
     --neutral-1200: oklch(0.2378 0.0029 230.83);
     --neutral-black: oklch(0.1472 0.0034 230.83);
-    /* Brand colors */
-    --brand-100: oklch(0.9847 0.0083 236.56);
-    --brand-200: oklch(0.9715 0.0167 230.9);
-    --brand-300: oklch(0.9428 0.0341 230.22);
-    --brand-400: oklch(0.9008 0.0587 232);
-    --brand-500: oklch(0.8414 0.0947 233.08);
-    --brand-600: oklch(0.7649 0.1392 236.3);
-    --brand-700: oklch(0.6766 0.1665 243.91);
-    --brand-900: oklch(0.4347 0.104093 242.4823);
-    --brand-1000: oklch(0.3399 0.0783 240.32);
-    --brand-1100: oklch(0.2626 0.0578 237.5);
-    --brand-1200: oklch(0.2093 0.0438 234.02);
-    --brand-default: oklch(0.4799 0.1158 242.91);
+    /* Brand colors — 靛蓝 Indigo（构境AI 设计规范 v3） */
+    --brand-100: oklch(0.9725 0.0128 277);
+    --brand-200: oklch(0.9435 0.0281 277);
+    --brand-300: oklch(0.8992 0.0547 277);
+    --brand-400: oklch(0.8352 0.0982 277);
+    --brand-500: oklch(0.7565 0.1462 277);
+    --brand-600: oklch(0.6684 0.1868 277);
+    --brand-700: oklch(0.585 0.204 277);
+    --brand-900: oklch(0.4891 0.1917 277);
+    --brand-1000: oklch(0.4173 0.1626 277);
+    --brand-1100: oklch(0.3439 0.1301 277);
+    --brand-1200: oklch(0.2779 0.0989 277);
+    --brand-default: oklch(0.585 0.204 277);
+    /* AI colors — 紫罗兰 Violet，仅用于 AI 能力（构境AI 设计规范 v3） */
+    --ai-100: oklch(0.9704 0.0146 293);
+    --ai-200: oklch(0.9403 0.0313 293);
+    --ai-300: oklch(0.8942 0.0611 293);
+    --ai-400: oklch(0.8265 0.1069 293);
+    --ai-500: oklch(0.7442 0.1591 293);
+    --ai-600: oklch(0.672 0.1985 293);
+    --ai-700: oklch(0.606 0.219 293);
+    --ai-800: oklch(0.5537 0.2148 293);
+    --ai-900: oklch(0.5066 0.2062 293);
+    --ai-1000: oklch(0.4323 0.175 293);
+    --ai-1100: oklch(0.3563 0.14 293);
+    --ai-1200: oklch(0.2879 0.1064 293);
+    --ai-default: oklch(0.606 0.219 293);
+    /* AI semantic */
+    --bg-ai-primary: var(--ai-default);
+    --bg-ai-primary-hover: var(--ai-900);
+    --bg-ai-subtle: var(--ai-100);
+    --bg-ai-subtle-hover: var(--ai-200);
+    --border-ai-strong: var(--ai-default);
+    --border-ai-subtle: var(--ai-300);
+    --txt-ai-primary: var(--ai-700);
+    --txt-ai-secondary: var(--ai-900);
+    /* 平面图/空间视图语义色（规范 v3 §6，dark 有覆盖） */
+    --fs-plan-bg: #ece8e1;
+    --fs-plan-surface: #f6f3ee;
+    --fs-plan-grid: rgba(40, 40, 45, 0.07);
+    --fs-plan-wall: #28282d;
+    --fs-plan-wall-soft: #4a4a52;
+    --fs-plan-door: #e8833a;
+    --fs-plan-window: #4a90d9;
+    --fs-plan-room-fill: rgba(255, 255, 255, 0.55);
+    --fs-plan-label: #6b675f;
+    --fs-plan-accent: var(--brand-default);
+    /* 平面编辑/3D 视口选中态梯度（随 brand 阶自动适配 dark） */
+    --fs-plan-accent-subtle: var(--brand-200);
+    --fs-plan-accent-soft: var(--brand-500);
+    --fs-plan-accent-strong: var(--brand-900);
     /* Green/Success colors */
     --green-100: oklch(0.9819 0.0181 155.83);
     --green-200: oklch(0.9624 0.0434 156.74);
@@ -413,19 +451,43 @@
       --neutral-1100: oklch(0.8455 0.0035 230.72);
       --neutral-1200: oklch(0.9235 0.001733 230.6853);
       --neutral-white: oklch(0.9702 0 0);
-      /* Brand colors */
-      --brand-100: oklch(0.2029 0.03 232.24);
-      --brand-200: oklch(0.2513 0.0418 234.6);
-      --brand-300: oklch(0.3208 0.05806 236.44);
-      --brand-400: oklch(0.4088 0.077702 237.13);
-      --brand-500: oklch(0.4511 0.087024 237.37);
-      --brand-700: oklch(0.7408 0.100309 233.89);
-      --brand-800: oklch(0.8318 0.065614 232.07);
-      --brand-900: oklch(0.8969 0.040089 231.35);
-      --brand-1000: oklch(0.9409 0.022883 231.01);
-      --brand-1100: oklch(0.9704 0.011421 230.82);
-      --brand-1200: oklch(0.9856 0.005 228.82);
-      --brand-default: oklch(0.6311 0.126281 238.01);
+      /* Brand colors — 靛蓝 Indigo（构境AI 设计规范 v3） */
+      --brand-100: oklch(0.22 0.04 277);
+      --brand-200: oklch(0.28 0.06 277);
+      --brand-300: oklch(0.35 0.09 277);
+      --brand-400: oklch(0.45 0.13 277);
+      --brand-500: oklch(0.55 0.15 277);
+      --brand-600: oklch(0.62 0.16 277);
+      --brand-700: oklch(0.6797 0.1583 277);
+      --brand-900: oklch(0.75 0.14 277);
+      --brand-1000: oklch(0.82 0.1 277);
+      --brand-1100: oklch(0.88 0.06 277);
+      --brand-1200: oklch(0.93 0.03 277);
+      --brand-default: oklch(0.6797 0.1583 277);
+      /* AI colors — 紫罗兰 Violet（dark） */
+      --ai-100: oklch(0.2394 0.0618 295);
+      --ai-200: oklch(0.2912 0.0848 294);
+      --ai-300: oklch(0.3668 0.1233 293);
+      --ai-400: oklch(0.4595 0.1717 293);
+      --ai-500: oklch(0.5056 0.193 293);
+      --ai-600: oklch(0.5741 0.2101 293);
+      --ai-700: oklch(0.7632 0.1369 293);
+      --ai-800: oklch(0.8506 0.0916 293);
+      --ai-900: oklch(0.9084 0.0578 293);
+      --ai-1000: oklch(0.9487 0.0337 293);
+      --ai-1100: oklch(0.9741 0.0167 293);
+      --ai-1200: oklch(0.9874 0.0074 293);
+      --ai-default: oklch(0.7 0.1712 293);
+      /* 平面图/空间视图语义色（dark 覆盖） */
+      --fs-plan-bg: #232228;
+      --fs-plan-surface: #2a2930;
+      --fs-plan-grid: rgba(235, 235, 245, 0.06);
+      --fs-plan-wall: #e8e6f0;
+      --fs-plan-wall-soft: #b9b6c6;
+      --fs-plan-door: #f09a55;
+      --fs-plan-window: #6aa9e8;
+      --fs-plan-room-fill: rgba(255, 255, 255, 0.05);
+      --fs-plan-label: #a09da8;
       /* Green colors */
       --green-100: oklch(0.2721 0.067322 152.52);
       --green-200: oklch(0.3935 0.0957 152.28);
@@ -693,8 +755,14 @@
   --color-*: initial;
   --color-white: oklch(1 0 0);
   --color-black: oklch(0.1482 0.0034 196.79);
-  /* ---------- Border radius ---------- */
+  /* ---------- Border radius（构境AI 规范 v3：年轻化，全站圆角上移一档） ---------- */
   --radius-4xl: initial;
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
   /* ---------- Border width ---------- */
   --border-width-*: initial;
   --border-width-sm: 1px;
@@ -973,6 +1041,15 @@
   --border-color-priority-medium: var(--priority-medium);
   --border-color-priority-low: var(--priority-low);
   --border-color-priority-none: var(--priority-none);
+  /* AI (violet) semantic utilities — 构境AI 规范 v3，仅用于 AI 能力 */
+  --background-color-ai-primary: var(--bg-ai-primary);
+  --background-color-ai-primary-hover: var(--bg-ai-primary-hover);
+  --background-color-ai-subtle: var(--bg-ai-subtle);
+  --background-color-ai-subtle-hover: var(--bg-ai-subtle-hover);
+  --border-color-ai-strong: var(--border-ai-strong);
+  --border-color-ai-subtle: var(--border-ai-subtle);
+  --text-color-ai-primary: var(--txt-ai-primary);
+  --text-color-ai-secondary: var(--txt-ai-secondary);
 }
 
 /* ---------- Typography tokens ---------- */
@@ -980,11 +1057,11 @@
   /* ---------- Font family ---------- */
   --font-*: initial;
   --font-heading:
-    "Inter Variable", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
-    "Noto Color Emoji";
+    "Inter Variable", "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   --font-body:
-    "Inter Variable", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
-    "Noto Color Emoji";
+    "Inter Variable", "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   --font-code:
     "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
@@ -1005,6 +1082,7 @@
   --text-12: 0.75rem;
   --text-13: 0.8125rem;
   --text-14: 0.875rem;
+  --text-15: 0.9375rem;
   --text-16: 1rem;
   --text-18: 1.125rem;
   --text-20: 1.25rem;

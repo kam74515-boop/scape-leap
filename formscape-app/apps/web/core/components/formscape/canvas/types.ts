@@ -41,8 +41,20 @@ export type ImageNodeData = {
   colors: string[];
   src?: string;
   locked?: boolean;
-  source?: "moodboard" | "library" | "upload" | "generate" | "agent" | "skill" | "video-frame";
+  source?:
+    | "moodboard"
+    | "library"
+    | "upload"
+    | "generate"
+    | "agent"
+    | "skill"
+    | "video-frame"
+    /** 项目图板 pin：打开画布持续展示，供技能「从画布选择」 */
+    | "styleboard";
   skillId?: string;
+  /** 图板 pin id */
+  stylePinId?: string;
+  styleBoardId?: string;
 };
 
 export type StickyNodeData = {
@@ -166,6 +178,8 @@ export type CanvasSettings = {
 export type CanvasPersistedDoc = {
   version: 1;
   projectId: string;
+  /** 子画布 id；缺省为旧版项目级单文档 */
+  boardId?: string;
   nodes: Array<{
     id: string;
     type: CanvasNodeKind;

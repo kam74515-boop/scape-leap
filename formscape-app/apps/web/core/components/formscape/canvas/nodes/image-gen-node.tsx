@@ -8,6 +8,7 @@ import { memo, useEffect, useRef, useState } from "react";
 import { type Node, type NodeProps, NodeResizer } from "@xyflow/react";
 import { ImageIcon, Loader2, Plus, Sparkles, Square, Upload, X } from "@/icons";
 import { cn } from "@plane/utils";
+import { FsProgress } from "../../ui";
 import { useCanvasNodeActions } from "../canvas-node-actions";
 import type { ImageGenNodeData, ImageGenResult } from "../types";
 import {
@@ -21,6 +22,7 @@ import {
 } from "../models/catalog";
 import { SKILLS_BY_ID } from "../skills/registry";
 import { newId } from "../use-canvas-document";
+import { RESIZER_HANDLE, RESIZER_LINE } from "./selection-chrome";
 
 type ImageGenNodeType = Node<ImageGenNodeData, "imagegen">;
 
@@ -29,10 +31,6 @@ const DEMO_REF_COLORS = [
   ["#E8EEF5", "#A8C0D8", "#5A7A9A"],
   ["#EDE9FE", "#C4B5FD", "#8B5CF6"],
 ];
-
-const RESIZER_LINE = "!border-0 !opacity-0";
-const RESIZER_HANDLE =
-  "!h-1.5 !w-1.5 !rounded-full !border !border-accent-primary !bg-surface-1 !shadow-sm";
 
 function ImageGenNodeComponent({ id, data: raw, selected }: NodeProps<ImageGenNodeType>) {
   const data: ImageGenNodeData = {
@@ -156,10 +154,10 @@ function ImageGenNodeComponent({ id, data: raw, selected }: NodeProps<ImageGenNo
 
   return (
     <div className="relative" style={{ width: size.width, fontFamily: "inherit" }}>
-      <div className="pointer-events-none absolute -top-5 left-1 right-1 flex items-center gap-1 text-[10px] font-medium text-tertiary">
+      <div className="pointer-events-none absolute -top-5 left-1 right-1 flex items-center gap-1 text-10 font-medium text-tertiary">
         <ImageIcon className="size-2.5 shrink-0" strokeWidth={2} />
         <span className="min-w-0 truncate">{skillName || "图片生成器"}</span>
-        <span className="ml-auto shrink-0 text-[9px] text-placeholder">
+        <span className="ml-auto shrink-0 text-10 text-placeholder">
           {data.aspect} · {credits} CU
         </span>
       </div>
@@ -176,13 +174,14 @@ function ImageGenNodeComponent({ id, data: raw, selected }: NodeProps<ImageGenNo
       {/* 预览区：比例自适应 + 圆角选中环 */}
       <div
         className={cn(
-          "relative flex w-full items-center justify-center overflow-hidden rounded-xl border bg-surface-1 transition-[box-shadow,border-color]",
+          "relative flex w-full items-center justify-center overflow-hidden rounded-none border transition-[outline,border-color]",
           selected
-            ? "border-accent-primary/40 shadow-[0_0_0_2px_var(--bg-accent-primary)]"
+            ? "border-accent-primary outline outline-1 outline-offset-0 outline-accent-primary"
             : "border-subtle",
+          // 生成中：AI 紫描边（AI 能力专属；选中环保持 brand）
           isRunning &&
             !selected &&
-            "border-accent-primary/50 shadow-[0_0_0_2px_color-mix(in_srgb,var(--bg-accent-primary)_25%,transparent)]"
+            "border-ai-strong"
         )}
         style={{ height: size.height }}
       >
@@ -203,7 +202,7 @@ function ImageGenNodeComponent({ id, data: raw, selected }: NodeProps<ImageGenNo
               <img
                 src={primary.src}
                 alt={primary.title || data.resultTitle || "生成结果"}
-                className="size-full object-cover"
+                className="size-full rounded-none object-contain"
                 draggable={false}
               />
             ) : null}
@@ -213,26 +212,23 @@ function ImageGenNodeComponent({ id, data: raw, selected }: NodeProps<ImageGenNo
                   {primary?.title || data.resultTitle}
                 </div>
                 {primary?.seed != null && (
-                  <div className="text-[9px] text-white/70">seed {primary.seed}</div>
+                  <div className="text-10 text-white/70">seed {primary.seed}</div>
                 )}
               </div>
             )}
           </div>
         ) : isRunning ? (
           <div className="flex flex-col items-center gap-2 px-4 text-center">
-            <Loader2 className="size-7 animate-spin text-accent-primary" />
-            <span className="text-11 text-tertiary">
+            <Loader2 className="size-7 animate-spin text-ai-primary" />
+            <span className="text-11 tabular-nums text-tertiary">
               {data.status === "queued" ? "排队中…" : `生成中 ${data.progress ?? 0}%`}
             </span>
-            <div className="h-1 w-28 overflow-hidden rounded-full bg-surface-2">
-              <div
-                className="h-full rounded-full bg-accent-primary transition-all"
-                style={{ width: `${data.progress ?? 8}%` }}
-              />
+            <div className="w-28">
+              <FsProgress value={data.progress ?? 8} />
             </div>
             <button
               type="button"
-              className="nodrag mt-0.5 inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] text-tertiary hover:bg-layer-transparent-hover hover:text-secondary"
+              className="nodrag mt-0.5 inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-10 text-tertiary hover:bg-layer-transparent-hover hover:text-secondary"
               onClick={(e) => {
                 e.stopPropagation();
                 cancelGenerate();
@@ -247,7 +243,7 @@ function ImageGenNodeComponent({ id, data: raw, selected }: NodeProps<ImageGenNo
             <div className="text-11 text-danger-primary">{data.error || "生成失败"}</div>
             <button
               type="button"
-              className="nodrag rounded-md bg-accent-subtle px-2 py-1 text-[10px] font-medium text-accent-primary"
+              className="nodrag rounded-full bg-ai-subtle px-2.5 py-1 text-10 font-medium text-ai-primary transition-colors duration-150 ease-out hover:bg-ai-subtle-hover"
               onClick={(e) => {
                 e.stopPropagation();
                 runGenerate();
@@ -259,7 +255,9 @@ function ImageGenNodeComponent({ id, data: raw, selected }: NodeProps<ImageGenNo
         ) : (
           <div className="flex flex-col items-center gap-1.5 px-4 text-center">
             <ImageIcon className="size-12 text-placeholder opacity-40" strokeWidth={1.2} />
-            <span className="text-[10px] text-placeholder">选中后输入提示词生成</span>
+            <span className="text-10 text-placeholder">
+              {data.skillId ? "技能已就绪 · 点生成出图" : "选中后输入提示词生成"}
+            </span>
           </div>
         )}
       </div>
@@ -321,7 +319,7 @@ function ImageGenNodeComponent({ id, data: raw, selected }: NodeProps<ImageGenNo
               >
                 <Plus className="size-3" />
               </button>
-              <span className="ml-0.5 text-[9px] text-placeholder">
+              <span className="ml-0.5 text-10 text-placeholder">
                 参考 {(data.refs?.length ?? 0)}/{model?.maxRefs ?? 4}
               </span>
               <input
@@ -337,32 +335,52 @@ function ImageGenNodeComponent({ id, data: raw, selected }: NodeProps<ImageGenNo
               />
             </div>
 
-            <textarea
-              value={draft}
-              rows={2}
-              disabled={isRunning}
-              onChange={(e) => setDraft(e.target.value)}
-              onBlur={() => patch({ prompt: draft })}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                  e.preventDefault();
-                  runGenerate();
-                }
-              }}
-              placeholder="描述画面：空间、材质、光线、镜头…"
-              className="w-full resize-none border-0 bg-transparent px-2.5 py-1.5 text-11 leading-snug text-primary outline-none placeholder:text-placeholder disabled:opacity-60"
-            />
+            {data.skillId ? (
+              /* 技能生成路径：无自由提示词（技能原则＝上传槽+比例+数量），只展示技能与槽位参数摘要；
+                 prompt 数据字段保留（画布 Agent / 再生成链路仍在用），仅隐藏输入 UI */
+              <div className="px-2.5 py-2">
+                <div className="flex items-center gap-1.5 text-11 font-medium text-ai-primary">
+                  <Sparkles className="size-3 shrink-0" strokeWidth={1.75} />
+                  <span className="min-w-0 truncate">{skillName || "技能生成"}</span>
+                  <span className="shrink-0 rounded-full bg-ai-subtle px-1.5 py-px text-10 font-medium text-ai-secondary">
+                    Demo
+                  </span>
+                </div>
+                <div className="mt-1 text-10 leading-snug tabular-nums text-tertiary">
+                  素材 {data.refs?.length ?? 0} 项 · 比例 {data.aspect || "1:1"} · 数量{" "}
+                  {data.count || 1} 张
+                </div>
+              </div>
+            ) : (
+              <>
+                <textarea
+                  value={draft}
+                  rows={2}
+                  disabled={isRunning}
+                  onChange={(e) => setDraft(e.target.value)}
+                  onBlur={() => patch({ prompt: draft })}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                      e.preventDefault();
+                      runGenerate();
+                    }
+                  }}
+                  placeholder="描述画面：空间、材质、光线、镜头…"
+                  className="w-full resize-none border-0 bg-transparent px-2.5 py-1.5 text-11 leading-snug text-primary outline-none placeholder:text-placeholder disabled:opacity-60"
+                />
 
-            {showNeg && (
-              <textarea
-                value={negDraft}
-                rows={1}
-                disabled={isRunning}
-                onChange={(e) => setNegDraft(e.target.value)}
-                onBlur={() => patch({ negativePrompt: negDraft.trim() || undefined })}
-                placeholder="负向提示：排除的元素…"
-                className="w-full resize-none border-0 border-t border-subtle/60 bg-transparent px-2.5 py-1 text-[10px] leading-snug text-secondary outline-none placeholder:text-placeholder"
-              />
+                {showNeg && (
+                  <textarea
+                    value={negDraft}
+                    rows={1}
+                    disabled={isRunning}
+                    onChange={(e) => setNegDraft(e.target.value)}
+                    onBlur={() => patch({ negativePrompt: negDraft.trim() || undefined })}
+                    placeholder="负向提示：排除的元素…"
+                    className="w-full resize-none border-0 border-t border-subtle/60 bg-transparent px-2.5 py-1 text-10 leading-snug text-secondary outline-none placeholder:text-placeholder"
+                  />
+                )}
+              </>
             )}
 
             <div className="flex flex-wrap items-center gap-0.5 border-t border-subtle/80 px-1.5 py-1">
@@ -370,7 +388,7 @@ function ImageGenNodeComponent({ id, data: raw, selected }: NodeProps<ImageGenNo
                 value={data.model}
                 disabled={isRunning}
                 onChange={(e) => patch({ model: e.target.value })}
-                className="h-6 max-w-[6.5rem] min-w-0 truncate border-0 bg-transparent px-1 text-[10px] text-secondary outline-none hover:text-primary"
+                className="h-6 max-w-[6.5rem] min-w-0 truncate border-0 bg-transparent px-1 text-10 text-secondary outline-none hover:text-primary"
               >
                 {IMAGE_MODELS.map((m) => (
                   <option key={m.id} value={m.id}>
@@ -383,7 +401,7 @@ function ImageGenNodeComponent({ id, data: raw, selected }: NodeProps<ImageGenNo
                 value={data.aspect || "1:1"}
                 disabled={isRunning}
                 onChange={(e) => patch({ aspect: e.target.value })}
-                className="h-6 border-0 bg-transparent px-0.5 text-[10px] text-secondary outline-none hover:text-primary"
+                className="h-6 border-0 bg-transparent px-0.5 text-10 text-secondary outline-none hover:text-primary"
               >
                 {ASPECT_RATIOS.map((a) => (
                   <option key={a.id} value={a.id}>
@@ -396,7 +414,7 @@ function ImageGenNodeComponent({ id, data: raw, selected }: NodeProps<ImageGenNo
                 value={String(data.count || 1)}
                 disabled={isRunning}
                 onChange={(e) => patch({ count: Number(e.target.value) })}
-                className="h-6 border-0 bg-transparent px-0.5 text-[10px] text-secondary outline-none hover:text-primary"
+                className="h-6 border-0 bg-transparent px-0.5 text-10 text-secondary outline-none hover:text-primary"
               >
                 {IMAGE_COUNTS.map((c) => (
                   <option key={c} value={c}>
@@ -411,7 +429,7 @@ function ImageGenNodeComponent({ id, data: raw, selected }: NodeProps<ImageGenNo
                 onChange={(e) =>
                   patch({ quality: e.target.value as ImageGenNodeData["quality"] })
                 }
-                className="h-6 border-0 bg-transparent px-0.5 text-[10px] text-secondary outline-none hover:text-primary"
+                className="h-6 border-0 bg-transparent px-0.5 text-10 text-secondary outline-none hover:text-primary"
               >
                 {IMAGE_QUALITIES.map((q) => (
                   <option key={q.id} value={q.id}>
@@ -419,17 +437,19 @@ function ImageGenNodeComponent({ id, data: raw, selected }: NodeProps<ImageGenNo
                   </option>
                 ))}
               </select>
-              <button
-                type="button"
-                title="负向提示词"
-                onClick={() => setShowNeg((v) => !v)}
-                className={cn(
-                  "ml-0.5 h-6 rounded px-1 text-[10px]",
-                  showNeg ? "text-accent-primary" : "text-placeholder hover:text-secondary"
-                )}
-              >
-                −提示
-              </button>
+              {!data.skillId && (
+                <button
+                  type="button"
+                  title="负向提示词"
+                  onClick={() => setShowNeg((v) => !v)}
+                  className={cn(
+                    "ml-0.5 h-6 rounded px-1 text-10",
+                    showNeg ? "text-accent-primary" : "text-placeholder hover:text-secondary"
+                  )}
+                >
+                  −提示
+                </button>
+              )}
 
               <div className="ml-auto flex items-center gap-0.5">
                 {isDone && (
@@ -441,7 +461,7 @@ function ImageGenNodeComponent({ id, data: raw, selected }: NodeProps<ImageGenNo
                         e.stopPropagation();
                         usePrimaryAsRef();
                       }}
-                      className="h-6 rounded-md px-1.5 text-[10px] text-secondary hover:bg-layer-transparent-hover"
+                      className="h-6 rounded-md px-1.5 text-10 text-secondary hover:bg-layer-transparent-hover"
                     >
                       作参考
                     </button>
@@ -452,7 +472,7 @@ function ImageGenNodeComponent({ id, data: raw, selected }: NodeProps<ImageGenNo
                           e.stopPropagation();
                           promote("all");
                         }}
-                        className="h-6 rounded-md px-1.5 text-[10px] text-secondary hover:bg-layer-transparent-hover"
+                        className="h-6 rounded-md px-1.5 text-10 text-secondary hover:bg-layer-transparent-hover"
                       >
                         全落图
                       </button>
@@ -463,7 +483,7 @@ function ImageGenNodeComponent({ id, data: raw, selected }: NodeProps<ImageGenNo
                         e.stopPropagation();
                         promote("selected");
                       }}
-                      className="h-6 rounded-md px-1.5 text-[10px] text-secondary hover:bg-layer-transparent-hover"
+                      className="h-6 rounded-md px-1.5 text-10 text-secondary hover:bg-layer-transparent-hover"
                     >
                       落图
                     </button>
@@ -476,7 +496,7 @@ function ImageGenNodeComponent({ id, data: raw, selected }: NodeProps<ImageGenNo
                       e.stopPropagation();
                       cancelGenerate();
                     }}
-                    className="inline-flex h-6 items-center gap-1 rounded-md px-2 text-[10px] font-medium text-secondary hover:bg-layer-transparent-hover"
+                    className="inline-flex h-6 items-center gap-1 rounded-md px-2 text-10 font-medium text-secondary hover:bg-layer-transparent-hover"
                   >
                     <Square className="size-2.5 fill-current" />
                     取消
@@ -491,21 +511,21 @@ function ImageGenNodeComponent({ id, data: raw, selected }: NodeProps<ImageGenNo
                       runGenerate();
                     }}
                     className={cn(
-                      "inline-flex h-6 items-center gap-1 rounded-md px-2 text-[10px] font-medium",
+                      "inline-flex h-6 items-center gap-1 rounded-full px-2.5 text-10 font-medium transition-colors duration-150 ease-out",
                       !draft.trim() && !data.skillId
                         ? "cursor-not-allowed text-placeholder"
-                        : "bg-accent-primary text-on-color hover:opacity-90"
+                        : "bg-ai-primary text-on-color hover:bg-ai-primary-hover"
                     )}
                   >
-                    <Sparkles className="size-3" />
+                    <Sparkles className="size-3" strokeWidth={1.75} />
                     {isDone ? "再生成" : "生成"}
-                    <span className="opacity-70">{credits}</span>
+                    <span className="tabular-nums opacity-70">{credits}</span>
                   </button>
                 )}
               </div>
             </div>
           </div>
-          <div className="mt-1 text-center text-[9px] text-placeholder">⌘↵ 生成</div>
+          <div className="mt-1 text-center text-10 text-placeholder">⌘↵ 生成</div>
         </div>
       )}
     </div>
@@ -513,7 +533,7 @@ function ImageGenNodeComponent({ id, data: raw, selected }: NodeProps<ImageGenNo
 }
 
 function Dot() {
-  return <span className="text-[10px] text-placeholder">·</span>;
+  return <span className="text-10 text-placeholder">·</span>;
 }
 
 function ResultGrid({
@@ -542,7 +562,9 @@ function ResultGrid({
           }}
           className={cn(
             "relative min-h-0 overflow-hidden rounded-md",
-            selected === i ? "ring-2 ring-accent-primary ring-offset-1 ring-offset-surface-1" : "opacity-90"
+            selected === i
+              ? "rounded-none outline outline-1 outline-offset-0 outline-accent-primary"
+              : "rounded-none opacity-90"
           )}
           style={
             r.src
@@ -552,9 +574,14 @@ function ResultGrid({
           title={r.title}
         >
           {r.src ? (
-            <img src={r.src} alt={r.title} className="size-full object-cover" draggable={false} />
+            <img
+              src={r.src}
+              alt={r.title}
+              className="size-full rounded-none object-contain"
+              draggable={false}
+            />
           ) : null}
-          <span className="absolute bottom-0.5 left-0.5 rounded bg-black/40 px-1 text-[8px] text-white">
+          <span className="absolute bottom-0.5 left-0.5 rounded bg-black/40 px-1 text-10 text-white">
             {i + 1}
           </span>
         </button>

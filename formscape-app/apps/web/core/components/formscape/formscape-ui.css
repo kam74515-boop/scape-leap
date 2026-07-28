@@ -1,0 +1,110 @@
+/* 构境AI UI 基元样式 — 设计规范 v3（年轻化扁平化）
+ * 只放 Tailwind 表达不了的部分：range 滑杆、模态动效。
+ */
+
+/* 滑杆：轨道 4px 圆角、拇指 14px 圆点、accent=brand */
+.fs-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 16px;
+  width: 100%;
+  background: transparent;
+  cursor: pointer;
+}
+.fs-range:focus {
+  outline: none;
+}
+.fs-range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 4px;
+  background: var(--bg-surface-2, #eee);
+}
+.fs-range::-moz-range-track {
+  height: 4px;
+  border-radius: 4px;
+  background: var(--bg-surface-2, #eee);
+}
+.fs-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  margin-top: -5px;
+  height: 14px;
+  width: 14px;
+  border-radius: 9999px;
+  border: none;
+  background: var(--brand-default);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform 120ms ease-out;
+}
+.fs-range::-moz-range-thumb {
+  height: 14px;
+  width: 14px;
+  border-radius: 9999px;
+  border: none;
+  background: var(--brand-default);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform 120ms ease-out;
+}
+.fs-range:hover::-webkit-slider-thumb,
+.fs-range:active::-webkit-slider-thumb {
+  transform: scale(1.15);
+}
+.fs-range:hover::-moz-range-thumb,
+.fs-range:active::-moz-range-thumb {
+  transform: scale(1.15);
+}
+.fs-range:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* 模态/浮层进入动效：120–200ms ease-out */
+@keyframes fs-ui-pop {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.fs-ui-pop {
+  animation: fs-ui-pop 160ms ease-out;
+}
+
+@keyframes fs-ui-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.fs-ui-fade {
+  animation: fs-ui-fade 160ms ease-out;
+}
+
+/* AI 生成态细进度条（不确定进度） */
+@keyframes fs-ui-progress-slide {
+  0% {
+    left: -40%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+.fs-progress-indeterminate {
+  position: relative;
+  overflow: hidden;
+}
+.fs-progress-indeterminate > i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -40%;
+  width: 40%;
+  border-radius: inherit;
+  background: var(--ai-default);
+  animation: fs-ui-progress-slide 1.1s ease-in-out infinite;
+}

@@ -4,7 +4,6 @@ export type PmProject = {
   id: string;
   name: string;
   identifier: string;
-  emoji: string;
   stageLabel: string;
   stageId: string;
   clientName: string;
@@ -64,7 +63,6 @@ export const PM_PROJECTS: PmProject[] = [
     id: "proj-demo-1",
     name: "滨江壹号 · 新婚两居",
     identifier: "BJ",
-    emoji: "🏠",
     stageLabel: "风格设计",
     stageId: "style",
     clientName: "陈女士",
@@ -85,7 +83,6 @@ export const PM_PROJECTS: PmProject[] = [
     id: "proj-demo-2",
     name: "徐汇老宅改造",
     identifier: "XH",
-    emoji: "🏛️",
     stageLabel: "需求分析",
     stageId: "requirements",
     clientName: "王先生",
@@ -106,7 +103,6 @@ export const PM_PROJECTS: PmProject[] = [
     id: "proj-demo-3",
     name: "园区湖景平层",
     identifier: "YQ",
-    emoji: "🌊",
     stageLabel: "线索",
     stageId: "requirements",
     clientName: "李女士",
@@ -431,18 +427,6 @@ export const PROJECT_TASKS: ProjectTask[] = [
     dueDate: "明天",
   },
 ];
-
-export const DASHBOARD_KPI = {
-  activeProjects: PM_PROJECTS.length,
-  myOpenTasks: MY_ASSIGNMENTS.filter((a) => a.state !== "done").length,
-  overdue: MY_ASSIGNMENTS.filter((a) => a.dueDate === "今天" || a.priority === "urgent").length,
-  drafts: DRAFT_ITEMS.length,
-  designFeePending: Number(
-    (
-      PM_PROJECTS.reduce((s, p) => s + p.designFeeWan, 0) - PM_PROJECTS.reduce((s, p) => s + p.feeCollectedWan, 0)
-    ).toFixed(1)
-  ),
-};
 
 export const TASK_STATE_META: Record<
   ProjectTask["state"],

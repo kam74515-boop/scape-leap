@@ -1,13 +1,7 @@
-/**
- * Copyright (c) 2023-present Plane Software, Inc. and contributors
- * SPDX-License-Identifier: AGPL-3.0-only
- * See the LICENSE file for details.
- */
+import { Navigate, useParams } from "react-router";
 
-import { ProjectPageRoot } from "@/components/projects/page";
-
-function ProjectsPage() {
-  return <ProjectPageRoot />;
+/** 产品不再暴露 Plane 项目归档页，旧书签统一回到构境项目驾驶舱。 */
+export default function ProjectArchivesRedirect() {
+  const { workspaceSlug } = useParams();
+  return <Navigate to={`/${workspaceSlug ?? "formscape"}/`} replace />;
 }
-
-export default ProjectsPage;

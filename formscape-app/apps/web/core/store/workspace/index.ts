@@ -215,6 +215,18 @@ export class BaseWorkspaceRootStore implements IWorkspaceRootStore {
           last_name: "设计师",
           is_bot: false,
           email: "designer@formscape.local",
+          cover_image_url: null,
+          date_joined: new Date(now).toISOString(),
+          is_active: true,
+          is_email_verified: true,
+          is_password_autoset: false,
+          is_tour_completed: true,
+          mobile_number: null,
+          last_workspace_id: "ws-demo",
+          user_timezone: "Asia/Shanghai",
+          username: "designer",
+          last_login_medium: "email",
+          theme: { theme: "system" },
         },
       };
       runInAction(() => {

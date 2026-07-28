@@ -161,11 +161,8 @@ export default function Root() {
 }
 
 export function HydrateFallback() {
-  const { resolvedTheme } = useTheme();
-
-  // if we are on the server or the theme is not resolved, return an empty div
-  if (typeof window === "undefined" || resolvedTheme === undefined) return <div />;
-
+  // 服务端与客户端首帧必须一致（resolvedTheme 在服务端恒 undefined，
+  // 依赖它会触发 hydration mismatch），故渲染与主题无关的固定结构。
   return (
     <div className="relative flex h-screen w-full items-center justify-center bg-canvas">
       <LogoSpinner />

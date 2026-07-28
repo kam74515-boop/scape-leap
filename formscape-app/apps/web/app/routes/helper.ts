@@ -9,26 +9,33 @@ import type { RouteConfigEntry } from "@react-router/dev/routes";
 /**
  * Merges two route configurations intelligently.
  * - Deep merges children when the same layout file exists in both arrays
- * - Deduplicates routes by file property, preferring extended over core
+ * - Deduplicates routes by file+path composite key, preferring extended over core
  * - Maintains order: core routes first, then extended routes at each level
+ *
+ * 注意：去重键必须包含 path。仅按 file 去重会把「同文件别名路由」互相覆盖
+ * （如 :workspaceSlug/users 与 :workspaceSlug/team 同指向 users/page.tsx，
+ * 后者会顶掉前者，导致 /users 404——2026-07-27 实际事故）。
  */
+function routeKey(r: RouteConfigEntry): string {
+  return `${r.file}::${r.path ?? ""}`;
+}
+
 export function mergeRoutes(core: RouteConfigEntry[], extended: RouteConfigEntry[]): RouteConfigEntry[] {
-  // Step 1: Create a Map to track routes by file path
+  // Step 1: Create a Map to track routes by file+path key
   const routeMap = new Map<string, RouteConfigEntry>();
 
   // Step 2: Process core routes first
   for (const coreRoute of core) {
-    const fileKey = coreRoute.file;
-    routeMap.set(fileKey, coreRoute);
+    routeMap.set(routeKey(coreRoute), coreRoute);
   }
 
   // Step 3: Process extended routes
   for (const extendedRoute of extended) {
-    const fileKey = extendedRoute.file;
+    const key = routeKey(extendedRoute);
 
-    if (routeMap.has(fileKey)) {
+    if (routeMap.has(key)) {
       // Route exists in both - need to merge
-      const coreRoute = routeMap.get(fileKey)!;
+      const coreRoute = routeMap.get(key)!;
 
       // Check if both have children (layouts that need deep merging)
       if (coreRoute.children && extendedRoute.children) {
@@ -37,17 +44,17 @@ export function mergeRoutes(core: RouteConfigEntry[], extended: RouteConfigEntry
           Array.isArray(coreRoute.children) ? coreRoute.children : [],
           Array.isArray(extendedRoute.children) ? extendedRoute.children : []
         );
-        routeMap.set(fileKey, {
+        routeMap.set(key, {
           ...extendedRoute,
           children: mergedChildren,
         });
       } else {
         // No children or only one has children - prefer extended
-        routeMap.set(fileKey, extendedRoute);
+        routeMap.set(key, extendedRoute);
       }
     } else {
       // Route only exists in extended
-      routeMap.set(fileKey, extendedRoute);
+      routeMap.set(key, extendedRoute);
     }
   }
 
@@ -56,19 +63,19 @@ export function mergeRoutes(core: RouteConfigEntry[], extended: RouteConfigEntry
 
   // Add all core routes (now merged or original)
   for (const coreRoute of core) {
-    const fileKey = coreRoute.file;
-    if (routeMap.has(fileKey)) {
-      result.push(routeMap.get(fileKey)!);
-      routeMap.delete(fileKey); // Remove so we don't add it again
+    const key = routeKey(coreRoute);
+    if (routeMap.has(key)) {
+      result.push(routeMap.get(key)!);
+      routeMap.delete(key); // Remove so we don't add it again
     }
   }
 
   // Add remaining extended-only routes
   for (const extendedRoute of extended) {
-    const fileKey = extendedRoute.file;
-    if (routeMap.has(fileKey)) {
-      result.push(routeMap.get(fileKey)!);
-      routeMap.delete(fileKey);
+    const key = routeKey(extendedRoute);
+    if (routeMap.has(key)) {
+      result.push(routeMap.get(key)!);
+      routeMap.delete(key);
     }
   }
 

@@ -22,6 +22,7 @@ import {
 import "@xyflow/react/dist/style.css";
 
 import { cn } from "@plane/utils";
+import { FsButton } from "../ui";
 import type { FormscapeProject } from "../types";
 import { useFormscapeAi } from "../ai-context";
 import { useAppTheme } from "@/hooks/store/use-app-theme";
@@ -39,7 +40,11 @@ import { SkillRail } from "./panels/skill-rail";
 import type { CanvasSkillDef } from "./skills/registry";
 import { SKILLS_BY_ID } from "./skills/registry";
 import { CanvasToolbar } from "./toolbar/canvas-toolbar";
-import { SelectionToolbar, type AlignMode } from "./toolbar/selection-toolbar";
+import {
+  SelectionToolbar,
+  type AlignMode,
+  type SelectionToolbarAction,
+} from "./toolbar/selection-toolbar";
 import { ZoomControls } from "./toolbar/zoom-controls";
 import type {
   CanvasTool,
@@ -57,6 +62,16 @@ import {
 } from "./skills/gen-history";
 import { listMockGallerySamples } from "./skills/mock-skill-assets";
 import { newId, useCanvasDocument, type FsCanvasNode } from "./use-canvas-document";
+import {
+  addPinToBoard,
+  pinFromEcoProduct,
+  preferBoardIdForProduct,
+  STYLE_BOARDS_CHANGE_EVENT,
+} from "../style-boards-store";
+import {
+  imageSrcFromCanvasNode,
+  mergeStyleboardIntoNodes,
+} from "./styleboard-canvas";
 
 const DEFAULT_IMAGE_GEN = {
   kind: "imagegen" as const,
@@ -83,7 +98,12 @@ const DEFAULT_VIDEO_GEN = {
   refs: [] as VideoGenNodeData["refs"],
 };
 
-type Props = { project: FormscapeProject };
+type Props = {
+  project: FormscapeProject;
+  /** 子画布 id：每板独立文档 */
+  boardId: string;
+  boardName?: string;
+};
 
 function bgVariant(pattern: string): BackgroundVariant | null {
   if (pattern === "none") return null;
@@ -92,7 +112,7 @@ function bgVariant(pattern: string): BackgroundVariant | null {
   return BackgroundVariant.Dots;
 }
 
-function CanvasInner({ project }: Props) {
+function CanvasInner({ project, boardId, boardName }: Props) {
   const { registerCanvasBridge, setOpen: setAiOpen } = useFormscapeAi();
   const { registerBridge, openSection, section: libSection, isNodeMode } = useCanvasLibrary();
   const { sidebarCollapsed, toggleSidebar } = useAppTheme();
@@ -102,8 +122,9 @@ function CanvasInner({ project }: Props) {
     setViewport,
     settings,
     setSettings,
+    persist,
     resetToMoodboard,
-  } = useCanvasDocument(project);
+  } = useCanvasDocument(project, boardId);
 
   const [nodes, setNodes, onNodesChange] = useNodesState<FsCanvasNode>(initialNodes);
   /** 节点模式专属类型（当前为空）；生成器在普通模式始终展示 */
@@ -133,6 +154,9 @@ function CanvasInner({ project }: Props) {
   const [future, setFuture] = useState<FsCanvasNode[][]>([]);
   const [ctxMenu, setCtxMenu] = useState<ContextMenuState>(null);
   const [maskEdit, setMaskEdit] = useState<MaskEditTarget | null>(null);
+  /** 技能轨：从画布点选素材 */
+  const [canvasPickSlot, setCanvasPickSlot] = useState<string | null>(null);
+  const canvasPickHandlerRef = useRef<((src: string, title: string) => void) | null>(null);
   const [shapeKind, setShapeKind] = useState<ShapeKind>("rect");
   const skipHistory = useRef(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -153,14 +177,15 @@ function CanvasInner({ project }: Props) {
   const { fitView, zoomIn, zoomOut, setViewport: setRfViewport, screenToFlowPosition, getViewport } =
     useReactFlow();
 
-  // 仅在切换项目时重载图；禁止依赖 initialNodes/savedViewport，
-  // 否则平移缩放写 viewport 会把节点打回旧快照 → 一点就闪掉
-  const loadedProjectId = useRef<string | null>(null);
+  // 切换项目/子画布时重载图，并铺上项目图板 pin
+  const loadedKey = useRef<string | null>(null);
   useEffect(() => {
-    if (loadedProjectId.current === project.id) return;
-    loadedProjectId.current = project.id;
+    const key = `${project.id}::${boardId}`;
+    if (loadedKey.current === key) return;
+    loadedKey.current = key;
     skipHistory.current = true;
-    setNodes(initialNodes);
+    const withStyle = mergeStyleboardIntoNodes(project.id, initialNodes);
+    setNodes(withStyle);
     setHistory([]);
     setFuture([]);
     if (savedViewport) {
@@ -169,36 +194,30 @@ function CanvasInner({ project }: Props) {
     } else {
       requestAnimationFrame(() => fitView({ padding: 0.2 }));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- 只跟 project.id 走
-  }, [project.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project.id, boardId]);
 
+  // 图板变更时同步画布上的 styleboard 节点
   useEffect(() => {
-    const t = window.setTimeout(() => {
-      try {
-        const doc = {
-          version: 1 as const,
-          projectId: project.id,
-          nodes: nodes.map((n) => ({
-            id: n.id,
-            type: (n.type ?? "image") as FsCanvasNode["type"],
-            position: n.position,
-            data: n.data,
-            width: typeof n.style?.width === "number" ? n.style.width : undefined,
-            height: typeof n.style?.height === "number" ? n.style.height : undefined,
-            parentId: n.parentId,
-          })),
-          edges: [] as { id: string; source: string; target: string }[],
-          viewport: getViewport(),
-          updatedAt: new Date().toISOString(),
-        };
-        localStorage.setItem("formscape.canvas.doc.v2", JSON.stringify(doc));
-        localStorage.setItem("formscape.canvas.doc.v1", JSON.stringify(doc));
-      } catch {
-        /* ignore */
-      }
-    }, 400);
+    const sync = () => {
+      setNodes((prev) => mergeStyleboardIntoNodes(project.id, prev));
+    };
+    window.addEventListener(STYLE_BOARDS_CHANGE_EVENT, sync);
+    return () => window.removeEventListener(STYLE_BOARDS_CHANGE_EVENT, sync);
+  }, [project.id, setNodes]);
+
+  /**
+   * 自动保存 — 唯一写入路径（P0 修复）：
+   * 活节点（useNodesState 真源）+ 当前视口 → board 级 key
+   * （formscape.canvas.doc.v2::{projectId}::{boardId}）。
+   * 旧实现双写：此处写未分板全局 key（从不被读回），hook 内又用 stale seed
+   * 覆盖 board key —— 编辑后刷新丢节点。现 hook 不再自动落盘。
+   * savedViewport 进依赖：onMoveEnd 平移/缩放后也会落一次盘。
+   */
+  useEffect(() => {
+    const t = window.setTimeout(() => persist(nodes, [], getViewport()), 400);
     return () => window.clearTimeout(t);
-  }, [nodes, project.id, getViewport]);
+  }, [nodes, savedViewport, persist, getViewport]);
 
   const pushHistory = useCallback(() => {
     if (skipHistory.current) {
@@ -837,7 +856,7 @@ function CanvasInner({ project }: Props) {
           {
             type: "frame",
             position,
-            data: { kind: "frame", label: "画板", tint: "rgba(139,92,246,0.04)" },
+            data: { kind: "frame", label: "画板", tint: "rgba(99,102,241,0.04)" },
             style: { width: 360, height: 240 },
             zIndex: -1,
           },
@@ -891,7 +910,7 @@ function CanvasInner({ project }: Props) {
     addNode({
       type: "frame",
       position: { x: position.x - 180, y: position.y - 120 },
-      data: { kind: "frame", label: "画板", tint: "rgba(139,92,246,0.04)" },
+      data: { kind: "frame", label: "画板", tint: "rgba(99,102,241,0.04)" },
       style: { width: 360, height: 240 },
       zIndex: -1,
     });
@@ -1465,6 +1484,8 @@ function CanvasInner({ project }: Props) {
     registerBridge({
       nodes,
       selectedIds,
+      projectId: project.id,
+      projectName: project.name,
       onSelectNode: selectNode,
       onAddImage: (item) => addImageAt(item),
       onAddProduct: (item) =>
@@ -1475,6 +1496,64 @@ function CanvasInner({ project }: Props) {
           source: "library",
           src: item.src,
         }),
+      onAddProductToStyleBoard: (item) => {
+        const boardId = preferBoardIdForProduct(project.id, !!item.asMaterial);
+        const pin = pinFromEcoProduct(
+          {
+            id: item.productId || `eco-${Date.now()}`,
+            name: item.title,
+            brand: item.brand || "",
+            price: item.price ?? 0,
+            category: item.tags?.[0] || "",
+            style: item.tags?.[1] || "",
+            material: item.material || "",
+            image: item.src || "",
+            colors: item.colors,
+          },
+          !!item.asMaterial
+        );
+        const added = addPinToBoard(project.id, boardId, pin);
+        showCanvasToast(
+          added ? `已加入图板：${item.title}` : `已在图板中：${item.title}`
+        );
+      },
+      onPlaceStylePin: (pin) => {
+        addImageAt({
+          title: pin.title,
+          tags: [...(pin.tags ?? []), pin.kind, "图板"].filter(Boolean) as string[],
+          colors: pin.colors?.length ? pin.colors : ["#F5F0E8", "#D4C4B0", "#8B7355"],
+          source: "library",
+          src: pin.src,
+        });
+        showCanvasToast(`已落到画布：${pin.title}`);
+      },
+      onPlaceStyleBoard: (board) => {
+        const pins = board.pins.slice(0, 12);
+        if (!pins.length) {
+          showCanvasToast("图板为空");
+          return;
+        }
+        const base = centerPosition();
+        const w = 160;
+        const h = 130;
+        const gap = 16;
+        pins.forEach((pin, i) => {
+          addImageAt(
+            {
+              title: pin.title,
+              tags: [...(pin.tags ?? []), board.name, "图板"].filter(Boolean) as string[],
+              colors: pin.colors?.length ? pin.colors : ["#F5F0E8", "#D4C4B0", "#8B7355"],
+              source: "library",
+              src: pin.src,
+            },
+            {
+              x: base.x + (i % 4) * (w + gap) - 1.5 * (w + gap),
+              y: base.y + Math.floor(i / 4) * (h + gap) - h,
+            }
+          );
+        });
+        showCanvasToast(`已将「${board.name}」${pins.length} 项落到画布`);
+      },
       onPickSkill,
       onAddImageGen: (model) => addImageGen(model),
       onAddVideoGen: (model) => addVideoGen(model),
@@ -1548,6 +1627,7 @@ function CanvasInner({ project }: Props) {
   }, [
     registerBridge,
     registerCanvasBridge,
+    project.id,
     project.name,
     nodes,
     selectedIds,
@@ -1563,6 +1643,7 @@ function CanvasInner({ project }: Props) {
     placeImageGenAt,
     runImageGen,
     refFromNode,
+    showCanvasToast,
   ]);
 
   /**
@@ -1834,13 +1915,149 @@ function CanvasInner({ project }: Props) {
     isNodeMode,
   ]);
 
-  const selectedLocked = nodes
-    .filter((n) => selectedIds.includes(n.id) && n.type === "image")
-    .every((n) => (n.data as ImageNodeData).locked);
+  const selectedLockable = nodes.filter(
+    (n) => selectedIds.includes(n.id) && n.type === "image"
+  );
+  const selectedLocked =
+    selectedLockable.length > 0 &&
+    selectedLockable.every((n) => (n.data as ImageNodeData).locked);
 
   const showImageActions = nodes.some(
     (n) =>
       selectedIds.includes(n.id) && (n.type === "image" || n.type === "imagegen" || n.type === "videogen")
+  );
+
+  /** 对齐 Lovspark 选中工具栏动作（图片） */
+  const onSelectionImageAction = useCallback(
+    (action: SelectionToolbarAction) => {
+      const img = nodes.find(
+        (n) =>
+          selectedIds.includes(n.id) &&
+          (n.type === "image" || n.type === "imagegen" || n.type === "videogen")
+      );
+
+      switch (action) {
+        case "partialRedraw":
+          openMaskEdit();
+          return;
+        case "regenerate":
+          editSelectedImage("regen");
+          return;
+        case "expand":
+        case "aiRedraw":
+          editSelectedImage("style");
+          return;
+        case "askAi":
+          editSelectedImage("agent");
+          return;
+        case "tidyH":
+          arrangeSelectedRow();
+          return;
+        case "video": {
+          if (!img) return;
+          const at = { x: img.position.x + 280, y: img.position.y };
+          placeVideoGenAt(at, {
+            prompt: "图生视频",
+            model: "formscape-motion",
+          });
+          showCanvasToast("图生视频（Demo）");
+          return;
+        }
+        case "download": {
+          const selected = nodes.filter(
+            (n) => selectedIds.includes(n.id) && (n.type === "image" || n.type === "imagegen")
+          );
+          let downloaded = 0;
+          for (const n of selected) {
+            let src: string | undefined;
+            let title = "image";
+            if (n.type === "image") {
+              const d = n.data as ImageNodeData;
+              src = d.src;
+              title = d.title || title;
+            } else {
+              const d = n.data as ImageGenNodeData;
+              const r = d.results?.[d.selectedResultIndex ?? 0];
+              src = r?.src;
+              title = r?.title || d.prompt || title;
+            }
+            if (!src) continue;
+            const a = document.createElement("a");
+            a.href = src;
+            a.download = `${title.replace(/[^\w\u4e00-\u9fa5-]+/g, "_").slice(0, 40) || "image"}.jpg`;
+            a.target = "_blank";
+            a.rel = "noopener";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            downloaded += 1;
+          }
+          showCanvasToast(downloaded ? `已下载 ${downloaded} 张` : "当前图无可下载地址");
+          return;
+        }
+        case "removeBg":
+          if (!img) return;
+          {
+            const at = { x: img.position.x + 280, y: img.position.y };
+            const id = placeImageGenAt(at, {
+              prompt: "抠图 / 去背景",
+              skillId: "furniture-sketches",
+              refs: refFromNode(img),
+              count: 1,
+              autoPromoteOnDone: true,
+              removeAfterPromote: true,
+            });
+            showCanvasToast("抠图中…（Demo）");
+            window.setTimeout(() => runImageGen(id), 40);
+          }
+          return;
+        case "upscale":
+          if (!img) return;
+          {
+            const at = { x: img.position.x + 280, y: img.position.y };
+            const id = placeImageGenAt(at, {
+              prompt: "高清放大",
+              skillId: "space-atmosphere-transformation",
+              refs: refFromNode(img),
+              count: 1,
+              autoPromoteOnDone: true,
+              removeAfterPromote: true,
+            });
+            showCanvasToast("高清放大中…（Demo）");
+            window.setTimeout(() => runImageGen(id), 40);
+          }
+          return;
+        case "erase":
+          openMaskEdit();
+          showCanvasToast("智能消除：请涂选要消除的区域");
+          return;
+        case "crop":
+          showCanvasToast("裁剪：Demo 阶段请用节点缩放代替");
+          return;
+        case "adjust":
+          editSelectedImage("variant");
+          showCanvasToast("调节 / 变体（Demo）");
+          return;
+        case "delete":
+          deleteSelected();
+          return;
+        default:
+          return;
+      }
+    },
+    [
+      nodes,
+      selectedIds,
+      openMaskEdit,
+      editSelectedImage,
+      arrangeSelectedRow,
+      placeVideoGenAt,
+      placeImageGenAt,
+      refFromNode,
+      runImageGen,
+      showCanvasToast,
+      deleteSelected,
+    ]
   );
 
   const variant = bgVariant(settings.bgPattern);
@@ -2130,7 +2347,8 @@ function CanvasInner({ project }: Props) {
         className={cn(
           "fs-canvas-flow h-full w-full",
           isPanMode && "fs-canvas-panning",
-          isPlaceTool && "fs-canvas-placing"
+          isPlaceTool && "fs-canvas-placing",
+          canvasPickSlot && "fs-canvas-picking"
         )}
         nodes={displayNodes}
         edges={[]}
@@ -2154,6 +2372,12 @@ function CanvasInner({ project }: Props) {
         }}
         onPaneClick={(e) => {
           setCtxMenu(null);
+          if (canvasPickSlot) {
+            setCanvasPickSlot(null);
+            canvasPickHandlerRef.current = null;
+            showCanvasToast("已取消从画布选择");
+            return;
+          }
           if (suppressPlaceClick.current) {
             suppressPlaceClick.current = false;
             if (suppressPlaceTimer.current) {
@@ -2166,7 +2390,20 @@ function CanvasInner({ project }: Props) {
         }}
         onPaneContextMenu={onPaneContextMenu}
         onNodeContextMenu={onNodeContextMenu}
+        onNodeClick={(_e, node) => {
+          if (!canvasPickSlot || !canvasPickHandlerRef.current) return;
+          const hit = imageSrcFromCanvasNode(node as FsCanvasNode);
+          if (!hit) {
+            showCanvasToast("请点选带图片的节点（图板 / 生成图）");
+            return;
+          }
+          canvasPickHandlerRef.current(hit.src, hit.title);
+          canvasPickHandlerRef.current = null;
+          setCanvasPickSlot(null);
+          showCanvasToast(`已选用：${hit.title}`);
+        }}
         onNodeDoubleClick={(_e, node) => {
+          if (canvasPickSlot) return;
           if (node.type === "image" || node.type === "imagegen") {
             setSelectedIds([node.id]);
             setNodes((ns) => ns.map((n) => ({ ...n, selected: n.id === node.id })));
@@ -2217,13 +2454,47 @@ function CanvasInner({ project }: Props) {
         style={{ cursor: isPanMode ? "grab" : isPlaceTool ? "crosshair" : "default" }}
       >
         {variant && (
-          <Background variant={variant} gap={20} size={1} color="var(--border-subtle)" className="!bg-surface-1" />
+          <Background variant={variant} gap={20} size={1} color="var(--border-subtle)" className="!bg-canvas" />
         )}
         {settings.showMinimap !== false && !activeSkill && (
           <MiniMap
-            className="!bottom-4 !right-3 !left-auto !m-0"
-            maskColor="color-mix(in srgb, var(--bg-surface-2) 75%, transparent)"
-            nodeColor={() => "var(--bg-accent-primary)"}
+            className="!bottom-4 !right-3 !left-auto !m-0 fs-minimap"
+            /** 底与 mask 勿再叠 fill-opacity，否则视窗镂空错位 */
+            bgColor="var(--bg-surface-1)"
+            maskColor="var(--fs-mm-mask)"
+            maskStrokeColor="var(--bg-accent-primary)"
+            maskStrokeWidth={1.5}
+            /** 语义变量见 canvas-shell.css .fs-canvas-root（brand / ai / warning token 派生，双主题自适应） */
+            nodeColor={(n) => {
+              switch (n.type) {
+                case "frame":
+                  return "var(--fs-mm-frame)";
+                case "image":
+                  return "var(--fs-mm-image)";
+                case "imagegen":
+                case "videogen":
+                  return "var(--fs-mm-gen)";
+                case "sticky":
+                  return "var(--fs-mm-sticky)";
+                default:
+                  return "var(--fs-mm-node)";
+              }
+            }}
+            nodeStrokeColor={(n) => {
+              switch (n.type) {
+                case "frame":
+                  return "var(--fs-mm-frame-stroke)";
+                case "image":
+                  return "var(--fs-mm-image-stroke)";
+                case "imagegen":
+                case "videogen":
+                  return "var(--fs-mm-gen-stroke)";
+                default:
+                  return "var(--fs-mm-node-stroke)";
+              }
+            }}
+            nodeStrokeWidth={1.25}
+            nodeBorderRadius={0}
             pannable
             zoomable
           />
@@ -2234,19 +2505,13 @@ function CanvasInner({ project }: Props) {
         count={selectedIds.length}
         locked={!!selectedLocked && selectedIds.length > 0}
         showImageActions={showImageActions}
+        showToolNames={settings.showToolNames !== false}
         onDuplicate={duplicateSelected}
         onDelete={deleteSelected}
         onToggleLock={toggleLock}
         onBringFront={bringFront}
         onSendBack={sendBack}
-        onRegenerate={regenerateSelected}
-        onStyleExtend={() => editSelectedImage("style")}
-        onVariant={() => editSelectedImage("variant")}
-        onAskAi={() => editSelectedImage("agent")}
-        onApplySkill={applySkillToSelected}
-        onMaskEdit={openMaskEdit}
-        onArrangeRow={arrangeSelectedRow}
-        onAlign={alignSelected}
+        onImageAction={onSelectionImageAction}
       />
 
       {maskEdit && (
@@ -2277,27 +2542,22 @@ function CanvasInner({ project }: Props) {
       {displayNodes.length === 0 && !isPlaceTool && !activeSkill && (
         <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
           <div className="max-w-sm rounded-lg border border-dashed border-subtle bg-surface-1/95 px-6 py-8 text-center shadow-sm backdrop-blur-sm">
-            <div className="text-13 font-semibold text-primary">空白画布</div>
+            <div className="text-13 font-semibold text-primary">
+              {boardName ? `「${boardName}」空白画布` : "空白画布"}
+            </div>
             <p className="mt-1.5 text-11 text-tertiary">
+              这是独立的子画布 ·{" "}
               <kbd className="rounded bg-surface-2 px-1">S</kbd> 技能 ·{" "}
               <kbd className="rounded bg-surface-2 px-1">A</kbd> 生成 ·{" "}
-              <kbd className="rounded bg-surface-2 px-1">L</kbd> 图库 · Tab AI
+              <kbd className="rounded bg-surface-2 px-1">L</kbd> 图库
             </p>
             <div className="pointer-events-auto mt-4 flex flex-wrap items-center justify-center gap-2">
-              <button
-                type="button"
-                onClick={() => seedMockSamples()}
-                className="rounded-md bg-accent-primary px-3 py-1.5 text-11 font-medium text-on-color hover:opacity-90"
-              >
+              <FsButton variant="primary" size="sm" onClick={() => seedMockSamples()}>
                 一键导入 4 张样例
-              </button>
-              <button
-                type="button"
-                onClick={() => openSection("skills")}
-                className="rounded-md border border-subtle bg-surface-1 px-3 py-1.5 text-11 font-medium text-secondary hover:bg-layer-transparent-hover"
-              >
+              </FsButton>
+              <FsButton variant="secondary" size="sm" onClick={() => openSection("skills")}>
                 打开技能库
-              </button>
+              </FsButton>
             </div>
           </div>
         </div>
@@ -2305,9 +2565,13 @@ function CanvasInner({ project }: Props) {
 
       {canvasToast && (
         <div className="pointer-events-none absolute left-1/2 top-14 z-40 -translate-x-1/2">
-          <div className="rounded-md border border-subtle bg-surface-1 px-3 py-1.5 text-11 font-medium text-primary shadow-md">
+          <div className="flex items-center rounded-full border border-subtle bg-surface-1 px-3.5 py-1.5 text-11 font-medium text-primary shadow-md">
             {canvasToast}
-            {skillBusy && <span className="ml-1.5 text-tertiary">Demo</span>}
+            {skillBusy && (
+              <span className="ml-1.5 rounded-full bg-ai-subtle px-1.5 py-px text-10 font-medium text-ai-secondary">
+                Demo
+              </span>
+            )}
           </div>
         </div>
       )}
@@ -2327,7 +2591,7 @@ function CanvasInner({ project }: Props) {
       />
 
       {tool === "shape" && (
-        <div className="pointer-events-auto absolute bottom-[64px] left-1/2 z-30 flex -translate-x-1/2 gap-0.5 rounded-md border border-subtle bg-surface-1 p-1 shadow-sm">
+        <div className="pointer-events-auto absolute bottom-[64px] left-1/2 z-30 flex -translate-x-1/2 gap-0.5 rounded-full border border-subtle bg-surface-1 p-1 shadow-sm">
           {(["rect", "ellipse", "line", "arrow"] as ShapeKind[]).map((s) => (
             <button
               key={s}
@@ -2335,8 +2599,8 @@ function CanvasInner({ project }: Props) {
               onClick={() => setShapeKind(s)}
               className={
                 shapeKind === s
-                  ? "rounded-md bg-accent-subtle px-2.5 py-1 text-11 font-medium text-accent-primary"
-                  : "rounded-md px-2.5 py-1 text-11 font-medium text-secondary hover:bg-layer-transparent-hover"
+                  ? "rounded-full bg-accent-subtle px-2.5 py-1 text-11 font-medium text-accent-primary"
+                  : "rounded-full px-2.5 py-1 text-11 font-medium text-secondary transition-colors duration-150 ease-out hover:bg-layer-transparent-hover"
               }
             >
               {{ rect: "矩形", ellipse: "椭圆", line: "直线", arrow: "箭头" }[s]}
@@ -2345,12 +2609,34 @@ function CanvasInner({ project }: Props) {
         </div>
       )}
 
-      {/* 技能参数轨：从 L2 / S 选技能后展开 */}
+      {canvasPickSlot && (
+        <div className="pointer-events-none absolute left-1/2 top-16 z-30 -translate-x-1/2">
+          <div className="rounded-full border border-accent-primary/40 bg-accent-subtle px-3.5 py-1.5 text-11 font-medium text-accent-primary shadow-sm">
+            点击画布上的图板素材作为「{canvasPickSlot}」· 点空白取消
+          </div>
+        </div>
+      )}
+
+      {/* 技能参数轨：从 L2 / S 选技能后展开；上传槽可「从画布选择」图板素材 */}
       <SkillRail
         skill={activeSkill}
-        onClose={() => setActiveSkill(null)}
+        onClose={() => {
+          setActiveSkill(null);
+          setCanvasPickSlot(null);
+          canvasPickHandlerRef.current = null;
+        }}
         onGenerate={onSkillGenerate}
         busy={skillBusy}
+        pickingSlot={canvasPickSlot}
+        onPickFromCanvas={(slotKey, onPicked) => {
+          setCanvasPickSlot(slotKey);
+          canvasPickHandlerRef.current = onPicked;
+          showCanvasToast("请点击画布上的图板 / 图片节点");
+        }}
+        onCancelPickFromCanvas={() => {
+          setCanvasPickSlot(null);
+          canvasPickHandlerRef.current = null;
+        }}
       />
 
       <SettingsModal
@@ -2358,7 +2644,13 @@ function CanvasInner({ project }: Props) {
         settings={settings}
         onChange={setSettings}
         onClose={() => setSettingsOpen(false)}
-        onResetCanvas={() => resetToMoodboard()}
+        onResetCanvas={() => {
+          // 存档与活节点一起清，避免自动保存把活节点写回
+          resetToMoodboard();
+          skipHistory.current = true;
+          setNodes([]);
+          setSelectedIds([]);
+        }}
       />
 
       <CanvasContextMenu
@@ -2369,7 +2661,7 @@ function CanvasInner({ project }: Props) {
       />
 
       {isPlaceTool && (
-        <div className="pointer-events-none absolute bottom-[4.25rem] left-1/2 z-10 -translate-x-1/2 rounded-md border border-subtle bg-surface-1 px-2.5 py-1 text-11 text-tertiary shadow-sm">
+        <div className="pointer-events-none absolute bottom-[4.25rem] left-1/2 z-10 -translate-x-1/2 rounded-full border border-subtle bg-surface-1 px-3 py-1 text-11 text-tertiary shadow-sm">
           {tool === "imagegen"
             ? "点击画布放置图片生成器 · Esc 取消"
             : tool === "videogen"

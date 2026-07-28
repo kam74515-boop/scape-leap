@@ -1,13 +1,17 @@
 import { useCallback, useEffect, useState } from "react";
 import { loadProject, saveProject } from "./mock-data";
+import { DEMO_PROJECT_CHANGE_EVENT, DEMO_PROJECT } from "./mock-data";
 import type { FormscapeProject, Profile, StageId } from "./types";
 
-export function useFormscapeProject() {
-  const [project, setProject] = useState<FormscapeProject>(loadProject);
+export function useFormscapeProject(projectId = DEMO_PROJECT.id) {
+  const [project, setProject] = useState<FormscapeProject>(() => loadProject(projectId));
 
   useEffect(() => {
-    setProject(loadProject());
-  }, []);
+    const refresh = () => setProject(loadProject(projectId));
+    refresh();
+    window.addEventListener(DEMO_PROJECT_CHANGE_EVENT, refresh);
+    return () => window.removeEventListener(DEMO_PROJECT_CHANGE_EVENT, refresh);
+  }, [projectId]);
 
   const persist = useCallback((next: FormscapeProject) => {
     setProject(next);

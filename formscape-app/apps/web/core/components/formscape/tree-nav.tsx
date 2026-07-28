@@ -9,7 +9,17 @@ import { Folder, FolderOpen } from "@/icons";
 import { cn } from "@plane/utils";
 
 /** 统一行高；水平 padding 一致 */
-const ROW = "flex h-8 w-full items-center gap-1.5 rounded-md px-1 text-13 transition-colors";
+const ROW = "relative flex h-8 w-full items-center gap-1.5 rounded-md px-1 text-13 transition-colors";
+
+/** 选中态：brand 软色块（浅底深字）+ 左侧 3px 圆角指示条（规范 v3 §8） */
+const ROW_ACTIVE = "bg-accent-subtle text-accent-secondary";
+
+function ActiveBar({ show }: { show?: boolean }) {
+  if (!show) return null;
+  return (
+    <span aria-hidden className="absolute bottom-1.5 left-0 top-1.5 w-[3px] rounded-full bg-accent-primary" />
+  );
+}
 
 export function TreeSectionLabel({
   children,
@@ -94,7 +104,7 @@ export function TreeFolder({
 
   const titleClass = cn(
     "min-w-0 flex-1 truncate text-left font-medium",
-    active ? "text-primary" : "text-secondary"
+    active ? "text-accent-secondary" : "text-secondary"
   );
 
   // 有子节点：单击整行只做展开/收起（再点即收起），不导航
@@ -110,11 +120,12 @@ export function TreeFolder({
             ROW,
             "w-full cursor-pointer select-none text-left",
             "hover:bg-layer-transparent-hover",
-            active && "bg-layer-transparent-active"
+            active && ROW_ACTIVE
           )}
         >
-          <span className="flex size-4 shrink-0 items-center justify-center text-tertiary">
-            {open ? <FolderOpen className="size-3.5" /> : <Folder className="size-3.5" />}
+          <ActiveBar show={active} />
+          <span className={cn("flex size-4 shrink-0 items-center justify-center", active ? "text-accent-primary" : "text-tertiary")}>
+            {open ? <FolderOpen className="size-3.5" strokeWidth={1.75} /> : <Folder className="size-3.5" strokeWidth={1.75} />}
           </span>
           <span className={titleClass}>{label}</span>
           {meta && <span className="ml-auto shrink-0 pl-1 text-11 text-placeholder">{meta}</span>}
@@ -122,18 +133,20 @@ export function TreeFolder({
       ) : href ? (
         <Link
           to={href}
-          className={cn(ROW, "hover:bg-layer-transparent-hover", active && "bg-layer-transparent-active")}
+          className={cn(ROW, "hover:bg-layer-transparent-hover", active && ROW_ACTIVE)}
         >
-          <span className="flex size-4 shrink-0 items-center justify-center text-tertiary">
-            <Folder className="size-3.5" />
+          <ActiveBar show={active} />
+          <span className={cn("flex size-4 shrink-0 items-center justify-center", active ? "text-accent-primary" : "text-tertiary")}>
+            <Folder className="size-3.5" strokeWidth={1.75} />
           </span>
           <span className={titleClass}>{label}</span>
           {meta && <span className="ml-auto shrink-0 pl-1 text-11 text-placeholder">{meta}</span>}
         </Link>
       ) : (
-        <div className={cn(ROW, active && "bg-layer-transparent-active")}>
-          <span className="flex size-4 shrink-0 items-center justify-center text-tertiary">
-            <Folder className="size-3.5" />
+        <div className={cn(ROW, active && ROW_ACTIVE)}>
+          <ActiveBar show={active} />
+          <span className={cn("flex size-4 shrink-0 items-center justify-center", active ? "text-accent-primary" : "text-tertiary")}>
+            <Folder className="size-3.5" strokeWidth={1.75} />
           </span>
           <span className={titleClass}>{label}</span>
           {meta && <span className="ml-auto shrink-0 pl-1 text-11 text-placeholder">{meta}</span>}
@@ -160,7 +173,7 @@ export function TreeLeaf({ to, onClick, label, meta, active, icon: Icon, muted }
   const className = cn(
     ROW,
     active
-      ? "bg-layer-transparent-active font-medium text-primary"
+      ? cn(ROW_ACTIVE, "font-medium")
       : muted
         ? "text-placeholder hover:bg-layer-transparent-hover hover:text-secondary"
         : "text-secondary hover:bg-layer-transparent-hover"
@@ -169,11 +182,16 @@ export function TreeLeaf({ to, onClick, label, meta, active, icon: Icon, muted }
   // 子项：仅 icon + 文案（不再空出 chevron 列，避免文本严重右偏）
   const inner = (
     <>
-      <span className="flex size-4 shrink-0 items-center justify-center text-placeholder">
+      <ActiveBar show={active} />
+      <span className={cn("flex size-4 shrink-0 items-center justify-center", active ? "text-accent-primary" : "text-placeholder")}>
         {Icon ? <Icon className="size-3.5" /> : null}
       </span>
       <span className="min-w-0 flex-1 truncate">{label}</span>
-      {meta && <span className="ml-auto shrink-0 text-11 text-placeholder">{meta}</span>}
+      {meta && (
+        <span className={cn("ml-auto shrink-0 text-11", active ? "text-accent-primary" : "text-placeholder")}>
+          {meta}
+        </span>
+      )}
     </>
   );
 

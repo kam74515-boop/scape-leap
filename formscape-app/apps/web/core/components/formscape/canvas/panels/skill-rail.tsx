@@ -1,18 +1,16 @@
 /**
  * 技能参数轨 — 对齐 Lovspark CanvasSkillPanel
  *
- * 结构：
- *  顶栏：工具 · 技能名
- *  上传槽：空间图 / 参考图 / 材质图（按技能 uploads 配置）
- *  画面比例：预览框 + 滑块
- *  生成数量：1–4
- *  底部：生成图像到画布
- *
- * 无自由提示词、无动态 tag 字段
+ * 上传槽：
+ *  - 从画布选择（项目图板 / 画布图片，主路径）
+ *  - 本地上传
+ *  - 填入示例（Demo fallback）
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ImagePlus, Loader2, Plus, Sparkles, X } from "@/icons";
+import { ImagePlus, Loader2, Plus, X } from "@/icons";
+import { MousePointerClick } from "lucide-react";
 import { cn } from "@plane/utils";
+import { FsButton, FsProgress } from "../../ui";
 import {
   buildPromptFromSkill,
   type CanvasSkillDef,
@@ -31,11 +29,24 @@ type Props = {
     values: Record<string, string | number>;
   }) => void;
   busy?: boolean;
+  /** 当前正在点选的槽 key */
+  pickingSlot?: string | null;
+  /** 从画布点选：父级进入 pick 模式，点中后回调 src */
+  onPickFromCanvas?: (slotKey: string, onPicked: (src: string, title: string) => void) => void;
+  onCancelPickFromCanvas?: () => void;
 };
 
 type UploadMap = Record<string, string[]>;
 
-export function SkillRail({ skill, onClose, onGenerate, busy }: Props) {
+export function SkillRail({
+  skill,
+  onClose,
+  onGenerate,
+  busy,
+  pickingSlot,
+  onPickFromCanvas,
+  onCancelPickFromCanvas,
+}: Props) {
   const [uploads, setUploads] = useState<UploadMap>({});
   const [aspect, setAspect] = useState("1:1");
   const [count, setCount] = useState(1);
@@ -46,25 +57,8 @@ export function SkillRail({ skill, onClose, onGenerate, busy }: Props) {
     if (!skill) return;
     setAspect(skill.defaultAspect);
     setCount(skill.defaultCount);
-    // Demo 全自动：打开技能时自动填入 case 示例图
-    const bundle = getMockSkillBundle(skill.id);
-    const inputs = bundle?.inputs?.length ? bundle.inputs : bundle?.outputs ?? [];
-    if (!inputs.length) {
-      setUploads({});
-      return;
-    }
-    const next: UploadMap = {};
-    let i = 0;
-    for (const slot of skill.uploads) {
-      if (slot.multiple) {
-        const take = Math.min(slot.max ?? 3, Math.max(1, inputs.length));
-        next[slot.key] = inputs.slice(0, take);
-      } else {
-        next[slot.key] = [inputs[i % inputs.length]];
-        i += 1;
-      }
-    }
-    setUploads(next);
+    // 不再自动 mock 填槽：优先让用户从画布图板点选
+    setUploads({});
   }, [skill]);
 
   const ratios = skill?.aspectRatios ?? ["9:16", "2:3", "3:4", "1:1", "4:3", "3:2", "16:9"];
@@ -130,7 +124,29 @@ export function SkillRail({ skill, onClose, onGenerate, busy }: Props) {
     setUploads((prev) => ({ ...prev, [key]: [] }));
   };
 
-  /** Demo：从 case 输入图填充必填/可选槽，方便一键体验 */
+  const applyCanvasSrc = (key: string, src: string, multiple?: boolean) => {
+    const slot = skill.uploads.find((s) => s.key === key);
+    setUploads((prev) => {
+      if (slot?.multiple || multiple) {
+        const max = slot?.max ?? 6;
+        const next = [...(prev[key] ?? []), src].slice(0, max);
+        return { ...prev, [key]: next };
+      }
+      return { ...prev, [key]: [src] };
+    });
+  };
+
+  const pickFromCanvas = (slotKey: string, multiple?: boolean) => {
+    if (pickingSlot === slotKey) {
+      onCancelPickFromCanvas?.();
+      return;
+    }
+    onPickFromCanvas?.(slotKey, (src) => {
+      applyCanvasSrc(slotKey, src, multiple);
+    });
+  };
+
+  /** Demo：从 case 输入图填充必填/可选槽 */
   const fillMockSamples = () => {
     if (!skill) return;
     const bundle = getMockSkillBundle(skill.id);
@@ -190,18 +206,24 @@ export function SkillRail({ skill, onClose, onGenerate, busy }: Props) {
       </div>
 
       <div className="fs-csp-body">
+        <div className="mb-2 rounded-md bg-surface-2 px-2 py-1.5 text-10 leading-snug text-tertiary">
+          点选画布左侧<strong className="text-secondary">项目图板</strong>
+          素材填入槽位，再一键生成
+        </div>
+
         {skill.uploads.map((slot) => (
           <UploadSlotBlock
             key={slot.key}
             slot={slot}
             images={uploads[slot.key] ?? []}
-            onPick={() => openPicker(slot.key, slot.multiple)}
+            picking={pickingSlot === slot.key}
+            onPickFile={() => openPicker(slot.key, slot.multiple)}
+            onPickCanvas={() => pickFromCanvas(slot.key, slot.multiple)}
             onClear={() => clearSlot(slot.key)}
             onRemoveAt={(i) => removeAt(slot.key, i)}
           />
         ))}
 
-        {/* 画面比例滑块 — SizeView */}
         <div className="fs-skill-section-label">画面比例</div>
         <div className="fs-skill-size-block">
           <div className="fs-skill-size-preview">
@@ -223,14 +245,13 @@ export function SkillRail({ skill, onClose, onGenerate, busy }: Props) {
             className="fs-skill-size-slider"
             aria-label="画面比例"
           />
-          <div className="flex justify-between px-0.5 text-[9px] text-placeholder">
+          <div className="flex justify-between px-0.5 text-10 text-placeholder">
             <span>竖</span>
             <span className="font-medium text-secondary">{aspect}</span>
             <span>横</span>
           </div>
         </div>
 
-        {/* 通高占位：上传/比例在上，数量+生成贴底 */}
         <div className="fs-skill-rail-spacer" aria-hidden />
       </div>
 
@@ -248,21 +269,31 @@ export function SkillRail({ skill, onClose, onGenerate, busy }: Props) {
             </button>
           ))}
         </div>
-        <button
-          type="button"
+        <FsButton
+          variant="ai"
+          size="sm"
+          sparkle={!busy}
           disabled={!canGenerate}
           onClick={run}
-          className={cn("fs-skill-action", !canGenerate && "is-disabled")}
+          className="w-full"
         >
-          {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
+          {busy && <Loader2 className="size-3.5 animate-spin" />}
           一键生成落图
           {skill.credits != null && (
-            <span className="text-[10px] font-normal opacity-70">{skill.credits} CU</span>
+            <span className="text-10 font-normal tabular-nums opacity-70">
+              {skill.credits} CU
+            </span>
           )}
-        </button>
+        </FsButton>
+        {busy && (
+          <div className="mt-2">
+            <FsProgress />
+            <div className="mt-1 text-center text-10 text-tertiary">技能生成中 · Demo 数据</div>
+          </div>
+        )}
         {!canGenerate && !busy && (
-          <div className="mt-1 text-center text-[9px] text-placeholder">
-            请先上传必填图片
+          <div className="mt-1 text-center text-10 text-placeholder">
+            从画布点选必填图
             <span className="ml-0.5 font-semibold text-danger-primary">*</span>
             <button
               type="button"
@@ -292,13 +323,17 @@ export function SkillRail({ skill, onClose, onGenerate, busy }: Props) {
 function UploadSlotBlock({
   slot,
   images,
-  onPick,
+  picking,
+  onPickFile,
+  onPickCanvas,
   onClear,
   onRemoveAt,
 }: {
   slot: SkillUploadSlot;
   images: string[];
-  onPick: () => void;
+  picking?: boolean;
+  onPickFile: () => void;
+  onPickCanvas: () => void;
   onClear: () => void;
   onRemoveAt: (i: number) => void;
 }) {
@@ -336,10 +371,39 @@ function UploadSlotBlock({
             </div>
           ))}
           {images.length < max && (
-            <button type="button" className="fs-skill-product-slot is-cta" onClick={onPick}>
-              <Plus className="size-4" />
-            </button>
+            <>
+              <button
+                type="button"
+                className={cn("fs-skill-product-slot is-cta", picking && "ring-2 ring-accent-primary")}
+                onClick={onPickCanvas}
+                title="从画布选择"
+              >
+                <MousePointerClick className="size-3.5" />
+              </button>
+              <button type="button" className="fs-skill-product-slot is-cta" onClick={onPickFile} title="上传">
+                <Plus className="size-4" />
+              </button>
+            </>
           )}
+        </div>
+        <div className="mt-1 flex gap-1">
+          <button
+            type="button"
+            onClick={onPickCanvas}
+            className={cn(
+              "rounded px-1.5 py-0.5 text-10 font-medium",
+              picking ? "bg-accent-subtle text-accent-primary" : "text-accent-primary hover:bg-accent-subtle"
+            )}
+          >
+            {picking ? "点选中…" : "从画布选择"}
+          </button>
+          <button
+            type="button"
+            onClick={onPickFile}
+            className="rounded px-1.5 py-0.5 text-10 text-tertiary hover:bg-layer-transparent-hover"
+          >
+            上传
+          </button>
         </div>
       </div>
     );
@@ -353,30 +417,47 @@ function UploadSlotBlock({
           {slot.label}
           {reqStar}
         </span>
-      </div>
-      <div className={cn("fs-skill-upload", src && "is-filled")}>
         {src ? (
-          <>
-            <img src={src} alt="" className="fs-skill-upload-thumb" />
-            <button type="button" className="fs-skill-upload-remove" onClick={onClear} aria-label="移除">
-              <X className="size-3" strokeWidth={2.5} />
-            </button>
-          </>
-        ) : (
-          <>
-            <button type="button" className="fs-skill-upload-main" onClick={onPick}>
-              <Plus className="size-5 text-tertiary" />
-              <span>
-                {slot.label}
-                {reqStar}
-              </span>
-            </button>
-            <button type="button" className="fs-skill-upload-lib" onClick={onPick}>
-              <ImagePlus className="size-2.5" />
-              图库
-            </button>
-          </>
+          <button type="button" className="ml-auto text-10 text-tertiary hover:text-secondary" onClick={onClear}>
+            清除
+          </button>
+        ) : null}
+      </div>
+      <div
+        className={cn(
+          "fs-skill-upload-slot",
+          src && "is-filled",
+          picking && "ring-2 ring-accent-primary ring-offset-1"
         )}
+      >
+        {src ? (
+          <img src={src} alt="" className="size-full object-cover" />
+        ) : (
+          <div className="flex flex-col items-center gap-1 px-2 py-3 text-center">
+            <ImagePlus className="size-5 text-placeholder" />
+            <span className="text-10 text-placeholder">必填请从画布点选</span>
+          </div>
+        )}
+      </div>
+      <div className="mt-1 flex gap-1">
+        <button
+          type="button"
+          onClick={onPickCanvas}
+          className={cn(
+            "inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-10 font-medium",
+            picking ? "bg-accent-subtle text-accent-primary" : "text-accent-primary hover:bg-accent-subtle"
+          )}
+        >
+          <MousePointerClick className="size-3" />
+          {picking ? "点选中… 再点取消" : "从画布选择"}
+        </button>
+        <button
+          type="button"
+          onClick={onPickFile}
+          className="rounded px-1.5 py-0.5 text-10 text-tertiary hover:bg-layer-transparent-hover"
+        >
+          上传文件
+        </button>
       </div>
     </div>
   );

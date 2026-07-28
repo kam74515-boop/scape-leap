@@ -39,6 +39,8 @@ export type HarnessTool = {
   description: string;
   /** 仅在有 projectId 时可用 */
   requiresProject?: boolean;
+  /** 会改变业务数据；runtime 必须在用户明确确认后才可执行 */
+  requiresConfirmation?: boolean;
   run: (ctx: ProjectHarnessContext, args: Record<string, unknown>) => ToolResult | Promise<ToolResult>;
 };
 

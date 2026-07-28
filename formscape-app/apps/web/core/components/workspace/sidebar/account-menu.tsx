@@ -14,7 +14,6 @@ import { Tooltip } from "@plane/propel/tooltip";
 import type { IWorkspace } from "@plane/types";
 import { Avatar } from "@plane/ui";
 import { cn, getFileURL, orderWorkspacesList } from "@plane/utils";
-import { AppSidebarItem } from "@/components/sidebar/sidebar-item";
 import { WorkspaceLogo } from "@/components/workspace/logo";
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { useCommandPalette } from "@/hooks/store/use-command-palette";
@@ -46,9 +45,7 @@ export const AccountMenuRoot = observer(function AccountMenuRoot({ variant = "ra
   }, [open, toggleAnySidebarDropdown]);
 
   const displayName =
-    [currentUser?.first_name, currentUser?.last_name].filter(Boolean).join(" ") ||
-    currentUser?.display_name ||
-    "用户";
+    [currentUser?.first_name, currentUser?.last_name].filter(Boolean).join(" ") || currentUser?.display_name || "用户";
 
   const handleWorkspaceNavigation = (workspace: IWorkspace) => {
     updateUserProfile({ last_workspace_id: workspace?.id });
@@ -244,22 +241,24 @@ export const AccountMenuRoot = observer(function AccountMenuRoot({ variant = "ra
           return (
             <>
               <Tooltip tooltipContent={`${displayName} · ${activeWorkspace?.name ?? "工作室"}`} position="right">
-                <Menu.Button className="outline-none" aria-label="账号与工作室">
-                  <AppSidebarItem
-                    variant="button"
-                    item={{
-                      icon: (
-                        <Avatar
-                          name={currentUser?.display_name}
-                          src={getFileURL(currentUser?.avatar_url ?? "")}
-                          size={20}
-                          shape="circle"
-                        />
-                      ),
-                      isActive: menuOpen,
-                      showLabel: false,
-                    }}
-                  />
+                <Menu.Button
+                  className="group flex flex-col items-center justify-center gap-0.5 text-tertiary outline-none"
+                  aria-label="账号与工作室"
+                >
+                  <span
+                    className={cn(
+                      "flex size-8 items-center justify-center rounded-md text-icon-tertiary",
+                      "group-hover:bg-layer-transparent-hover group-hover:text-icon-secondary",
+                      menuOpen && "bg-layer-transparent-selected text-icon-primary"
+                    )}
+                  >
+                    <Avatar
+                      name={currentUser?.display_name}
+                      src={getFileURL(currentUser?.avatar_url ?? "")}
+                      size={20}
+                      shape="circle"
+                    />
+                  </span>
                 </Menu.Button>
               </Tooltip>
               {panel}
@@ -293,9 +292,7 @@ export const AccountMenuRoot = observer(function AccountMenuRoot({ variant = "ra
                       classNames="size-3.5 shrink-0 rounded-sm"
                     />
                   )}
-                  <span className="truncate text-11 text-tertiary">
-                    {activeWorkspace?.name ?? "构境工作室"}
-                  </span>
+                  <span className="truncate text-11 text-tertiary">{activeWorkspace?.name ?? "构境工作室"}</span>
                 </div>
               </div>
               <ChevronUp

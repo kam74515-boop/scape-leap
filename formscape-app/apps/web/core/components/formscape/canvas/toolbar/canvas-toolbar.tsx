@@ -137,11 +137,11 @@ export function CanvasToolbar({
       {nodeMode && (
         <button
           type="button"
-          className={cn("fs-tool fs-tool-pill", skillsOpen && "is-active is-accent")}
+          className={cn("fs-tool fs-tool-pill is-ai", skillsOpen && "is-active")}
           title="技能库 S · AIGC 工作流 / 提示词"
           onClick={onToggleSkills}
         >
-          <Sparkles className="size-3.5" />
+          <Sparkles className="size-3.5" strokeWidth={1.75} />
           技能库
           <span className="fs-tool-kbd">S</span>
         </button>

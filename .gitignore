@@ -2,6 +2,7 @@ refs/*
 !refs/README.md
 .DS_Store
 .playwright-mcp/
+.playwright-cli/
 .workbuddy/
 **/.env
 **/.env.*

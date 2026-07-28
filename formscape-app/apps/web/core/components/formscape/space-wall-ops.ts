@@ -384,6 +384,71 @@ export function hitTestWall(
   return null;
 }
 
+/**
+ * 由中心线 + 厚度生成矩形四角（任意角度；坐标单位不限，px/mm 皆可）
+ * 用于识别结果手工修正后重建墙多边形
+ */
+export function rectFromCenterline(
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  thickness: number
+): [number, number][] {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const len = Math.hypot(dx, dy) || 1;
+  const nx = (-dy / len) * (thickness / 2);
+  const ny = (dx / len) * (thickness / 2);
+  return [
+    [x1 + nx, y1 + ny],
+    [x2 + nx, y2 + ny],
+    [x2 - nx, y2 - ny],
+    [x1 - nx, y1 - ny],
+  ];
+}
+
+/**
+ * 前端真导出 OBJ：每段墙（中心线 + 厚度 + 墙高）挤出为长方体网格。
+ * 单位米；Y 轴向上（x=x_mm, y=高度, z=y_mm）。
+ */
+export function buildWallsObj(
+  walls: Pick<SpaceWall, "x1" | "y1" | "x2" | "y2" | "thickness">[],
+  wallHeightMm: number,
+  name = "scapeleap-walls"
+): string {
+  const h = Math.max(100, wallHeightMm) / 1000;
+  const lines: string[] = [
+    `# ScapeLeap 构境AI 白模导出（墙体挤出）`,
+    `# 白模精度用于可视化与布局决策，施工尺寸以实测为准`,
+    `o ${name}`,
+  ];
+  let vBase = 0;
+  let n = 0;
+  for (const w of walls) {
+    if (wallLength(w) < WALL_MIN_LEN_MM) continue;
+    n += 1;
+    const corners = rectFromCenterline(w.x1, w.y1, w.x2, w.y2, Math.max(40, w.thickness));
+    // 底面 4 点 + 顶面 4 点（米）
+    const bottom = corners.map(([x, y]) => [x / 1000, 0, y / 1000] as const);
+    const top = corners.map(([x, y]) => [x / 1000, h, y / 1000] as const);
+    lines.push(`g wall_${n}`);
+    for (const [x, y, z] of [...bottom, ...top]) {
+      lines.push(`v ${x.toFixed(4)} ${y.toFixed(4)} ${z.toFixed(4)}`);
+    }
+    const i = (k: number) => vBase + k + 1; // OBJ 顶点 1-based
+    // 底、顶、四侧（quad 面）
+    lines.push(`f ${i(3)} ${i(2)} ${i(1)} ${i(0)}`);
+    lines.push(`f ${i(4)} ${i(5)} ${i(6)} ${i(7)}`);
+    for (let k = 0; k < 4; k++) {
+      const k2 = (k + 1) % 4;
+      lines.push(`f ${i(k)} ${i(k2)} ${i(k2 + 4)} ${i(k + 4)}`);
+    }
+    vBase += 8;
+  }
+  return lines.join("\n") + "\n";
+}
+
 /** 画墙预览时吸附 + 正交 */
 export function resolveDrawPoint(
   x: number,

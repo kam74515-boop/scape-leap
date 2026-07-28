@@ -35,6 +35,7 @@ import {
   WorklogHorizontalStackIllustration,
 } from "./horizontal-stack";
 import { InboxIllustration, SearchIllustration } from "./illustration";
+import { fsLineArtForKey } from "./formscape-line-art";
 import {
   ArchivedCycleVerticalStackIllustration,
   ArchivedModuleVerticalStackIllustration,
@@ -113,28 +114,15 @@ export const ILLUSTRATION_ASSETS: Record<IllustrationAssetType, React.ComponentT
 };
 
 // Helper functions to get assets
+// 【构境AI · 去 Plane 影子】两个 getter 已全局接管：不再返回 Plane 插画，
+// 统一输出构境线条插画（formscape-line-art.tsx，currentColor 随主题）。
+// 原 Plane 插画注册表（HORIZONTAL/VERTICAL/ILLUSTRATION_ASSETS）保留供 storybook 参考，不再被产品页消费。
 export const getCompactAsset = (assetKey: CompactAssetType, className?: string): React.ReactNode => {
-  const AssetComponent =
-    (HORIZONTAL_STACK_ASSETS[assetKey as HorizontalStackAssetType] as React.ComponentType<{ className?: string }>) ||
-    ILLUSTRATION_ASSETS[assetKey as IllustrationAssetType];
-
-  if (!AssetComponent) {
-    console.warn(`Asset "${assetKey}" not found in compact asset registry`);
-    return null;
-  }
-
+  const AssetComponent = fsLineArtForKey(String(assetKey));
   return <AssetComponent className={className} />;
 };
 
 export const getDetailedAsset = (assetKey: DetailedAssetType, className?: string): React.ReactNode => {
-  const AssetComponent =
-    (VERTICAL_STACK_ASSETS[assetKey as VerticalStackAssetType] as React.ComponentType<{ className?: string }>) ||
-    ILLUSTRATION_ASSETS[assetKey as IllustrationAssetType];
-
-  if (!AssetComponent) {
-    console.warn(`Asset "${assetKey}" not found in detailed asset registry`);
-    return null;
-  }
-
+  const AssetComponent = fsLineArtForKey(String(assetKey));
   return <AssetComponent className={className} />;
 };

@@ -19,7 +19,7 @@ export function getFormscapeL1(pathname: string, workspaceSlug: string): Formsca
   if (p.includes(`${base}/space`)) return "space";
   if (p.includes(`${base}/customers`)) return "customers";
   if (p.includes(`${base}/library`)) return "library";
-  // 用户管理（含原团队 /team 兼容）
+  // 团队管理（含 /team 旧链接兼容）
   if (p.includes(`${base}/users`) || p.includes(`${base}/team`)) return "users";
   if (p.includes(`${base}/studio-settings`)) return "settings";
   // 首页 / 我的工作 / 草稿 / 项目详情… 都归项目 L1
@@ -32,6 +32,6 @@ export const L1_L2_TITLE: Record<FormscapeL1, string> = {
   space: "3D模型",
   customers: "客户",
   library: "生态库",
-  users: "用户管理",
+  users: "团队管理",
   settings: "设置",
 };

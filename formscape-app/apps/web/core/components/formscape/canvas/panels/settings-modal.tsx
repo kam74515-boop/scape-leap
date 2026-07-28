@@ -23,7 +23,7 @@ export function SettingsModal({ open, settings, onChange, onClose, onResetCanvas
   return (
     <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/20 p-4">
       <div
-        className="w-full max-w-md overflow-hidden rounded-lg border border-subtle bg-surface-1 shadow-xl"
+        className="w-full max-w-md overflow-hidden rounded-xl border border-subtle bg-surface-1 shadow-overlay-200"
         role="dialog"
         aria-label="画布设置"
       >

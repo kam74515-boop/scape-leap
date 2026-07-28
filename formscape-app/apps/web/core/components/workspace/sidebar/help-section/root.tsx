@@ -13,7 +13,6 @@ import { PageIcon } from "@plane/propel/icons";
 import { CustomMenu } from "@plane/ui";
 // components
 import { ProductUpdatesModal } from "@/components/global";
-import { AppSidebarItem } from "@/components/sidebar/sidebar-item";
 import { PlaneVersionNumber } from "@/components/global/version-number";
 // hooks
 import { usePowerK } from "@/hooks/store/use-power-k";
@@ -32,14 +31,18 @@ export const HelpMenuRoot = observer(function HelpMenuRoot() {
 
       <CustomMenu
         customButton={
-          <AppSidebarItem
-            variant="button"
-            item={{
-              icon: <HelpCircle className="size-5" />,
-              isActive: isNeedHelpOpen,
-              showLabel: false,
-            }}
-          />
+          <span className="group flex flex-col items-center justify-center gap-0.5 text-tertiary">
+            <span
+              className={`flex size-8 items-center justify-center rounded-md ${
+                isNeedHelpOpen
+                  ? "bg-layer-transparent-selected text-icon-primary"
+                  : "text-icon-tertiary group-hover:bg-layer-transparent-hover group-hover:text-icon-secondary"
+              }`}
+            >
+              <HelpCircle className="size-5" />
+            </span>
+            <span className="sr-only">帮助与支持</span>
+          </span>
         }
         customButtonClassName="flex items-center justify-center outline-none"
         menuButtonOnClick={() => !isNeedHelpOpen && setIsNeedHelpOpen(true)}
@@ -61,25 +64,19 @@ export const HelpMenuRoot = observer(function HelpMenuRoot() {
           </div>
         </CustomMenu.MenuItem>
         <div className="my-1 border-t border-subtle" />
-        <CustomMenu.MenuItem>
-          <button
-            type="button"
-            onClick={() => toggleShortcutsListModal(true)}
-            className="justify-sbg-layer-211 flex w-full items-center hover:bg-layer-1"
-          >
+        <CustomMenu.MenuItem onClick={() => toggleShortcutsListModal(true)}>
+          <div className="flex w-full items-center">
             <span className="text-11">{t("keyboard_shortcuts")}</span>
-          </button>
+          </div>
         </CustomMenu.MenuItem>
-        <CustomMenu.MenuItem>
-          <button
-            type="button"
-            onClick={() => setProductUpdatesModalOpen(true)}
-            className="justify-sbg-layer-211 flex w-full items-center hover:bg-layer-1"
-          >
+        <CustomMenu.MenuItem onClick={() => setProductUpdatesModalOpen(true)}>
+          <div className="flex w-full items-center">
             <span className="text-11">{t("whats_new")}</span>
-          </button>
+          </div>
         </CustomMenu.MenuItem>
-        <CustomMenu.MenuItem onClick={() => window.open("mailto:support@formscape.ai", "_blank", "noopener,noreferrer")}>
+        <CustomMenu.MenuItem
+          onClick={() => window.open("mailto:support@formscape.ai", "_blank", "noopener,noreferrer")}
+        >
           <div className="flex items-center gap-x-2 rounded-sm text-11">
             <span className="text-11">反馈建议</span>
           </div>

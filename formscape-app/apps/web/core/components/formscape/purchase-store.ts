@@ -1,10 +1,11 @@
 /**
- * 生态库 · 采购清单（Demo · localStorage）
+ * 生态库 · 采购清单（Demo · SQLite 持久化）
  * 设计师侧轻采购：加购 SKU → 绑定项目 → 状态推进 → 合计
- * 不做重履约 / 支付 / 物流
+ * 不做重履约 / 支付 / 物流；真源 = 服务端 SQLite（/api/fs/purchase_lines）
  */
 import { ECO_PRODUCTS, type EcoProduct } from "./ecology-mock";
-import { PM_PROJECTS } from "./pm-mock";
+import { getProjectById } from "./projects-store";
+import { ensureFsHydrated, readFsCache, registerFsEntity, replaceFsDocs } from "./fs-data-client";
 
 export type PurchaseStatus = "draft" | "quoted" | "ordered" | "arrived" | "cancelled";
 
@@ -25,8 +26,10 @@ export type PurchaseLine = {
   addedAt: string;
 };
 
-const STORAGE_KEY = "fs-eco-purchase-v1";
 export const PURCHASE_CHANGE_EVENT = "fs-eco-purchase-change";
+
+registerFsEntity("purchase_lines", PURCHASE_CHANGE_EVENT);
+ensureFsHydrated(["purchase_lines"]);
 
 export const PURCHASE_STATUS_META: Record<
   PurchaseStatus,
@@ -39,6 +42,22 @@ export const PURCHASE_STATUS_META: Record<
   cancelled: { label: "已取消", tone: "danger" },
 };
 
+/**
+ * 新增（v3 换装）：状态徽标软色块 tone，与 ui.tsx FsTag tone 值对齐。
+ * 供生态库采购面板 / 项目「家具采买」/ 施工报价汇总同源使用。
+ * 注意：ordered 仅演示语义（未接真实下单），UI 侧需可见标注。
+ */
+export const PURCHASE_STATUS_TAG_TONE: Record<
+  PurchaseStatus,
+  "neutral" | "brand" | "success" | "warning" | "danger"
+> = {
+  draft: "neutral",
+  quoted: "brand",
+  ordered: "warning",
+  arrived: "success",
+  cancelled: "danger",
+};
+
 export const PURCHASE_STATUS_FLOW: PurchaseStatus[] = [
   "draft",
   "quoted",
@@ -46,51 +65,7 @@ export const PURCHASE_STATUS_FLOW: PurchaseStatus[] = [
   "arrived",
 ];
 
-function emitChange() {
-  if (typeof window === "undefined") return;
-  window.dispatchEvent(new CustomEvent(PURCHASE_CHANGE_EVENT));
-}
-
-function seedLines(): PurchaseLine[] {
-  const pick = (id: string) => ECO_PRODUCTS.find((p) => p.id === id) ?? ECO_PRODUCTS[0];
-  const p1 = PM_PROJECTS[0];
-  const p2 = PM_PROJECTS[1];
-  const a = pick(ECO_PRODUCTS[0]?.id ?? "p1");
-  const b = pick(ECO_PRODUCTS[1]?.id ?? ECO_PRODUCTS[0]?.id);
-  const c = pick(ECO_PRODUCTS[2]?.id ?? ECO_PRODUCTS[0]?.id);
-  const d = pick(ECO_PRODUCTS[3]?.id ?? ECO_PRODUCTS[0]?.id);
-  const now = new Date().toISOString();
-  return [
-    lineFromProduct(a, {
-      qty: 1,
-      projectId: p1?.id ?? null,
-      projectName: p1?.name ?? null,
-      status: "quoted",
-      addedAt: now,
-    }),
-    lineFromProduct(b, {
-      qty: 2,
-      projectId: p1?.id ?? null,
-      projectName: p1?.name ?? null,
-      status: "draft",
-      addedAt: now,
-    }),
-    lineFromProduct(c, {
-      qty: 1,
-      projectId: p2?.id ?? null,
-      projectName: p2?.name ?? null,
-      status: "ordered",
-      addedAt: now,
-    }),
-    lineFromProduct(d, {
-      qty: 1,
-      projectId: null,
-      projectName: null,
-      status: "draft",
-      addedAt: now,
-    }),
-  ].filter(Boolean) as PurchaseLine[];
-}
+/* 种子已迁至服务端 fs-seed.mjs（seedPurchaseLines），本文件不再保留种子逻辑 */
 
 function lineFromProduct(
   product: EcoProduct,
@@ -114,27 +89,12 @@ function lineFromProduct(
 }
 
 function load(): PurchaseLine[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as PurchaseLine[];
-      if (Array.isArray(parsed)) return parsed;
-    }
-  } catch {
-    /* ignore */
-  }
-  const seeded = seedLines();
-  save(seeded, false);
-  return seeded;
+  return readFsCache<PurchaseLine>("purchase_lines");
 }
 
 function save(lines: PurchaseLine[], notify = true) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(lines));
-  } catch {
-    /* ignore */
-  }
-  if (notify) emitChange();
+  void notify; // 事件由 fs-data-client 统一发射
+  replaceFsDocs("purchase_lines", lines);
 }
 
 export function getPurchaseLines(): PurchaseLine[] {
@@ -169,7 +129,7 @@ export function getPurchaseTotalsForProject(projectId: string) {
 
 /** 将未归属行认领到项目 */
 export function assignLineToProject(lineId: string, projectId: string): PurchaseLine[] {
-  const name = PM_PROJECTS.find((p) => p.id === projectId)?.name ?? null;
+  const name = getProjectById(projectId)?.name ?? null;
   return updatePurchaseLine(lineId, { projectId, projectName: name });
 }
 
@@ -200,7 +160,7 @@ export function addProductToPurchase(
   const projectId = opts?.projectId ?? null;
   const projectName =
     opts?.projectName ??
-    (projectId ? (PM_PROJECTS.find((p) => p.id === projectId)?.name ?? null) : null);
+    (projectId ? (getProjectById(projectId)?.name ?? null) : null);
   const lines = load();
   const existing = lines.find(
     (l) =>
@@ -241,7 +201,7 @@ export function addComboToPurchase(
     // 直接写，避免多次 emit；最后统一 save
     const projectId = opts?.projectId ?? null;
     const projectName = projectId
-      ? (PM_PROJECTS.find((x) => x.id === projectId)?.name ?? null)
+      ? (getProjectById(projectId)?.name ?? null)
       : null;
     const existing = lines.find(
       (l) =>
@@ -280,7 +240,7 @@ export function updatePurchaseLine(
     const next = { ...l, ...patch };
     if (patch.projectId !== undefined && patch.projectName === undefined) {
       next.projectName = patch.projectId
-        ? (PM_PROJECTS.find((p) => p.id === patch.projectId)?.name ?? null)
+        ? (getProjectById(patch.projectId)?.name ?? null)
         : null;
     }
     if (typeof next.qty === "number") next.qty = Math.max(1, Math.min(99, next.qty));

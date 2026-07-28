@@ -1,15 +1,9 @@
 /**
- * Copyright (c) 2023-present Plane Software, Inc. and contributors
- * SPDX-License-Identifier: AGPL-3.0-only
- * See the LICENSE file for details.
+ * 构境AI 生产错误页 — 取代 Plane 维护模式插画（去 Plane 影子）。
+ * 视觉契约 = 设计规范 v3：线条插画（currentColor 随主题）+ 结果导向中文文案。
  */
-
-import { useTheme } from "next-themes";
 // plane imports
 import { Button } from "@plane/propel/button";
-// assets
-import maintenanceModeDarkModeImage from "@/app/assets/instance/maintenance-mode-dark.svg?url";
-import maintenanceModeLightModeImage from "@/app/assets/instance/maintenance-mode-light.svg?url";
 // layouts
 import DefaultLayout from "@/layouts/default-layout";
 
@@ -26,36 +20,36 @@ const linkMap = [
   },
 ];
 
-// Production Error Component
+/** 构境线条插画 · 盾牌警示（currentColor，随主题） */
+function FsErrorArt() {
+  return (
+    <svg viewBox="0 0 88 64" width="160" height="116" fill="none" className="text-placeholder" aria-hidden>
+      <path
+        d="M44 6l24 9v16c0 15-10 24-24 27-14-3-24-12-24-27V15l24-9z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <path d="M44 22v14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="44" cy="43" r="1.8" fill="currentColor" />
+    </svg>
+  );
+}
+
 interface ProdErrorComponentProps {
   onGoHome: () => void;
 }
 
 export function ProdErrorComponent({ onGoHome }: ProdErrorComponentProps) {
-  // hooks
-  const { resolvedTheme } = useTheme();
-
-  // derived values
-  const maintenanceModeImage = resolvedTheme === "dark" ? maintenanceModeDarkModeImage : maintenanceModeLightModeImage;
-
   return (
     <DefaultLayout>
       <div className="relative container mx-auto flex h-full w-full max-w-xl flex-col items-center justify-center gap-2 gap-y-6 bg-surface-1 px-6 text-center">
-        <div className="relative w-full">
-          <img
-            src={maintenanceModeImage}
-            height="176"
-            width="288"
-            alt="ProjectSettingImg"
-            className="h-full w-full object-fill object-center"
-          />
-        </div>
-        <div className="relative mt-4 flex w-full flex-col gap-4">
+        <FsErrorArt />
+        <div className="relative mt-2 flex w-full flex-col gap-4">
           <div className="flex flex-col gap-2.5">
-            <h1 className="text-left text-18 font-semibold text-primary">&#x1F6A7; Looks like something went wrong!</h1>
+            <h1 className="text-left text-18 font-semibold text-primary">页面出了点问题</h1>
             <span className="text-left text-14 font-medium text-secondary">
-              We track these errors automatically and working on getting things back up and running. If the problem
-              persists feel free to contact us. In the meantime, try refreshing.
+              我们已记录这次异常并在处理。先刷新试试；如果还不行，联系我们。
             </span>
           </div>
 
@@ -76,7 +70,7 @@ export function ProdErrorComponent({ onGoHome }: ProdErrorComponentProps) {
 
           <div className="flex items-center justify-start gap-6">
             <Button variant="primary" size="lg" onClick={onGoHome}>
-              Go to home
+              回到首页
             </Button>
           </div>
         </div>

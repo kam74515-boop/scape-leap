@@ -149,7 +149,7 @@ export function MaskEditOverlay({ target, onClose, onConfirm }: Props) {
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/45 p-4 backdrop-blur-[2px]">
       <div
-        className="flex w-full max-w-[560px] flex-col overflow-hidden rounded-xl border border-subtle bg-surface-1 shadow-xl"
+        className="flex w-full max-w-[560px] flex-col overflow-hidden rounded-xl border border-subtle bg-surface-1 shadow-overlay-200"
         role="dialog"
         aria-label="构境局部改图"
       >
@@ -157,7 +157,7 @@ export function MaskEditOverlay({ target, onClose, onConfirm }: Props) {
           <Paintbrush className="size-3.5 text-accent-primary" />
           <div className="min-w-0 flex-1">
             <div className="truncate text-12 font-semibold text-primary">局部改图</div>
-            <div className="truncate text-[10px] text-tertiary">
+            <div className="truncate text-10 text-tertiary">
               {target.title} · 涂选区域后生成（构境 Demo 蒙版）
             </div>
           </div>
@@ -205,7 +205,7 @@ export function MaskEditOverlay({ target, onClose, onConfirm }: Props) {
             type="button"
             onClick={() => setMode("paint")}
             className={cn(
-              "inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-medium",
+              "inline-flex items-center gap-1 rounded-md px-2 py-1 text-10 font-medium",
               mode === "paint"
                 ? "bg-accent-subtle text-accent-primary"
                 : "text-secondary hover:bg-layer-transparent-hover"
@@ -218,7 +218,7 @@ export function MaskEditOverlay({ target, onClose, onConfirm }: Props) {
             type="button"
             onClick={() => setMode("erase")}
             className={cn(
-              "inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-medium",
+              "inline-flex items-center gap-1 rounded-md px-2 py-1 text-10 font-medium",
               mode === "erase"
                 ? "bg-accent-subtle text-accent-primary"
                 : "text-secondary hover:bg-layer-transparent-hover"
@@ -227,7 +227,7 @@ export function MaskEditOverlay({ target, onClose, onConfirm }: Props) {
             <Eraser className="size-3" />
             擦除
           </button>
-          <label className="ml-1 flex items-center gap-1.5 text-[10px] text-tertiary">
+          <label className="ml-1 flex items-center gap-1.5 text-10 text-tertiary">
             粗细
             <input
               type="range"
@@ -241,7 +241,7 @@ export function MaskEditOverlay({ target, onClose, onConfirm }: Props) {
           <button
             type="button"
             onClick={clearMask}
-            className="rounded-md px-2 py-1 text-[10px] text-secondary hover:bg-layer-transparent-hover"
+            className="rounded-md px-2 py-1 text-10 text-secondary hover:bg-layer-transparent-hover"
           >
             清空
           </button>
@@ -269,13 +269,13 @@ export function MaskEditOverlay({ target, onClose, onConfirm }: Props) {
             disabled={!hasMask}
             onClick={confirm}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-11 font-medium",
+              "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-11 font-medium transition-all duration-150 ease-out",
               hasMask
-                ? "bg-accent-primary text-on-color hover:opacity-90"
+                ? "bg-ai-primary text-on-color hover:-translate-y-px hover:brightness-105"
                 : "cursor-not-allowed bg-surface-2 text-placeholder"
             )}
           >
-            <Sparkles className="size-3.5" />
+            <Sparkles className="size-3.5" strokeWidth={1.75} />
             生成选区
           </button>
         </div>

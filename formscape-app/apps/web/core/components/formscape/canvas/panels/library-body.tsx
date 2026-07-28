@@ -1,11 +1,13 @@
 /**
  * 画布 L2 库内容
+ * - 图板：项目风格图板（生态选品 / 参考 / 镜头）
  * - 图库：用户上传图 + AI 生成图（来自当前画布节点）
- * - 生态库：产品库管理（单品等，落点到画布）
+ * - 生态库：产品库（加入图板 / 落点画布）
  * - 技能库：封装的 AIGC 工作流 / 提示词
  */
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Image as ImageIcon, Package, Search, Sparkles, Upload } from "@/icons";
+import { LayoutGrid } from "lucide-react";
 import { cn } from "@plane/utils";
 import {
   ECO_PRODUCTS,
@@ -17,6 +19,7 @@ import { SKILLS_BY_ID } from "../skills/registry";
 import { listMockGallerySamples } from "../skills/mock-skill-assets";
 import {
   CANVAS_DND_MIME,
+  GEN_HISTORY_CHANGE_EVENT,
   clearGenHistory,
   encodeDndPayload,
   loadGenHistory,
@@ -26,16 +29,19 @@ import type { LibSection } from "../canvas-library-context";
 import type { FsCanvasNode } from "../use-canvas-document";
 import type { ImageGenNodeData, ImageNodeData, VideoGenNodeData } from "../types";
 import { SkillsLibraryGrid } from "./skills-library-grid";
+import { StyleBoardsPanel } from "./style-boards-panel";
+import type { StyleBoard, StylePin } from "../../style-boards-store";
 
 export type LibContentSection = Exclude<LibSection, "boards">;
 
-/** L2 顶栏：图库 · 生态库 · 技能库（画布树另挂在 boards） */
+/** L2 顶栏：图板 · 图库 · 生态库 · 技能库（画布树另挂在 boards） */
 export const LIB_CONTENT_TABS: {
   id: LibContentSection;
   label: string;
   icon: typeof ImageIcon;
   hint: string;
 }[] = [
+  { id: "styleboards", label: "图板", icon: LayoutGrid as typeof ImageIcon, hint: "项目风格图板" },
   { id: "images", label: "图库", icon: ImageIcon, hint: "上传与生成" },
   { id: "ecology", label: "生态库", icon: Package, hint: "产品库" },
   { id: "skills", label: "技能库", icon: Sparkles, hint: "AIGC 工作流" },
@@ -137,6 +143,8 @@ type Props = {
   section: LibContentSection;
   nodes?: FsCanvasNode[];
   selectedIds?: string[];
+  projectId?: string;
+  projectName?: string;
   onSelectNode?: (id: string) => void;
   onAddImage: (item: {
     title: string;
@@ -153,6 +161,19 @@ type Props = {
     colors?: string[];
     src?: string;
   }) => void;
+  onAddProductToStyleBoard?: (item: {
+    title: string;
+    tags: string[];
+    brand?: string;
+    price?: number;
+    colors?: string[];
+    src?: string;
+    productId?: string;
+    material?: string;
+    asMaterial?: boolean;
+  }) => void;
+  onPlaceStylePin?: (pin: StylePin) => void;
+  onPlaceStyleBoard?: (board: StyleBoard) => void;
   onPickSkill: (skill: CanvasSkillDef) => void;
   onUpload?: () => void;
   onAddImageGen?: (model?: string) => void;
@@ -163,9 +184,14 @@ export function LibraryBody({
   section,
   nodes = [],
   selectedIds = [],
+  projectId,
+  projectName,
   onSelectNode,
   onAddImage,
   onAddProduct,
+  onAddProductToStyleBoard,
+  onPlaceStylePin,
+  onPlaceStyleBoard,
   onPickSkill,
   onUpload,
   onAddImageGen,
@@ -177,6 +203,13 @@ export function LibraryBody({
   useEffect(() => {
     if (galleryFilter === "history") setHistoryTick((t) => t + 1);
   }, [galleryFilter]);
+
+  // 生成落图 / 样例导入 / 清空 → 图库「历史」即时刷新
+  useEffect(() => {
+    const onChange = () => setHistoryTick((t) => t + 1);
+    window.addEventListener(GEN_HISTORY_CHANGE_EVENT, onChange);
+    return () => window.removeEventListener(GEN_HISTORY_CHANGE_EVENT, onChange);
+  }, []);
 
   const history = useMemo(() => {
     void historyTick;
@@ -237,7 +270,27 @@ export function LibraryBody({
       ? "搜索上传 / 生成图…"
       : section === "ecology"
         ? "搜索产品 / 品牌 / 品类…"
-        : "搜索技能 / 工作流…";
+        : section === "styleboards"
+          ? "搜索图板…"
+          : "搜索技能 / 工作流…";
+
+  if (section === "styleboards") {
+    if (!projectId) {
+      return (
+        <div className="py-10 text-center text-11 text-tertiary">
+          请先打开项目子画布，以绑定项目图板
+        </div>
+      );
+    }
+    return (
+      <StyleBoardsPanel
+        projectId={projectId}
+        projectName={projectName}
+        onPlacePin={(pin) => onPlaceStylePin?.(pin)}
+        onPlaceBoard={(board) => onPlaceStyleBoard?.(board)}
+      />
+    );
+  }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -247,9 +300,9 @@ export function LibraryBody({
           {section === "ecology" && "生态库"}
           {section === "skills" && "技能库"}
         </div>
-        <div className="text-[10px] text-tertiary">
+        <div className="text-10 text-tertiary">
           {section === "images" && "用户上传与 AI 生成的图像"}
-          {section === "ecology" && "产品库管理 · 点击落点到画布"}
+          {section === "ecology" && "加入项目图板 · 或落到工作画布"}
           {section === "skills" && "AIGC 工作流 / 提示词 · 双列卡片"}
         </div>
       </div>
@@ -280,7 +333,7 @@ export function LibraryBody({
               type="button"
               onClick={() => setGalleryFilter(id)}
               className={cn(
-                "rounded-md px-2 py-0.5 text-[10px] font-medium transition-colors",
+                "rounded-full px-2 py-0.5 text-10 font-medium transition-colors duration-150 ease-out",
                 galleryFilter === id
                   ? "bg-accent-subtle text-accent-primary"
                   : "bg-surface-2 text-tertiary hover:text-secondary"
@@ -293,7 +346,7 @@ export function LibraryBody({
             <button
               type="button"
               onClick={onUpload}
-              className="ml-auto inline-flex items-center gap-0.5 rounded-md px-2 py-0.5 text-[10px] font-medium text-secondary hover:bg-layer-transparent-hover"
+              className="ml-auto inline-flex items-center gap-0.5 rounded-md px-2 py-0.5 text-10 font-medium text-secondary hover:bg-layer-transparent-hover"
               title="上传图像 ⌘⇧K"
             >
               <Upload className="size-3" />
@@ -304,7 +357,7 @@ export function LibraryBody({
             <button
               type="button"
               onClick={() => onAddImageGen()}
-              className="inline-flex items-center gap-0.5 rounded-md px-2 py-0.5 text-[10px] font-medium text-secondary hover:bg-layer-transparent-hover"
+              className="inline-flex items-center gap-0.5 rounded-md px-2 py-0.5 text-10 font-medium text-secondary hover:bg-layer-transparent-hover"
               title="放置图片生成器 A"
             >
               生成
@@ -362,11 +415,11 @@ export function LibraryBody({
             ) : galleryFilter === "history" ? (
               <>
                 <div className="mb-1.5 flex items-center justify-between px-0.5">
-                  <span className="text-[9px] text-placeholder">{history.length} 条</span>
+                  <span className="text-10 text-placeholder">{history.length} 条</span>
                   {history.length > 0 && (
                     <button
                       type="button"
-                      className="text-[9px] text-tertiary hover:text-danger-primary"
+                      className="text-10 text-tertiary hover:text-danger-primary"
                       onClick={() => {
                         clearGenHistory();
                         setHistoryTick((t) => t + 1);
@@ -411,7 +464,7 @@ export function LibraryBody({
                 {history.length === 0 && (
                   <Empty>
                     暂无生成历史
-                    <div className="mt-1 text-[10px] text-placeholder">
+                    <div className="mt-1 text-10 text-placeholder">
                       一键落图 / 样例导入后会出现在这里
                     </div>
                   </Empty>
@@ -454,12 +507,12 @@ export function LibraryBody({
                 {gallery.length === 0 && (
                   <Empty>
                     暂无图像
-                    <div className="mt-1 text-[10px] text-placeholder">
+                    <div className="mt-1 text-10 text-placeholder">
                       上传 / 生成后会出现在此；也可切到「样例」先体验
                     </div>
                     <button
                       type="button"
-                      className="mt-2 text-[10px] font-medium text-accent-primary hover:underline"
+                      className="mt-2 text-10 font-medium text-accent-primary hover:underline"
                       onClick={() => setGalleryFilter("sample")}
                     >
                       查看 14 技能样例图
@@ -478,7 +531,7 @@ export function LibraryBody({
                 <EcoProductRow
                   key={p.id}
                   product={p}
-                  onAdd={() =>
+                  onPlaceCanvas={() =>
                     onAddProduct?.({
                       title: p.name,
                       tags: [p.category, p.style].filter(Boolean),
@@ -486,6 +539,21 @@ export function LibraryBody({
                       price: p.price,
                       colors: p.colors,
                       src: p.image,
+                    })
+                  }
+                  onAddToBoard={() =>
+                    onAddProductToStyleBoard?.({
+                      title: p.name,
+                      tags: [p.category, p.style, p.material].filter(Boolean),
+                      brand: p.brand,
+                      price: p.price,
+                      colors: p.colors,
+                      src: p.image,
+                      productId: p.id,
+                      material: p.material,
+                      asMaterial: /材质|板|砖|木|石|漆|布|面料/i.test(
+                        `${p.category} ${p.material}`
+                      ),
                     })
                   }
                 />
@@ -503,41 +571,65 @@ export function LibraryBody({
   );
 }
 
-function EcoProductRow({ product, onAdd }: { product: EcoProduct; onAdd: () => void }) {
+function EcoProductRow({
+  product,
+  onPlaceCanvas,
+  onAddToBoard,
+}: {
+  product: EcoProduct;
+  onPlaceCanvas: () => void;
+  onAddToBoard: () => void;
+}) {
   const [imgFailed, setImgFailed] = useState(false);
   return (
-    <button
-      type="button"
-      onClick={onAdd}
-      className="flex w-full gap-2 rounded-md border border-subtle px-2 py-2 text-left hover:border-accent-primary hover:bg-layer-transparent-hover"
-    >
-      {product.image && !imgFailed ? (
-        <img
-          src={product.image}
-          alt=""
-          className="size-10 shrink-0 rounded-md object-cover"
-          loading="lazy"
-          onError={() => setImgFailed(true)}
-        />
-      ) : (
-        <div
-          className="size-10 shrink-0 rounded-md"
-          style={{ background: ecoFallbackGradient(product.id) }}
-        />
-      )}
+    <div className="flex gap-2 rounded-md border border-subtle px-2 py-2 hover:border-accent-primary/50">
+      <button type="button" onClick={onPlaceCanvas} className="shrink-0" title="落到画布">
+        {product.image && !imgFailed ? (
+          <img
+            src={product.image}
+            alt=""
+            className="size-10 rounded-md object-cover"
+            loading="lazy"
+            onError={() => setImgFailed(true)}
+          />
+        ) : (
+          <div
+            className="size-10 rounded-md"
+            style={{ background: ecoFallbackGradient(product.id) }}
+          />
+        )}
+      </button>
       <div className="min-w-0 flex-1">
-        <div className="truncate text-11 font-medium text-primary">{product.name}</div>
-        <div className="truncate text-[10px] text-tertiary">
-          {product.brand}
-          {product.category ? ` · ${product.category}` : ""}
-        </div>
+        <button type="button" onClick={onPlaceCanvas} className="w-full text-left">
+          <div className="truncate text-11 font-medium text-primary">{product.name}</div>
+          <div className="truncate text-10 text-tertiary">
+            {product.brand}
+            {product.category ? ` · ${product.category}` : ""}
+          </div>
+        </button>
         {typeof product.price === "number" && (
-          <div className="text-[10px] font-medium text-accent-primary">
+          <div className="text-10 font-medium text-accent-primary">
             ¥{product.price.toLocaleString()}
           </div>
         )}
+        <div className="mt-1 flex gap-1">
+          <button
+            type="button"
+            onClick={onAddToBoard}
+            className="rounded px-1.5 py-0.5 text-10 font-medium text-accent-primary hover:bg-accent-subtle"
+          >
+            加入图板
+          </button>
+          <button
+            type="button"
+            onClick={onPlaceCanvas}
+            className="rounded px-1.5 py-0.5 text-10 text-tertiary hover:bg-layer-transparent-hover hover:text-secondary"
+          >
+            落画布
+          </button>
+        </div>
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -593,8 +685,8 @@ function LibThumb({
         />
       )}
       <div className="px-1.5 py-1">
-        <div className="truncate text-[10px] font-medium text-primary">{title}</div>
-        <div className="text-[9px] text-tertiary">{subtitle}</div>
+        <div className="truncate text-10 font-medium text-primary">{title}</div>
+        <div className="text-10 text-tertiary">{subtitle}</div>
       </div>
     </button>
   );

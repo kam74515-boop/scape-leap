@@ -10,6 +10,7 @@ node_modules
 
 # Testing
 /coverage
+/.playwright-cli/
 
 # Next.js
 /.next/
@@ -109,7 +110,7 @@ build/
 build/
 .react-router/
 temp/
-scripts/
+/scripts/*.bak
 !packages/i18n/scripts/
 
 # i18n auto-generated types (regenerated on every build)
@@ -117,3 +118,7 @@ packages/i18n/src/types/keys.generated.ts
 
 # Local security notes (not for version control)
 /security/
+
+# 构境 SQLite 业务库
+/data/*.db
+/data/*.db-*

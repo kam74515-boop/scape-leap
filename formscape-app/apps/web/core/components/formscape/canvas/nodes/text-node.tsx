@@ -3,6 +3,7 @@ import { type Node, type NodeProps, NodeResizer } from "@xyflow/react";
 import { cn } from "@plane/utils";
 import { useCanvasNodeActions } from "../canvas-node-actions";
 import type { TextNodeData } from "../types";
+import { RESIZER_HANDLE, RESIZER_LINE, SELECTED_RING_SOFT } from "./selection-chrome";
 
 type TextNodeType = Node<TextNodeData, "text">;
 
@@ -20,8 +21,7 @@ function TextNodeComponent({ id, data, selected }: NodeProps<TextNodeType>) {
     <div
       className={cn(
         "relative min-h-[32px] min-w-[80px] rounded-md px-2 py-1",
-        selected &&
-          "shadow-[0_0_0_2px_color-mix(in_srgb,var(--bg-accent-primary)_28%,transparent)]"
+        selected && SELECTED_RING_SOFT
       )}
       onDoubleClick={(e) => {
         e.stopPropagation();
@@ -33,8 +33,8 @@ function TextNodeComponent({ id, data, selected }: NodeProps<TextNodeType>) {
         isVisible={selected}
         minWidth={60}
         minHeight={28}
-        lineClassName="!border-accent-primary"
-        handleClassName="!h-2 !w-2 !rounded-sm !border-accent-primary !bg-surface-1"
+        lineClassName={RESIZER_LINE}
+        handleClassName={RESIZER_HANDLE}
       />
       {editing ? (
         <textarea

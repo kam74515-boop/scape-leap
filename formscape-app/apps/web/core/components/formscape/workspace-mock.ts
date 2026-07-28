@@ -4,12 +4,18 @@ export type Customer = {
   id: string;
   name: string;
   phone: string;
+  /** 微信号（Demo） */
+  wechat?: string;
+  /** 客户来源（朋友介绍 / 小红书 …） */
+  source?: string;
   city: string;
   stage: "线索" | "量房" | "方案" | "施工" | "已交付";
   projectName: string;
   projectId: string;
   budgetWan: number;
   updatedAt: string;
+  /** 初始备注（迁入客户库时间线的第一条） */
+  note?: string;
 };
 
 export type LibraryItem = {
@@ -35,34 +41,71 @@ export const CUSTOMERS: Customer[] = [
     id: "c1",
     name: "陈女士",
     phone: "138****6620",
+    wechat: "chen_home2026",
+    source: "小红书",
     city: "杭州",
     stage: "方案",
     projectName: "滨江壹号 · 新婚两居",
     projectId: "proj-demo-1",
     budgetWan: 45,
     updatedAt: "2026-07-20",
+    note: "婚房刚需，偏好奶油风，10 月前入住",
   },
   {
     id: "c2",
     name: "王先生",
     phone: "139****1108",
+    wechat: "wang_sh_1972",
+    source: "朋友介绍",
     city: "上海",
     stage: "量房",
     projectName: "徐汇老宅改造",
-    projectId: "proj-demo-1",
+    projectId: "proj-demo-2",
     budgetWan: 80,
     updatedAt: "2026-07-18",
+    note: "老洋房结构复杂，先做结构评估再谈方案",
   },
   {
     id: "c3",
     name: "李女士",
     phone: "136****8899",
+    wechat: "lily_sz",
+    source: "线下活动",
     city: "苏州",
     stage: "线索",
     projectName: "园区湖景平层",
-    projectId: "proj-demo-1",
+    projectId: "proj-demo-3",
     budgetWan: 60,
     updatedAt: "2026-07-15",
+    note: "看过案例包，预算区间待确认",
+  },
+  {
+    id: "c4",
+    name: "赵先生",
+    phone: "137****3355",
+    wechat: "zhao_hz",
+    source: "老客户转介绍",
+    city: "杭州",
+    stage: "施工",
+    projectName: "滨江壹号 · 新婚两居",
+    projectId: "proj-demo-1",
+    budgetWan: 52,
+    updatedAt: "2026-07-12",
+    note: "工地在同小区，可与陈女士项目共用监理",
+  },
+  {
+    id: "c5",
+    name: "孙女士",
+    phone: "135****7702",
+    wechat: "sun_design_fan",
+    source: "小红书",
+    city: "上海",
+    stage: "已交付",
+    projectName: "徐汇老宅改造",
+    projectId: "proj-demo-2",
+    budgetWan: 96,
+    updatedAt: "2026-06-30",
+    note: "已交付 · 等回访拍摄实景案例",
   },
 ];
 

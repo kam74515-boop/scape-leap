@@ -29,7 +29,7 @@ export const L1Icons = {
   library: BookOpen,
   ecology: BookOpen,
   team: Users,
-  /** 用户管理（含团队成员 / 席位） */
+  /** 团队管理（成员 / 席位） */
   users: Users,
   settings: Settings,
   /** 预留：施工落地 L1 */

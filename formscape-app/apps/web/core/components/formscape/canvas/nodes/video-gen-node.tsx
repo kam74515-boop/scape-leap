@@ -5,6 +5,7 @@ import { memo, useEffect, useState } from "react";
 import { type Node, type NodeProps, NodeResizer } from "@xyflow/react";
 import { Film, Loader2, Plus, Sparkles, Square, Video, X } from "@/icons";
 import { cn } from "@plane/utils";
+import { FsProgress } from "../../ui";
 import { useCanvasNodeActions } from "../canvas-node-actions";
 import type { VideoGenNodeData } from "../types";
 import {
@@ -16,6 +17,7 @@ import {
   type VideoModeId,
 } from "../models/catalog";
 import { newId } from "../use-canvas-document";
+import { RESIZER_HANDLE, RESIZER_LINE, SELECTED_RING } from "./selection-chrome";
 
 type VideoGenNodeType = Node<VideoGenNodeData, "videogen">;
 
@@ -32,10 +34,6 @@ const CAMERA_MOVES = [
   { id: "pan", label: "横移" },
   { id: "crane", label: "升降" },
 ];
-
-const RESIZER_LINE = "!border-0 !opacity-0";
-const RESIZER_HANDLE =
-  "!h-1.5 !w-1.5 !rounded-full !border !border-accent-primary !bg-surface-1 !shadow-sm";
 
 function VideoGenNodeComponent({ id, data: raw, selected }: NodeProps<VideoGenNodeType>) {
   const data: VideoGenNodeData = {
@@ -102,10 +100,10 @@ function VideoGenNodeComponent({ id, data: raw, selected }: NodeProps<VideoGenNo
 
   return (
     <div className="relative" style={{ width: size.width }}>
-      <div className="pointer-events-none absolute -top-5 left-1 right-1 flex items-center gap-1 text-[10px] font-medium text-tertiary">
+      <div className="pointer-events-none absolute -top-5 left-1 right-1 flex items-center gap-1 text-10 font-medium text-tertiary">
         <Video className="size-2.5 shrink-0" strokeWidth={2} />
         <span className="truncate">视频生成器</span>
-        <span className="ml-auto text-[9px] text-placeholder">
+        <span className="ml-auto text-10 text-placeholder">
           {data.duration}s · {model?.credits ?? 20} CU
         </span>
       </div>
@@ -122,12 +120,11 @@ function VideoGenNodeComponent({ id, data: raw, selected }: NodeProps<VideoGenNo
       <div
         className={cn(
           "relative flex w-full items-center justify-center overflow-hidden rounded-xl border bg-surface-1 transition-[box-shadow,border-color]",
-          selected
-            ? "border-accent-primary/40 shadow-[0_0_0_2px_var(--bg-accent-primary)]"
-            : "border-subtle",
+          selected ? SELECTED_RING : "border-subtle",
+          // 生成中：AI 紫描边（选中环保持 brand）
           isRunning &&
             !selected &&
-            "border-accent-primary/50 shadow-[0_0_0_2px_color-mix(in_srgb,var(--bg-accent-primary)_25%,transparent)]"
+            "border-ai-strong shadow-[0_0_0_2px_color-mix(in_srgb,var(--ai-default)_25%,transparent)]"
         )}
         style={{ height: size.height }}
       >
@@ -137,19 +134,22 @@ function VideoGenNodeComponent({ id, data: raw, selected }: NodeProps<VideoGenNo
             style={{ background: `linear-gradient(145deg, ${data.resultColors.join(",")})` }}
           >
             <Film className="size-8 text-white/80" />
-            <span className="px-2 text-center text-[10px] font-medium text-white">
+            <span className="px-2 text-center text-10 font-medium text-white">
               {data.resultTitle || `${data.duration}s`}
             </span>
           </div>
         ) : isRunning ? (
           <div className="flex flex-col items-center gap-2 px-4 text-center">
-            <Loader2 className="size-7 animate-spin text-accent-primary" />
-            <span className="text-11 text-tertiary">
+            <Loader2 className="size-7 animate-spin text-ai-primary" />
+            <span className="text-11 tabular-nums text-tertiary">
               {data.status === "queued" ? "排队中…" : `生成中 ${data.progress ?? 0}%`}
             </span>
+            <div className="w-28">
+              <FsProgress value={data.progress ?? 8} />
+            </div>
             <button
               type="button"
-              className="nodrag inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] text-tertiary hover:bg-layer-transparent-hover"
+              className="nodrag inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-10 text-tertiary hover:bg-layer-transparent-hover"
               onClick={(e) => {
                 e.stopPropagation();
                 cancelGenerate();
@@ -185,7 +185,7 @@ function VideoGenNodeComponent({ id, data: raw, selected }: NodeProps<VideoGenNo
                     })
                   }
                   className={cn(
-                    "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium",
+                    "shrink-0 rounded px-1.5 py-0.5 text-10 font-medium",
                     (data.videoMode || "text") === m.id
                       ? "bg-accent-subtle text-accent-primary"
                       : "text-tertiary hover:text-secondary"
@@ -245,7 +245,7 @@ function VideoGenNodeComponent({ id, data: raw, selected }: NodeProps<VideoGenNo
                 value={data.model}
                 disabled={isRunning}
                 onChange={(e) => patch({ model: e.target.value })}
-                className="h-6 max-w-[6.5rem] border-0 bg-transparent px-1 text-[10px] text-secondary outline-none"
+                className="h-6 max-w-[6.5rem] border-0 bg-transparent px-1 text-10 text-secondary outline-none"
               >
                 {VIDEO_MODELS.map((m) => (
                   <option key={m.id} value={m.id}>
@@ -253,12 +253,12 @@ function VideoGenNodeComponent({ id, data: raw, selected }: NodeProps<VideoGenNo
                   </option>
                 ))}
               </select>
-              <span className="text-[10px] text-placeholder">·</span>
+              <span className="text-10 text-placeholder">·</span>
               <select
                 value={data.aspect || "16:9"}
                 disabled={isRunning}
                 onChange={(e) => patch({ aspect: e.target.value })}
-                className="h-6 border-0 bg-transparent px-0.5 text-[10px] text-secondary outline-none"
+                className="h-6 border-0 bg-transparent px-0.5 text-10 text-secondary outline-none"
               >
                 {ASPECT_RATIOS.map((a) => (
                   <option key={a.id} value={a.id}>
@@ -266,12 +266,12 @@ function VideoGenNodeComponent({ id, data: raw, selected }: NodeProps<VideoGenNo
                   </option>
                 ))}
               </select>
-              <span className="text-[10px] text-placeholder">·</span>
+              <span className="text-10 text-placeholder">·</span>
               <select
                 value={String(data.duration || 6)}
                 disabled={isRunning}
                 onChange={(e) => patch({ duration: Number(e.target.value) })}
-                className="h-6 border-0 bg-transparent px-0.5 text-[10px] text-secondary outline-none"
+                className="h-6 border-0 bg-transparent px-0.5 text-10 text-secondary outline-none"
               >
                 {durations.map((d) => (
                   <option key={d} value={d}>
@@ -279,12 +279,12 @@ function VideoGenNodeComponent({ id, data: raw, selected }: NodeProps<VideoGenNo
                   </option>
                 ))}
               </select>
-              <span className="text-[10px] text-placeholder">·</span>
+              <span className="text-10 text-placeholder">·</span>
               <select
                 value={data.cameraMove || "push-in"}
                 disabled={isRunning}
                 onChange={(e) => patch({ cameraMove: e.target.value })}
-                className="h-6 border-0 bg-transparent px-0.5 text-[10px] text-secondary outline-none"
+                className="h-6 border-0 bg-transparent px-0.5 text-10 text-secondary outline-none"
               >
                 {CAMERA_MOVES.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -302,7 +302,7 @@ function VideoGenNodeComponent({ id, data: raw, selected }: NodeProps<VideoGenNo
                         new CustomEvent("fs-canvas-promote", { detail: { id, media: "video" } })
                       )
                     }
-                    className="h-6 rounded-md px-1.5 text-[10px] text-secondary hover:bg-layer-transparent-hover"
+                    className="h-6 rounded-md px-1.5 text-10 text-secondary hover:bg-layer-transparent-hover"
                   >
                     封面落图
                   </button>
@@ -311,7 +311,7 @@ function VideoGenNodeComponent({ id, data: raw, selected }: NodeProps<VideoGenNo
                   <button
                     type="button"
                     onClick={cancelGenerate}
-                    className="inline-flex h-6 items-center gap-1 rounded-md px-2 text-[10px] text-secondary"
+                    className="inline-flex h-6 items-center gap-1 rounded-md px-2 text-10 text-secondary"
                   >
                     <Square className="size-2.5 fill-current" />
                     取消
@@ -322,13 +322,13 @@ function VideoGenNodeComponent({ id, data: raw, selected }: NodeProps<VideoGenNo
                     disabled={!draft.trim()}
                     onClick={runGenerate}
                     className={cn(
-                      "inline-flex h-6 items-center gap-1 rounded-md px-2 text-[10px] font-medium",
+                      "inline-flex h-6 items-center gap-1 rounded-full px-2.5 text-10 font-medium transition-colors duration-150 ease-out",
                       !draft.trim()
                         ? "cursor-not-allowed text-placeholder"
-                        : "bg-accent-primary text-on-color hover:opacity-90"
+                        : "bg-ai-primary text-on-color hover:bg-ai-primary-hover"
                     )}
                   >
-                    <Sparkles className="size-3" />
+                    <Sparkles className="size-3" strokeWidth={1.75} />
                     {isDone ? "再生成" : "生成"}
                   </button>
                 )}
