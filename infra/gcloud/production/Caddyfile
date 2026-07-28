@@ -1,0 +1,27 @@
+www.museart.cloud {
+	redir https://museart.cloud{uri} permanent
+}
+
+museart.cloud {
+	encode zstd gzip
+
+	basicauth {
+		{$SCAPELEAP_BASIC_AUTH_USER} {$SCAPELEAP_BASIC_AUTH_HASH}
+	}
+
+	@backend path /api/* /auth/*
+	reverse_proxy @backend 127.0.0.1:8000
+
+	root * /srv/scapeleap/current
+	try_files {path} {path}/ /index.html
+	file_server
+
+	@immutable path /assets/*
+	header @immutable Cache-Control "public, max-age=31536000, immutable"
+
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+}

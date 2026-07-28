@@ -1,0 +1,11 @@
+[Unit]
+Description=Poll GitHub for ScapeLeap production updates
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=2min
+Persistent=true
+Unit=scapeleap-deploy.service
+
+[Install]
+WantedBy=timers.target

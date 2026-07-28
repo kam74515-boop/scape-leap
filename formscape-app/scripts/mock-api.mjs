@@ -7,6 +7,8 @@ import { handleFsRequest } from "./fs-routes.mjs";
 import { handlePortalRequest } from "./portal-routes.mjs";
 
 const PORT = Number(process.env.PLANE_MOCK_API_PORT || 8000);
+const HOST = process.env.PLANE_MOCK_API_HOST || "0.0.0.0";
+const PUBLIC_URL = (process.env.SCAPELEAP_PUBLIC_URL || "http://127.0.0.1:3000").replace(/\/+$/, "");
 
 const USER = {
   id: "user-local-1",
@@ -40,7 +42,7 @@ const WORKSPACE = {
   id: "ws-demo",
   name: "构境工作室",
   slug: "formscape",
-  url: "http://127.0.0.1:3000/formscape",
+  url: `${PUBLIC_URL}/formscape`,
   logo_url: null,
   total_members: 1,
   total_issues: 0,
@@ -140,9 +142,9 @@ const CONFIG = {
   has_llm_configured: false,
   file_size_limit: 5242880,
   is_smtp_configured: false,
-  app_base_url: "http://127.0.0.1:3000",
-  space_base_url: "http://127.0.0.1:3002",
-  admin_base_url: "http://127.0.0.1:3001",
+  app_base_url: PUBLIC_URL,
+  space_base_url: `${PUBLIC_URL}/spaces`,
+  admin_base_url: `${PUBLIC_URL}/god-mode`,
   is_self_managed: true,
 };
 
@@ -595,6 +597,6 @@ const server = http.createServer((req, res) => {
   return send(req, res, 200, []);
 });
 
-server.listen(PORT, "0.0.0.0", () => {
-  console.log(`Mock API (local session) http://127.0.0.1:${PORT}`);
+server.listen(PORT, HOST, () => {
+  console.log(`Mock API (local session) http://${HOST}:${PORT}`);
 });

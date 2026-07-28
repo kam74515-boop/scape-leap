@@ -1,0 +1,10 @@
+[Unit]
+Description=Build and atomically deploy ScapeLeap from GitHub
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/scapeleap/production.env
+ExecStart=/usr/local/sbin/scapeleap-deploy-wrapper
+TimeoutStartSec=45min
