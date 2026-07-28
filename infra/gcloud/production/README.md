@@ -8,6 +8,9 @@ new revision is installed only after locked dependency installation, tests,
 type checks, and the production build all pass. The final static release is
 switched atomically.
 
+Rerun the installer after changing Caddy or systemd files so the versioned
+infrastructure configuration is copied into `/etc` and revalidated.
+
 ## Install on the GCE instance
 
 ```bash

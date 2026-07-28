@@ -3,6 +3,7 @@ set -Eeuo pipefail
 
 : "${SCAPELEAP_DEPLOY_BRANCH:?SCAPELEAP_DEPLOY_BRANCH is required}"
 : "${SCAPELEAP_REPO_URL:?SCAPELEAP_REPO_URL is required}"
+: "${SCAPELEAP_PUBLIC_URL:?SCAPELEAP_PUBLIC_URL is required}"
 
 readonly root_dir="${SCAPELEAP_ROOT:-/srv/scapeleap}"
 readonly source_dir="${root_dir}/source"
@@ -29,6 +30,8 @@ if [[ -f "${revision_file}" ]] &&
 fi
 
 cd "${source_dir}/formscape-app"
+export VITE_API_BASE_URL=""
+export VITE_WEB_BASE_URL="${SCAPELEAP_PUBLIC_URL}"
 pnpm install --frozen-lockfile
 pnpm exec turbo run build --filter="web^..."
 pnpm --filter=web test

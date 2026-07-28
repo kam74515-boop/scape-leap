@@ -4,6 +4,7 @@ set -Eeuo pipefail
 : "${SCAPELEAP_DEPLOY_USER:?SCAPELEAP_DEPLOY_USER is required}"
 : "${SCAPELEAP_DEPLOY_BRANCH:?SCAPELEAP_DEPLOY_BRANCH is required}"
 : "${SCAPELEAP_REPO_URL:?SCAPELEAP_REPO_URL is required}"
+: "${SCAPELEAP_PUBLIC_URL:?SCAPELEAP_PUBLIC_URL is required}"
 
 readonly root_dir="${SCAPELEAP_ROOT:-/srv/scapeleap}"
 readonly revision_file="${root_dir}/deployed-revision"
@@ -18,6 +19,7 @@ runuser -u "${SCAPELEAP_DEPLOY_USER}" -- \
   SCAPELEAP_DEPLOY_BRANCH="${SCAPELEAP_DEPLOY_BRANCH}" \
   SCAPELEAP_REPO_URL="${SCAPELEAP_REPO_URL}" \
   SCAPELEAP_ROOT="${root_dir}" \
+  SCAPELEAP_PUBLIC_URL="${SCAPELEAP_PUBLIC_URL}" \
   /usr/local/bin/scapeleap-deploy
 
 after_revision="$(tr -d '\n' <"${revision_file}" 2>/dev/null || true)"
