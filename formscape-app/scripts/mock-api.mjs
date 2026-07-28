@@ -1,8 +1,20 @@
 /**
- * 无 Docker Mock API — 本地已登录用户 + 工作区 formscape。
- * 监听 :8000；Vite 将 /api /auth 代理到此
+ * 构境 API — 生产 PostgreSQL 认证/数据层，本地 SQLite 回退。
+ * 监听 :8000；Vite 或 Caddy 将 /api /auth 代理到此。
  */
 import http from "node:http";
+import { handleAdminRequest } from "./admin-routes.mjs";
+import {
+  authenticateRequest,
+  handleAuthRequest,
+  initializeAuth,
+  isAdmin,
+  publicUser,
+  requireAdmin,
+  requireUser,
+  workspaceRole,
+} from "./auth.mjs";
+import { getDataStore } from "./data-store.mjs";
 import { handleFsRequest } from "./fs-routes.mjs";
 import { handlePortalRequest } from "./portal-routes.mjs";
 
@@ -277,7 +289,63 @@ const MEMBER_LIST = [
 
 const SIDEBAR_PREFERENCES = {};
 
-const USER_PROPERTIES = {};
+const dataStore = await getDataStore();
+await initializeAuth(dataStore);
+
+function requestUser(req) {
+  return req.authUser ? publicUser(req.authUser) : null;
+}
+
+function requestWorkspace(req) {
+  const user = requestUser(req) || USER;
+  return {
+    ...WORKSPACE,
+    role: workspaceRole(req.authUser) || WORKSPACE.role,
+    owner: user,
+    created_by: user.id,
+    updated_by: user.id,
+  };
+}
+
+function requestProfile(req) {
+  const user = requestUser(req) || USER;
+  return { ...PROFILE, user: user.id, role: req.authUser?.role || PROFILE.role };
+}
+
+function requestSettings(req) {
+  const user = requestUser(req) || USER;
+  return { ...SETTINGS, email: user.email };
+}
+
+function requestProject(req, project = PROJECT) {
+  const user = requestUser(req) || USER;
+  return {
+    ...project,
+    workspace_detail: requestWorkspace(req),
+    project_lead: user.id,
+    member_role: workspaceRole(req.authUser) || project.member_role,
+  };
+}
+
+async function workspaceMemberList() {
+  if (dataStore.driver !== "postgresql") return MEMBER_LIST;
+  const { rows } = await dataStore.pool.query("SELECT * FROM users WHERE is_active = TRUE ORDER BY created_at");
+  return rows.map((row) => {
+    const user = publicUser(row);
+    return {
+      id: `member-${row.id}`,
+      member: user,
+      role: workspaceRole(row),
+      avatar_url: user.avatar_url,
+      email: user.email,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      display_name: user.display_name,
+      is_active: row.is_active,
+      joining_date: new Date(row.created_at).toISOString(),
+    };
+  });
+}
 
 /** CORS: echo request Origin (never *) so credentials work */
 function corsHeaders(req) {
@@ -341,262 +409,320 @@ function isObjectListPath(path) {
   );
 }
 
-const server = http.createServer((req, res) => {
-  const u = new URL(req.url || "/", `http://127.0.0.1:${PORT}`);
-  const path = normalizePath(u.pathname);
-  const method = (req.method || "GET").toUpperCase();
-  console.log(method, path);
+const server = http.createServer(async (req, res) => {
+  try {
+    const u = new URL(req.url || "/", `http://127.0.0.1:${PORT}`);
+    const path = normalizePath(u.pathname);
+    const method = (req.method || "GET").toUpperCase();
+    console.log(method, path);
 
-  if (method === "OPTIONS") {
-    res.writeHead(204, corsHeaders(req));
-    return res.end();
-  }
-
-  if (path.startsWith("/api/portal-shares/") || path.startsWith("/api/public/portal/")) {
-    return void handlePortalRequest(req, res, path, method);
-  }
-
-  // 构境业务数据：SQLite 持久化（真实读写，不再是 accept-all 假写）
-  if (path.startsWith("/api/fs/")) {
-    return void handleFsRequest(req, res, path, method);
-  }
-
-  // Mutations: accept-all
-  if (method === "POST" || method === "PATCH" || method === "PUT" || method === "DELETE") {
-    // keep a few auth-ish POST shapes that might be read as login responses
-    if (path.startsWith("/auth") || path.includes("sign-in") || path.includes("sign-up") || path.includes("signout")) {
-      return send(req, res, 200, { success: true, mock: true, user: USER });
+    if (method === "OPTIONS") {
+      res.writeHead(204, corsHeaders(req));
+      return res.end();
     }
-    return send(req, res, 200, { success: true });
-  }
 
-  // --- GET routes (specific → general) ---
+    await authenticateRequest(dataStore, req);
 
-  if (path === "/" || path === "/api") {
-    return send(req, res, 200, { ok: true, mock: true, auth: "local-session" });
-  }
+    if (path.startsWith("/auth")) {
+      await handleAuthRequest(dataStore, req, res, path, method);
+      return;
+    }
 
-  // instance
-  if (path === "/api/instances") {
-    return send(req, res, 200, { instance: INSTANCE, config: CONFIG });
-  }
-  if (path === "/api/instances/admins") return send(req, res, 200, []);
-  if (path === "/api/instances/configurations") return send(req, res, 200, []);
-  if (path === "/api/instances/changelog") return send(req, res, 200, {});
+    if (path.startsWith("/api/public/portal/")) {
+      return void handlePortalRequest(req, res, path, method);
+    }
 
-  // auth csrf
-  if (path === "/auth/get-csrf-token") {
-    return send(req, res, 200, { csrf_token: "mock" });
-  }
+    if (path === "/" || path === "/api") {
+      return send(req, res, 200, {
+        ok: true,
+        driver: dataStore.driver,
+        auth: req.authUser ? "authenticated-session" : "required",
+      });
+    }
 
-  // current user — exact + nested (order matters)
-  if (path === "/api/users/me") {
-    return send(req, res, 200, USER);
-  }
-  if (path === "/api/users/me/profile") {
-    return send(req, res, 200, PROFILE);
-  }
-  if (path === "/api/users/me/settings") {
-    return send(req, res, 200, SETTINGS);
-  }
-  if (path === "/api/users/me/instance-admin") {
-    return send(req, res, 200, { is_instance_admin: true });
-  }
-  if (path === "/api/users/me/workspaces") {
-    return send(req, res, 200, [WORKSPACE]);
-  }
-  if (path === "/api/users/me/invitations" || path === "/api/users/me/workspaces/invitations") {
-    return send(req, res, 200, []);
-  }
-  // /api/users/me/workspaces/:slug/project-roles
-  if (match(path, "/api/users/me/workspaces/:slug/project-roles")) {
-    return send(req, res, 200, {
-      "proj-demo-1": 20,
-      "proj-demo-2": 20,
-      "proj-demo-3": 20,
-    });
-  }
+    // 实例配置需在登录前读取，以决定登录表单能力。
+    if (path === "/api/instances") {
+      return send(req, res, 200, {
+        instance: {
+          ...INSTANCE,
+          user_count:
+            dataStore.driver === "postgresql"
+              ? Number((await dataStore.pool.query("SELECT COUNT(*) AS count FROM users")).rows[0].count)
+              : 1,
+        },
+        config: {
+          ...CONFIG,
+          enable_signup: String(process.env.SCAPELEAP_SIGNUP_ENABLED || "false") === "true",
+          is_smtp_configured: Boolean(process.env.SMTP_HOST),
+        },
+      });
+    }
 
-  // workspaces
-  if (path === "/api/workspaces") {
-    return send(req, res, 200, [WORKSPACE]);
-  }
-  if (path === `/api/workspaces/${WORKSPACE.slug}`) {
-    return send(req, res, 200, WORKSPACE);
-  }
-  if (path === `/api/workspaces/${WORKSPACE.slug}/workspace-members/me`) {
-    return send(req, res, 200, MEMBER_ME);
-  }
-  if (
-    path === `/api/workspaces/${WORKSPACE.slug}/workspace-members` ||
-    path === `/api/workspaces/${WORKSPACE.slug}/members`
-  ) {
-    return send(req, res, 200, MEMBER_LIST);
-  }
+    if (path.startsWith("/api/admin")) {
+      await handleAdminRequest(dataStore, req, res, path, method, u);
+      return;
+    }
 
-  // Home widgets — 必须是数组
-  if (path === `/api/workspaces/${WORKSPACE.slug}/home-preferences` || path.endsWith("/home-preferences")) {
-    return send(req, res, 200, HOME_WIDGETS);
-  }
+    if (!requireUser(req, res)) return;
 
-  // dashboard envelope
-  if (path.includes("/dashboard")) {
-    return send(req, res, 200, {
-      dashboard: { id: "dash-home", name: "Home", is_default: true },
-      widgets: [],
-    });
-  }
+    if (path.startsWith("/api/portal-shares/")) {
+      return void handlePortalRequest(req, res, path, method);
+    }
 
-  const PROJECT_LIST = [
-    PROJECT,
-    {
-      ...PROJECT,
-      id: "proj-demo-2",
-      name: "徐汇老宅改造",
-      identifier: "XH",
-      emoji: null,
-      logo_props: { in_use: null, emoji: null },
-      sort_order: 2000,
-    },
-    {
-      ...PROJECT,
-      id: "proj-demo-3",
-      name: "园区湖景平层",
-      identifier: "YQ",
-      emoji: null,
-      logo_props: { in_use: null, emoji: null },
-      sort_order: 3000,
-    },
-  ];
-  const projectById = (id) => PROJECT_LIST.find((p) => p.id === id) || { ...PROJECT, id };
+    // 构境业务数据：生产 PostgreSQL JSONB，本地 SQLite。
+    if (path.startsWith("/api/fs/")) {
+      if (method !== "GET" && req.authUser?.role === "viewer") {
+        return send(req, res, 403, { error: "forbidden", detail: "Viewer role is read-only." });
+      }
+      if (path === "/api/fs/_reseed" && !requireAdmin(req, res)) return;
+      return void handleFsRequest(req, res, path, method);
+    }
 
-  // projects/details before projects/:id
-  if (path.endsWith("/projects/details") || path.includes("/projects/details")) {
-    return send(req, res, 200, PROJECT_LIST);
-  }
+    // Mutations: accept-all
+    if (method === "POST" || method === "PATCH" || method === "PUT" || method === "DELETE") {
+      if (req.authUser?.role === "viewer") return send(req, res, 403, { error: "forbidden" });
+      return send(req, res, 200, { success: true });
+    }
 
-  if (path === `/api/workspaces/${WORKSPACE.slug}/projects`) {
-    return send(req, res, 200, PROJECT_LIST);
-  }
+    // --- GET routes (specific → general) ---
 
-  // project-members/me — 对象，不是 []；按路径带上正确 project id
-  if (path.includes("/project-members/me") || (path.includes("/projects/") && path.endsWith("/members/me"))) {
-    const pm = path.match(/\/projects\/([^/]+)\//);
-    const pid = pm?.[1] || PROJECT.id;
-    return send(req, res, 200, { ...PROJECT_MEMBER_ME, project: pid });
-  }
+    // instance
+    if (path === "/api/instances/admins") return send(req, res, 200, []);
+    if (path === "/api/instances/configurations") return send(req, res, 200, []);
+    if (path === "/api/instances/changelog") return send(req, res, 200, {});
 
-  // issues pagination envelope
-  if (isIssuesPath(path)) {
-    return send(req, res, 200, EMPTY_ISSUES);
-  }
+    // current user — exact + nested (order matters)
+    if (path === "/api/users/me") {
+      return send(req, res, 200, requestUser(req));
+    }
+    if (path === "/api/users/me/profile") {
+      return send(req, res, 200, requestProfile(req));
+    }
+    if (path === "/api/users/me/settings") {
+      return send(req, res, 200, requestSettings(req));
+    }
+    if (path === "/api/users/me/instance-admin") {
+      return send(req, res, 200, { is_instance_admin: isAdmin(req.authUser) });
+    }
+    if (path === "/api/users/me/workspaces") {
+      return send(req, res, 200, [requestWorkspace(req)]);
+    }
+    if (path === "/api/users/me/invitations" || path === "/api/users/me/workspaces/invitations") {
+      return send(req, res, 200, []);
+    }
+    // /api/users/me/workspaces/:slug/project-roles
+    if (match(path, "/api/users/me/workspaces/:slug/project-roles")) {
+      const role = workspaceRole(req.authUser);
+      return send(req, res, 200, {
+        "proj-demo-1": role,
+        "proj-demo-2": role,
+        "proj-demo-3": role,
+      });
+    }
 
-  // exact project by id (one segment only)
-  if (match(path, `/api/workspaces/${WORKSPACE.slug}/projects/:id`)) {
-    const m = path.match(/\/projects\/([^/]+)$/);
-    const id = m?.[1] || PROJECT.id;
-    return send(req, res, 200, projectById(id));
-  }
+    // workspaces
+    if (path === "/api/workspaces") {
+      return send(req, res, 200, [requestWorkspace(req)]);
+    }
+    if (path === `/api/workspaces/${WORKSPACE.slug}`) {
+      return send(req, res, 200, requestWorkspace(req));
+    }
+    if (path === `/api/workspaces/${WORKSPACE.slug}/workspace-members/me`) {
+      return send(req, res, 200, {
+        ...MEMBER_ME,
+        member: req.authUser.id,
+        role: workspaceRole(req.authUser),
+      });
+    }
+    if (
+      path === `/api/workspaces/${WORKSPACE.slug}/workspace-members` ||
+      path === `/api/workspaces/${WORKSPACE.slug}/members`
+    ) {
+      return send(req, res, 200, await workspaceMemberList());
+    }
 
-  if (path === `/api/workspaces/${WORKSPACE.slug}/states`) {
-    return send(req, res, 200, []);
-  }
-  if (path === `/api/workspaces/${WORKSPACE.slug}/sidebar-preferences`) {
-    return send(req, res, 200, SIDEBAR_PREFERENCES);
-  }
-  if (path === `/api/workspaces/${WORKSPACE.slug}/user-properties`) {
-    return send(req, res, 200, {
-      rich_filters: {},
-      display_filters: {},
-      display_properties: {},
-      navigation_project_limit: 10,
-      navigation_control_preference: "TABBED",
-    });
-  }
-  if (
-    path === `/api/workspaces/${WORKSPACE.slug}/user-favorites` ||
-    path.startsWith(`/api/workspaces/${WORKSPACE.slug}/user-favorites/`) ||
-    path === `/api/workspaces/${WORKSPACE.slug}/favorites`
-  ) {
-    return send(req, res, 200, []);
-  }
+    // Home widgets — 必须是数组
+    if (path === `/api/workspaces/${WORKSPACE.slug}/home-preferences` || path.endsWith("/home-preferences")) {
+      return send(req, res, 200, HOME_WIDGETS);
+    }
 
-  // unread notifications object
-  if (path.includes("/notifications/unread")) {
-    return send(req, res, 200, {
-      total_unread_notifications_count: 0,
-      mention_unread_notifications_count: 0,
-    });
-  }
+    // dashboard envelope
+    if (path.includes("/dashboard")) {
+      return send(req, res, 200, {
+        dashboard: { id: "dash-home", name: "Home", is_default: true },
+        widgets: [],
+      });
+    }
 
-  // stickies paginated
-  if (path.includes("/stickies")) {
-    return send(req, res, 200, { results: [], total_pages: 0 });
-  }
-
-  // project-scoped user-properties → object
-  if (path.includes("/user-properties")) {
-    return send(req, res, 200, {
-      rich_filters: {},
-      display_filters: {},
-      display_properties: {},
-      sort_order: 1000,
-      preferences: {
-        pages: { block_display: false },
-        navigation: { default_tab: "overview", hide_in_more_menu: [] },
+    const PROJECT_LIST = [
+      PROJECT,
+      {
+        ...PROJECT,
+        id: "proj-demo-2",
+        name: "徐汇老宅改造",
+        identifier: "XH",
+        emoji: null,
+        logo_props: { in_use: null, emoji: null },
+        sort_order: 2000,
       },
-    });
-  }
+      {
+        ...PROJECT,
+        id: "proj-demo-3",
+        name: "园区湖景平层",
+        identifier: "YQ",
+        emoji: null,
+        logo_props: { in_use: null, emoji: null },
+        sort_order: 3000,
+      },
+    ];
+    const projectById = (id) => requestProject(req, PROJECT_LIST.find((p) => p.id === id) || { ...PROJECT, id });
 
-  // nested project resources: empty list
-  if (path.includes("/projects/") && isObjectListPath(path)) {
-    return send(req, res, 200, []);
-  }
-  if (isObjectListPath(path)) {
-    return send(req, res, 200, []);
-  }
+    // projects/details before projects/:id
+    if (path.endsWith("/projects/details") || path.includes("/projects/details")) {
+      return send(
+        req,
+        res,
+        200,
+        PROJECT_LIST.map((project) => requestProject(req, project))
+      );
+    }
 
-  // generic project by id under any workspace slug
-  if (match(path, "/api/workspaces/:slug/projects/:id")) {
-    return send(req, res, 200, PROJECT);
-  }
-  if (match(path, "/api/workspaces/:slug")) {
-    return send(req, res, 200, WORKSPACE);
-  }
+    if (path === `/api/workspaces/${WORKSPACE.slug}/projects`) {
+      return send(
+        req,
+        res,
+        200,
+        PROJECT_LIST.map((project) => requestProject(req, project))
+      );
+    }
 
-  // leftover /api/users/* — 未知返回 []，避免 invitations 变成 USER
-  if (path.startsWith("/api/users")) {
-    if (path === "/api/users/me" || path.startsWith("/api/users/me/")) {
-      return send(req, res, 200, USER);
+    // project-members/me — 对象，不是 []；按路径带上正确 project id
+    if (path.includes("/project-members/me") || (path.includes("/projects/") && path.endsWith("/members/me"))) {
+      const pm = path.match(/\/projects\/([^/]+)\//);
+      const pid = pm?.[1] || PROJECT.id;
+      return send(req, res, 200, {
+        ...PROJECT_MEMBER_ME,
+        member: req.authUser.id,
+        role: workspaceRole(req.authUser),
+        project: pid,
+      });
+    }
+
+    // issues pagination envelope
+    if (isIssuesPath(path)) {
+      return send(req, res, 200, EMPTY_ISSUES);
+    }
+
+    // exact project by id (one segment only)
+    if (match(path, `/api/workspaces/${WORKSPACE.slug}/projects/:id`)) {
+      const m = path.match(/\/projects\/([^/]+)$/);
+      const id = m?.[1] || PROJECT.id;
+      return send(req, res, 200, projectById(id));
+    }
+
+    if (path === `/api/workspaces/${WORKSPACE.slug}/states`) {
+      return send(req, res, 200, []);
+    }
+    if (path === `/api/workspaces/${WORKSPACE.slug}/sidebar-preferences`) {
+      return send(req, res, 200, SIDEBAR_PREFERENCES);
+    }
+    if (path === `/api/workspaces/${WORKSPACE.slug}/user-properties`) {
+      return send(req, res, 200, {
+        rich_filters: {},
+        display_filters: {},
+        display_properties: {},
+        navigation_project_limit: 10,
+        navigation_control_preference: "TABBED",
+      });
+    }
+    if (
+      path === `/api/workspaces/${WORKSPACE.slug}/user-favorites` ||
+      path.startsWith(`/api/workspaces/${WORKSPACE.slug}/user-favorites/`) ||
+      path === `/api/workspaces/${WORKSPACE.slug}/favorites`
+    ) {
+      return send(req, res, 200, []);
+    }
+
+    // unread notifications object
+    if (path.includes("/notifications/unread")) {
+      return send(req, res, 200, {
+        total_unread_notifications_count: 0,
+        mention_unread_notifications_count: 0,
+      });
+    }
+
+    // stickies paginated
+    if (path.includes("/stickies")) {
+      return send(req, res, 200, { results: [], total_pages: 0 });
+    }
+
+    // project-scoped user-properties → object
+    if (path.includes("/user-properties")) {
+      return send(req, res, 200, {
+        rich_filters: {},
+        display_filters: {},
+        display_properties: {},
+        sort_order: 1000,
+        preferences: {
+          pages: { block_display: false },
+          navigation: { default_tab: "overview", hide_in_more_menu: [] },
+        },
+      });
+    }
+
+    // nested project resources: empty list
+    if (path.includes("/projects/") && isObjectListPath(path)) {
+      return send(req, res, 200, []);
+    }
+    if (isObjectListPath(path)) {
+      return send(req, res, 200, []);
+    }
+
+    // generic project by id under any workspace slug
+    if (match(path, "/api/workspaces/:slug/projects/:id")) {
+      return send(req, res, 200, requestProject(req));
+    }
+    if (match(path, "/api/workspaces/:slug")) {
+      return send(req, res, 200, requestWorkspace(req));
+    }
+
+    // leftover /api/users/* — 未知返回 []，避免 invitations 变成 USER
+    if (path.startsWith("/api/users")) {
+      if (path === "/api/users/me" || path.startsWith("/api/users/me/")) {
+        return send(req, res, 200, requestUser(req));
+      }
+      return send(req, res, 200, []);
+    }
+
+    // default GET → [] or {} based on last segment heuristics
+    const last = path.slice(path.lastIndexOf("/") + 1);
+    if (last === "home-preferences") {
+      return send(req, res, 200, HOME_WIDGETS);
+    }
+    if (last === "me") {
+      return send(req, res, 200, {
+        ...PROJECT_MEMBER_ME,
+        member: req.authUser.id,
+        role: workspaceRole(req.authUser),
+      });
+    }
+    if (
+      last.endsWith("preferences") ||
+      last.endsWith("properties") ||
+      last.endsWith("settings") ||
+      last.endsWith("config") ||
+      last.endsWith("configuration")
+    ) {
+      return send(req, res, 200, {});
     }
     return send(req, res, 200, []);
+  } catch (error) {
+    console.error("[api]", req.method, req.url, error);
+    if (!res.headersSent) send(req, res, 500, { error: "internal", message: "Unexpected server error." });
+    else res.end();
   }
-
-  // auth GET leftovers
-  if (path.startsWith("/auth")) {
-    return send(req, res, 200, { success: true, mock: true });
-  }
-
-  // default GET → [] or {} based on last segment heuristics
-  const last = path.split("/").filter(Boolean).pop() || "";
-  if (last === "home-preferences") {
-    return send(req, res, 200, HOME_WIDGETS);
-  }
-  if (last === "me") {
-    return send(req, res, 200, PROJECT_MEMBER_ME);
-  }
-  if (
-    last.endsWith("preferences") ||
-    last.endsWith("properties") ||
-    last.endsWith("settings") ||
-    last.endsWith("config") ||
-    last.endsWith("configuration")
-  ) {
-    return send(req, res, 200, {});
-  }
-  return send(req, res, 200, []);
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`Mock API (local session) http://${HOST}:${PORT}`);
+  console.log(`ScapeLeap API (${dataStore.driver}) http://${HOST}:${PORT}`);
 });

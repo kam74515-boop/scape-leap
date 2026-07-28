@@ -1,15 +1,15 @@
 /**
  * 业主 Portal 的服务端安全边界。
  *
- * - 工作台生成随机分享令牌；SQLite 仅保存 SHA-256 摘要。
+ * - 工作台生成随机分享令牌；数据库仅保存 SHA-256 摘要。
  * - 公共读取/确认必须同时匹配 projectId + token，支持过期与撤销。
  * - 公共响应只返回 Portal 所需的最小项目字段，不暴露客户库或工作室数据。
  */
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
-import { getDoc, listDocs, putDoc } from "./fs-db.mjs";
+import { getDoc, getPortalShare, listDocs, putDoc, revokePortalShare, savePortalShare } from "./data-store.mjs";
 import { getFsDb } from "./fs-routes.mjs";
 
-const PORTAL_STEPS = ["style", "render", "materials", "quote"];
+const PORTAL_STEPS = new Set(["style", "render", "materials", "quote"]);
 
 function sendJson(req, res, status, body) {
   const json = JSON.stringify(body);
@@ -59,16 +59,8 @@ function defaultPortalState() {
   };
 }
 
-function readShare(db, projectId) {
-  return db
-    .prepare(
-      "SELECT project_id, token_hash, created_at, expires_at, revoked_at FROM portal_shares WHERE project_id = ?"
-    )
-    .get(projectId);
-}
-
-function validateShare(db, projectId, token) {
-  const share = readShare(db, projectId);
+async function validateShare(db, projectId, token) {
+  const share = await getPortalShare(db, projectId);
   if (!share || !tokenMatches(token, share.token_hash)) return { ok: false, status: 404, reason: "invalid" };
   if (share.revoked_at) return { ok: false, status: 410, reason: "revoked" };
   if (Date.parse(share.expires_at) <= Date.now()) return { ok: false, status: 410, reason: "expired" };
@@ -88,13 +80,13 @@ function publicProject(project) {
   };
 }
 
-function portalPayload(db, projectId) {
-  const project = getDoc(db, "projects", projectId);
+async function portalPayload(db, projectId) {
+  const project = await getDoc(db, "projects", projectId);
   if (!project) return null;
-  const saved = getDoc(db, "portal_state", projectId);
-  const state = { ...defaultPortalState(), ...(saved ?? {}) };
+  const saved = await getDoc(db, "portal_state", projectId);
+  const state = { ...defaultPortalState(), ...saved };
   delete state.id;
-  const style = getDoc(db, "style_stage", projectId);
+  const style = await getDoc(db, "style_stage", projectId);
   const styles = (style?.directions ?? []).map((direction) => ({
     id: direction.id,
     name: direction.name,
@@ -103,14 +95,14 @@ function portalPayload(db, projectId) {
     colors: direction.colors ?? [],
     selected: direction.id === style?.selectedId,
   }));
-  const renders = listDocs(db, "render_stage")
+  const renders = (await listDocs(db, "render_stage"))
     .filter((render) => render.projectId === projectId)
     .map((render) => ({
       id: render.id,
       src: render.src,
       name: render.skillName || "项目效果图",
     }));
-  const materials = listDocs(db, "purchase_lines")
+  const materials = (await listDocs(db, "purchase_lines"))
     .filter((line) => line.projectId === projectId && line.status !== "cancelled")
     .map((line) => ({
       id: line.id,
@@ -120,7 +112,7 @@ function portalPayload(db, projectId) {
       qty: line.qty,
       price: line.price,
     }));
-  const files = listDocs(db, "files")
+  const files = (await listDocs(db, "files"))
     .filter((file) => file.projectId === projectId && file.portalVisible && file.contentDataUrl)
     .map((file) => ({
       id: file.id,
@@ -138,14 +130,14 @@ function portalPayload(db, projectId) {
 }
 
 export async function handlePortalRequest(req, res, pathname, method) {
-  const db = getFsDb();
+  const db = await getFsDb();
   const shareMatch = pathname.match(/^\/api\/portal-shares\/([^/]+)$/);
   const publicMatch = pathname.match(/^\/api\/public\/portal\/([^/]+)\/([^/]+)(?:\/steps\/([^/]+))?$/);
 
   try {
     if (shareMatch) {
       const projectId = decodeURIComponent(shareMatch[1]);
-      const project = getDoc(db, "projects", projectId);
+      const project = await getDoc(db, "projects", projectId);
       if (!project) return sendJson(req, res, 404, { error: "project_not_found" });
 
       if (method === "POST") {
@@ -154,15 +146,17 @@ export async function handlePortalRequest(req, res, pathname, method) {
         const token = randomBytes(24).toString("base64url");
         const createdAt = new Date().toISOString();
         const expiresAt = new Date(Date.now() + ttlDays * 86_400_000).toISOString();
-        db.prepare(
-          `INSERT OR REPLACE INTO portal_shares
-             (project_id, token_hash, created_at, expires_at, revoked_at)
-           VALUES (?, ?, ?, ?, NULL)`
-        ).run(projectId, tokenHash(token), createdAt, expiresAt);
+        await savePortalShare(db, {
+          projectId,
+          tokenHash: tokenHash(token),
+          createdAt,
+          expiresAt,
+          revokedAt: null,
+        });
         return sendJson(req, res, 201, { projectId, token, createdAt, expiresAt });
       }
 
-      const share = readShare(db, projectId);
+      const share = await getPortalShare(db, projectId);
       if (method === "GET") {
         if (!share) return sendJson(req, res, 404, { error: "share_not_found" });
         return sendJson(req, res, 200, {
@@ -176,7 +170,7 @@ export async function handlePortalRequest(req, res, pathname, method) {
       if (method === "DELETE") {
         if (!share) return sendJson(req, res, 404, { error: "share_not_found" });
         const revokedAt = new Date().toISOString();
-        db.prepare("UPDATE portal_shares SET revoked_at = ? WHERE project_id = ?").run(revokedAt, projectId);
+        await revokePortalShare(db, projectId, revokedAt);
         return sendJson(req, res, 200, { ok: true, projectId, revokedAt });
       }
       return sendJson(req, res, 405, { error: "method_not_allowed" });
@@ -186,18 +180,17 @@ export async function handlePortalRequest(req, res, pathname, method) {
       const projectId = decodeURIComponent(publicMatch[1]);
       const token = publicMatch[2];
       const step = publicMatch[3];
-      const valid = validateShare(db, projectId, token);
-      if (!valid.ok) return sendJson(req, res, valid.status, { error: "portal_link_unavailable", reason: valid.reason });
+      const valid = await validateShare(db, projectId, token);
+      if (!valid.ok)
+        return sendJson(req, res, valid.status, { error: "portal_link_unavailable", reason: valid.reason });
 
       if (method === "GET" && !step) {
-        const payload = portalPayload(db, projectId);
-        return payload
-          ? sendJson(req, res, 200, payload)
-          : sendJson(req, res, 404, { error: "project_not_found" });
+        const payload = await portalPayload(db, projectId);
+        return payload ? sendJson(req, res, 200, payload) : sendJson(req, res, 404, { error: "project_not_found" });
       }
 
       if (method === "PATCH" && step) {
-        if (!PORTAL_STEPS.includes(step)) return sendJson(req, res, 400, { error: "invalid_step" });
+        if (!PORTAL_STEPS.has(step)) return sendJson(req, res, 400, { error: "invalid_step" });
         const body = (await readBody(req)) ?? {};
         if (!["confirmed", "rejected"].includes(body.status)) {
           return sendJson(req, res, 400, { error: "invalid_status" });
@@ -207,14 +200,14 @@ export async function handlePortalRequest(req, res, pathname, method) {
           return sendJson(req, res, 400, { error: "comment_required" });
         }
 
-        const payload = portalPayload(db, projectId);
+        const payload = await portalPayload(db, projectId);
         if (!payload) return sendJson(req, res, 404, { error: "project_not_found" });
         payload.state[step] = {
           status: body.status,
           comment: body.status === "rejected" ? comment : undefined,
           at: new Date().toISOString(),
         };
-        putDoc(db, "portal_state", projectId, { id: projectId, ...payload.state });
+        await putDoc(db, "portal_state", projectId, { id: projectId, ...payload.state });
         return sendJson(req, res, 200, payload);
       }
       return sendJson(req, res, 405, { error: "method_not_allowed" });

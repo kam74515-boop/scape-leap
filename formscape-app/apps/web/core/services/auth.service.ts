@@ -32,7 +32,12 @@ export class AuthService extends APIService {
       });
 
   async sendResetPasswordLink(data: { email: string }): Promise<any> {
-    return this.post(`/auth/forgot-password/`, data)
+    const { csrf_token } = await this.requestCSRFToken();
+    return this.post(`/auth/forgot-password/`, data, {
+      headers: {
+        "X-CSRFTOKEN": csrf_token,
+      },
+    })
       .then((response) => response?.data)
       .catch((error) => {
         throw error?.response;

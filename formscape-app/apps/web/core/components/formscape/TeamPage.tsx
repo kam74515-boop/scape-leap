@@ -104,9 +104,7 @@ export function FormscapeTeamPage() {
   const navigate = useNavigate();
   const { workspaceSlug } = useParams();
   const ws = workspaceSlug?.toString() ?? "formscape";
-  const [tab, setTabState] = useState<UsersTab>(() =>
-    parseTab(searchParams.get("tab") ?? searchParams.get("view"))
-  );
+  const [tab, setTabState] = useState<UsersTab>(() => parseTab(searchParams.get("tab") ?? searchParams.get("view")));
   const { members, invite, setRole, remove } = useTeamMembers();
   const [inviteOpen, setInviteOpen] = useState(false);
   const [removeTarget, setRemoveTarget] = useState<TeamMember | null>(null);
@@ -158,7 +156,11 @@ export function FormscapeTeamPage() {
   const onRemove = () => {
     if (!removeTarget) return;
     remove(removeTarget.id);
-    setToast({ type: TOAST_TYPE.SUCCESS, title: "已移除成员", message: `${removeTarget.name} 已移除，释放 1 个席位（Demo）` });
+    setToast({
+      type: TOAST_TYPE.SUCCESS,
+      title: "已移除成员",
+      message: `${removeTarget.name} 已移除，释放 1 个席位（Demo）`,
+    });
     setRemoveTarget(null);
   };
 
@@ -170,11 +172,12 @@ export function FormscapeTeamPage() {
           <div className="flex h-11 items-center justify-between gap-2 px-3">
             <div>
               <div className="text-13 font-semibold text-primary">团队管理</div>
-              <div className="text-11 text-tertiary">
-                团队成员 · 席位 · 角色权限 · {WORKSPACE_META.plan}
-              </div>
+              <div className="text-11 text-tertiary">团队成员 · 席位 · 角色权限 · {WORKSPACE_META.plan}</div>
             </div>
             <div className="flex items-center gap-2">
+              <FsButton variant="secondary" size="sm" onClick={() => navigate("/admin")}>
+                系统后台
+              </FsButton>
               <div className="flex rounded-full border border-subtle p-0.5">
                 {(
                   [
@@ -217,7 +220,11 @@ export function FormscapeTeamPage() {
                   <FsStat label="平均负荷" value={`${avgLoad}%`} />
                 </FsCard>
                 <FsCard className="!p-3">
-                  <FsStat label="席位占用" value={`${seatsUsed}/${seatsTotal}`} hint={seatsFull ? "席位已满" : `还可邀请 ${seatsFree} 人`} />
+                  <FsStat
+                    label="席位占用"
+                    value={`${seatsUsed}/${seatsTotal}`}
+                    hint={seatsFull ? "席位已满" : `还可邀请 ${seatsFree} 人`}
+                  />
                 </FsCard>
               </div>
               <div className="space-y-1.5">
@@ -232,9 +239,7 @@ export function FormscapeTeamPage() {
                   />
                 ))}
               </div>
-              <FsMuted>
-                成员数据仅保存在本机（Demo 数据）· 正式版将对接 Plane 成员与邀请邮件
-              </FsMuted>
+              <FsMuted>成员数据仅保存在本机（Demo 数据）· 正式版将对接 Plane 成员与邀请邮件</FsMuted>
             </div>
           )}
 
@@ -249,8 +254,8 @@ export function FormscapeTeamPage() {
                 </div>
                 <FsProgress ai={false} value={(seatsUsed / seatsTotal) * 100} className="mt-3 h-1.5" />
                 <FsMuted className="mt-2">
-                  已用 {seatsUsed} / {seatsTotal} · 计划 {WORKSPACE_META.plan} ·
-                  邀请成员即占席位，移除即释放（Demo 数据）
+                  已用 {seatsUsed} / {seatsTotal} · 计划 {WORKSPACE_META.plan} · 邀请成员即占席位，移除即释放（Demo
+                  数据）
                 </FsMuted>
               </FsCard>
               <FsCard>
@@ -296,10 +301,10 @@ export function FormscapeTeamPage() {
                     <thead>
                       <tr className="border-b border-subtle text-tertiary">
                         <th className="py-2 pr-2 font-medium">能力</th>
-                        <th className="py-2 px-1 font-medium">主案</th>
-                        <th className="py-2 px-1 font-medium">深化</th>
-                        <th className="py-2 px-1 font-medium">软装</th>
-                        <th className="py-2 px-1 font-medium">助理</th>
+                        <th className="px-1 py-2 font-medium">主案</th>
+                        <th className="px-1 py-2 font-medium">深化</th>
+                        <th className="px-1 py-2 font-medium">软装</th>
+                        <th className="px-1 py-2 font-medium">助理</th>
                       </tr>
                     </thead>
                     <tbody className="text-secondary">
@@ -312,10 +317,7 @@ export function FormscapeTeamPage() {
                       ].map((row) => (
                         <tr key={row[0]} className="border-b border-subtle/80">
                           {row.map((cell, i) => (
-                            <td
-                              key={i}
-                              className={cn("py-2", i === 0 ? "pr-2 font-medium text-primary" : "px-1")}
-                            >
+                            <td key={i} className={cn("py-2", i === 0 ? "pr-2 font-medium text-primary" : "px-1")}>
                               {cell}
                             </td>
                           ))}
@@ -499,9 +501,7 @@ function InviteMemberModal({
             ))}
           </select>
         </FsField>
-        <FsMuted>
-          加入即占用 1 个席位（剩余 {seatsFree} 个）· Demo：数据仅保存在本机，正式版发送邀请邮件
-        </FsMuted>
+        <FsMuted>加入即占用 1 个席位（剩余 {seatsFree} 个）· Demo：数据仅保存在本机，正式版发送邀请邮件</FsMuted>
       </div>
     </FsModal>
   );

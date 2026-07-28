@@ -47,6 +47,12 @@ export const coreRoutes: RouteConfigEntry[] = [
   // ALL APP ROUTES
   // ========================================================================
   layout("./(all)/layout.tsx", [
+    route("terms", "./(all)/legal/terms.tsx"),
+    route("privacy", "./(all)/legal/privacy.tsx"),
+
+    // Instance administration
+    route("admin", "./(all)/admin/page.tsx"),
+
     // ======================================================================
     // WORKSPACE-SCOPED ROUTES
     // ======================================================================

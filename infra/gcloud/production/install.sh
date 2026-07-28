@@ -18,23 +18,43 @@ readonly script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 id "${deploy_user}" >/dev/null
 
 apt-get update
-apt-get install -y caddy rsync
+apt-get install -y caddy postgresql postgresql-contrib postgresql-16-pgvector rsync
 
 install -d -m 0755 "${config_dir}" "${root_dir}" "${root_dir}/data" "${root_dir}/releases"
+install -d -m 0700 "${root_dir}/backups"
 chown -R "${deploy_user}:${deploy_user}" "${root_dir}"
 
-auth_user="museart"
-auth_password=""
-auth_hash=""
-if [[ -f "${env_file}" ]]; then
-  auth_user="$(sed -n 's/^SCAPELEAP_BASIC_AUTH_USER=//p' "${env_file}" | tail -1)"
-  auth_hash="$(sed -n 's/^SCAPELEAP_BASIC_AUTH_HASH=//p' "${env_file}" | tail -1)"
+read_existing() {
+  local key="$1"
+  [[ -f "${env_file}" ]] || return 0
+  sed -n "s/^${key}=//p" "${env_file}" | tail -1
+}
+
+db_name="scapeleap"
+db_user="scapeleap_app"
+db_password="$(read_existing SCAPELEAP_DATABASE_PASSWORD)"
+admin_email="$(read_existing SCAPELEAP_BOOTSTRAP_ADMIN_EMAIL)"
+admin_password="$(read_existing SCAPELEAP_BOOTSTRAP_ADMIN_PASSWORD)"
+audit_salt="$(read_existing SCAPELEAP_AUDIT_SALT)"
+generated_admin_password=""
+
+[[ -n "${db_password}" ]] || db_password="$(openssl rand -hex 24)"
+[[ -n "${admin_email}" ]] || admin_email="admin@museart.cloud"
+if [[ -z "${admin_password}" ]]; then
+  admin_password="Fs!$(openssl rand -hex 12)9aA"
+  generated_admin_password="${admin_password}"
 fi
-if [[ -z "${auth_user}" || -z "${auth_hash}" ]]; then
-  auth_user="museart"
-  auth_password="$(openssl rand -base64 18 | tr -d '\n')"
-  auth_hash="$(caddy hash-password --plaintext "${auth_password}")"
+[[ -n "${audit_salt}" ]] || audit_salt="$(openssl rand -hex 32)"
+
+if ! runuser -u postgres -- psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='${db_user}'" | grep -q 1; then
+  runuser -u postgres -- createuser --login "${db_user}"
 fi
+runuser -u postgres -- psql -v ON_ERROR_STOP=1 -c "ALTER ROLE ${db_user} WITH LOGIN PASSWORD '${db_password}'"
+if ! runuser -u postgres -- psql -tAc "SELECT 1 FROM pg_database WHERE datname='${db_name}'" | grep -q 1; then
+  runuser -u postgres -- createdb --owner="${db_user}" --encoding=UTF8 "${db_name}"
+fi
+runuser -u postgres -- psql -v ON_ERROR_STOP=1 -d "${db_name}" -c "CREATE EXTENSION IF NOT EXISTS vector"
+runuser -u postgres -- psql -v ON_ERROR_STOP=1 -d "${db_name}" -c "CREATE EXTENSION IF NOT EXISTS pgcrypto"
 
 cat >"${env_file}" <<EOF
 SCAPELEAP_DEPLOY_USER=${deploy_user}
@@ -42,41 +62,45 @@ SCAPELEAP_DEPLOY_BRANCH=${deploy_branch}
 SCAPELEAP_REPO_URL=${repo_url}
 SCAPELEAP_ROOT=${root_dir}
 SCAPELEAP_PUBLIC_URL=${public_url}
-SCAPELEAP_BASIC_AUTH_USER=${auth_user}
-SCAPELEAP_BASIC_AUTH_HASH=${auth_hash}
+SCAPELEAP_DATABASE_PASSWORD=${db_password}
+DATABASE_URL=postgresql://${db_user}:${db_password}@127.0.0.1:5432/${db_name}
+DATABASE_POOL_SIZE=10
+SCAPELEAP_BOOTSTRAP_ADMIN_EMAIL=${admin_email}
+SCAPELEAP_BOOTSTRAP_ADMIN_PASSWORD=${admin_password}
+SCAPELEAP_BOOTSTRAP_ADMIN_NAME=构境管理员
+SCAPELEAP_AUDIT_SALT=${audit_salt}
+SCAPELEAP_SIGNUP_ENABLED=false
 PLANE_MOCK_API_HOST=127.0.0.1
 PLANE_MOCK_API_PORT=8000
 FS_DB_PATH=${root_dir}/data/formscape.db
+FS_SQLITE_MIGRATION_PATH=${root_dir}/data/formscape.db
 EOF
 chmod 0600 "${env_file}"
 
 install -m 0755 "${script_dir}/deploy.sh" /usr/local/bin/scapeleap-deploy
 install -m 0755 "${script_dir}/deploy-wrapper.sh" /usr/local/sbin/scapeleap-deploy-wrapper
+install -m 0755 "${script_dir}/backup.sh" /usr/local/sbin/scapeleap-backup
 install -m 0644 "${script_dir}/Caddyfile" /etc/caddy/Caddyfile
 install -m 0644 "${script_dir}/scapeleap-api.service" /etc/systemd/system/scapeleap-api.service
+install -m 0644 "${script_dir}/scapeleap-backup.service" /etc/systemd/system/scapeleap-backup.service
+install -m 0644 "${script_dir}/scapeleap-backup.timer" /etc/systemd/system/scapeleap-backup.timer
 install -m 0644 "${script_dir}/scapeleap-deploy.service" /etc/systemd/system/scapeleap-deploy.service
 install -m 0644 "${script_dir}/scapeleap-deploy.timer" /etc/systemd/system/scapeleap-deploy.timer
 
-install -d -m 0755 /etc/systemd/system/caddy.service.d
-cat >/etc/systemd/system/caddy.service.d/scapeleap.conf <<EOF
-[Service]
-EnvironmentFile=${env_file}
-EOF
-
-export SCAPELEAP_BASIC_AUTH_USER="${auth_user}"
-export SCAPELEAP_BASIC_AUTH_HASH="${auth_hash}"
+rm -f /etc/systemd/system/caddy.service.d/scapeleap.conf
 caddy validate --config /etc/caddy/Caddyfile
 
 systemctl daemon-reload
-systemctl enable caddy.service scapeleap-api.service scapeleap-deploy.timer
+systemctl enable caddy.service postgresql.service scapeleap-api.service scapeleap-backup.timer scapeleap-deploy.timer
 systemctl start scapeleap-deploy.service
 systemctl restart scapeleap-api.service caddy.service
-systemctl start scapeleap-deploy.timer
+systemctl start scapeleap-backup.timer scapeleap-deploy.timer
+systemctl start scapeleap-backup.service
 
 echo "Production deployment installed for ${public_url}"
-if [[ -n "${auth_password}" ]]; then
-  echo "PREVIEW_USERNAME=${auth_user}"
-  echo "PREVIEW_PASSWORD=${auth_password}"
+if [[ -n "${generated_admin_password}" ]]; then
+  echo "ADMIN_EMAIL=${admin_email}"
+  echo "ADMIN_TEMPORARY_PASSWORD=${generated_admin_password}"
 else
-  echo "Preview credentials were preserved from the existing installation."
+  echo "Bootstrap admin credentials were preserved from the existing installation."
 fi

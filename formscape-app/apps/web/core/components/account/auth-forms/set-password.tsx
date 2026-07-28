@@ -36,6 +36,7 @@ type TResetPasswordFormValues = {
 const defaultValues: TResetPasswordFormValues = {
   email: "",
   password: "",
+  confirm_password: "",
 };
 
 // services
@@ -77,11 +78,9 @@ export const SetPasswordForm = observer(function SetPasswordForm() {
 
   const isButtonDisabled = useMemo(
     () =>
-      !!passwordFormData.password &&
-      getPasswordStrength(passwordFormData.password) === E_PASSWORD_STRENGTH.STRENGTH_VALID &&
-      passwordFormData.password === passwordFormData.confirm_password
-        ? false
-        : true,
+      !passwordFormData.password ||
+      getPasswordStrength(passwordFormData.password) !== E_PASSWORD_STRENGTH.STRENGTH_VALID ||
+      passwordFormData.password !== passwordFormData.confirm_password,
     [passwordFormData]
   );
 
@@ -111,7 +110,7 @@ export const SetPasswordForm = observer(function SetPasswordForm() {
 
   return (
     <FormContainer>
-      <AuthFormHeader title="Set password" description="Create a new password." />
+      <AuthFormHeader title="设置新密码" description="首次登录必须更换临时密码。" />
       <form className="space-y-4" onSubmit={(e) => handleSubmit(e)}>
         <div className="space-y-1">
           <label className="text-13 font-medium text-tertiary" htmlFor="email">
@@ -122,7 +121,7 @@ export const SetPasswordForm = observer(function SetPasswordForm() {
               id="email"
               name="email"
               type="email"
-              value={user?.email}
+              value={user?.email ?? ""}
               //hasError={Boolean(errors.email)}
               placeholder={t("auth.common.email.placeholder")}
               className="h-10 w-full cursor-not-allowed border border-strong !bg-surface-1 pr-12 text-placeholder"
@@ -144,23 +143,23 @@ export const SetPasswordForm = observer(function SetPasswordForm() {
               //hasError={Boolean(errors.password)}
               placeholder={t("auth.common.password.placeholder")}
               className="h-10 w-full border border-strong !bg-surface-1 pr-12 placeholder:text-placeholder"
-              minLength={8}
+              minLength={12}
               onFocus={() => setIsPasswordInputFocused(true)}
               onBlur={() => setIsPasswordInputFocused(false)}
               autoComplete="new-password"
-              autoFocus
             />
-            {showPassword.password ? (
-              <EyeOff
-                className="absolute right-3 h-5 w-5 stroke-placeholder hover:cursor-pointer"
-                onClick={() => handleShowPassword("password")}
-              />
-            ) : (
-              <Eye
-                className="absolute right-3 h-5 w-5 stroke-placeholder hover:cursor-pointer"
-                onClick={() => handleShowPassword("password")}
-              />
-            )}
+            <button
+              type="button"
+              className="absolute right-3 grid size-5 place-items-center"
+              aria-label={showPassword.password ? "隐藏密码" : "显示密码"}
+              onClick={() => handleShowPassword("password")}
+            >
+              {showPassword.password ? (
+                <EyeOff className="size-5 stroke-placeholder" />
+              ) : (
+                <Eye className="size-5 stroke-placeholder" />
+              )}
+            </button>
           </div>
           <PasswordStrengthIndicator password={passwordFormData.password} isFocused={isPasswordInputFocused} />
         </div>
@@ -172,7 +171,7 @@ export const SetPasswordForm = observer(function SetPasswordForm() {
             <Input
               type={showPassword.retypePassword ? "text" : "password"}
               name="confirm_password"
-              value={passwordFormData.confirm_password}
+              value={passwordFormData.confirm_password ?? ""}
               onChange={(e) => handleFormChange("confirm_password", e.target.value)}
               placeholder={t("auth.common.password.confirm_password.placeholder")}
               className="h-10 w-full border border-strong !bg-surface-1 pr-12 placeholder:text-placeholder"
@@ -180,17 +179,18 @@ export const SetPasswordForm = observer(function SetPasswordForm() {
               onBlur={() => setIsRetryPasswordInputFocused(false)}
               autoComplete="new-password"
             />
-            {showPassword.retypePassword ? (
-              <EyeOff
-                className="absolute right-3 h-5 w-5 stroke-placeholder hover:cursor-pointer"
-                onClick={() => handleShowPassword("retypePassword")}
-              />
-            ) : (
-              <Eye
-                className="absolute right-3 h-5 w-5 stroke-placeholder hover:cursor-pointer"
-                onClick={() => handleShowPassword("retypePassword")}
-              />
-            )}
+            <button
+              type="button"
+              className="absolute right-3 grid size-5 place-items-center"
+              aria-label={showPassword.retypePassword ? "隐藏确认密码" : "显示确认密码"}
+              onClick={() => handleShowPassword("retypePassword")}
+            >
+              {showPassword.retypePassword ? (
+                <EyeOff className="size-5 stroke-placeholder" />
+              ) : (
+                <Eye className="size-5 stroke-placeholder" />
+              )}
+            </button>
           </div>
           {!!passwordFormData.confirm_password &&
             passwordFormData.password !== passwordFormData.confirm_password &&

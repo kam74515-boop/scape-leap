@@ -14,13 +14,13 @@ interface TermsAndConditionsProps {
 
 // Constants for better maintainability
 const LEGAL_LINKS = {
-  termsOfService: "https://formscape.com/terms",
-  privacyPolicy: "https://formscape.com/privacy",
+  termsOfService: "/terms",
+  privacyPolicy: "/privacy",
 } as const;
 
 const MESSAGES = {
-  [EAuthModes.SIGN_UP]: "By creating an account",
-  [EAuthModes.SIGN_IN]: "By signing in",
+  [EAuthModes.SIGN_UP]: "创建账号即表示你已阅读并同意",
+  [EAuthModes.SIGN_IN]: "登录即表示你已阅读并同意",
 } as const;
 
 // Reusable link component to reduce duplication
@@ -36,9 +36,10 @@ export function TermsAndConditions({ authType = EAuthModes.SIGN_IN }: TermsAndCo
   return (
     <div className="flex items-center justify-center">
       <p className="text-center text-13 whitespace-pre-line text-tertiary">
-        {`${MESSAGES[authType]}, you understand and agree to \n our `}
-        <LegalLink href={LEGAL_LINKS.termsOfService}>Terms of Service</LegalLink> and{" "}
-        <LegalLink href={LEGAL_LINKS.privacyPolicy}>Privacy Policy</LegalLink>.
+        {`${MESSAGES[authType]} `}
+        <LegalLink href={LEGAL_LINKS.termsOfService}>服务条款</LegalLink>
+        {" 与 "}
+        <LegalLink href={LEGAL_LINKS.privacyPolicy}>隐私政策</LegalLink>。
       </p>
     </div>
   );

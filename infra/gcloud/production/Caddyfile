@@ -5,10 +5,6 @@ www.museart.cloud {
 museart.cloud {
 	encode zstd gzip
 
-	basicauth {
-		{$SCAPELEAP_BASIC_AUTH_USER} {$SCAPELEAP_BASIC_AUTH_HASH}
-	}
-
 	handle /api/* {
 		reverse_proxy 127.0.0.1:8000
 	}
@@ -30,5 +26,7 @@ museart.cloud {
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"
 		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 	}
 }

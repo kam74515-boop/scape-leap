@@ -38,7 +38,7 @@ export function ForgotPasswordPopover() {
           ref={setReferenceElement}
           className="text-11 font-medium text-accent-primary outline-none"
         >
-          {t("auth.common.forgot_password")}
+          忘记密码？
         </button>
       </Popover.Button>
       <Popover.Panel className="fixed z-10">
@@ -49,8 +49,8 @@ export function ForgotPasswordPopover() {
             style={styles.popper}
             {...attributes.popper}
           >
-            <span className="flex-shrink-0">🤥</span>
-            <p className="text-11">{t("auth.forgot_password.errors.smtp_not_enabled")}</p>
+            <span className="flex-shrink-0 font-semibold text-tertiary">i</span>
+            <p className="text-11">邮件找回尚未启用，请联系管理员在系统后台重置密码。</p>
             <button
               type="button"
               className="grid size-3 flex-shrink-0 place-items-center"

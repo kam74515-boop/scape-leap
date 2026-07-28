@@ -1,9 +1,8 @@
-import { observer } from "mobx-react";
-import { FormscapeTeamPage } from "@/components/formscape";
+import { Navigate } from "react-router";
 
-/** L1 团队管理（成员 / 席位 / 角色） */
+/** 团队账号、席位和角色统一进入真实系统后台，避免维护两套成员数据。 */
 function Page() {
-  return <FormscapeTeamPage />;
+  return <Navigate to="/admin?tab=users" replace />;
 }
 
-export default observer(Page);
+export default Page;

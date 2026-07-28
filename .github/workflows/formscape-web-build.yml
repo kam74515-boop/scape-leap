@@ -28,6 +28,19 @@ jobs:
     name: Test, type-check, and build
     runs-on: ubuntu-24.04
     timeout-minutes: 45
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: scapeleap_test
+          POSTGRES_PASSWORD: scapeleap_test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d scapeleap_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     defaults:
       run:
         working-directory: formscape-app
@@ -57,6 +70,11 @@ jobs:
 
       - name: Run Formscape tests
         run: pnpm --filter=web test
+
+      - name: Test PostgreSQL authentication and administration
+        env:
+          AUTH_TEST_DATABASE_URL: postgresql://postgres:scapeleap_test_password@127.0.0.1:5432/scapeleap_test
+        run: pnpm test:auth-integration
 
       - name: Type-check web and shared utilities
         run: |

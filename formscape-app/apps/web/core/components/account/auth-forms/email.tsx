@@ -10,7 +10,6 @@ import { observer } from "mobx-react";
 // icons
 import { CircleAlert, XCircle } from "@/icons";
 // plane imports
-import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import type { IEmailCheckData } from "@plane/types";
 import { Input, Spinner } from "@plane/ui";
@@ -26,8 +25,6 @@ export const AuthEmailForm = observer(function AuthEmailForm(props: TAuthEmailFo
   // states
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [email, setEmail] = useState(defaultEmail);
-  // plane hooks
-  const { t } = useTranslation();
   const emailError = useMemo(
     () => (email && !checkEmailValidity(email) ? { email: "auth.common.email.errors.invalid" } : undefined),
     [email]
@@ -52,7 +49,7 @@ export const AuthEmailForm = observer(function AuthEmailForm(props: TAuthEmailFo
     <form onSubmit={handleFormSubmit} className="space-y-4">
       <div className="space-y-1">
         <label htmlFor="email" className="text-13 font-medium text-tertiary">
-          {t("auth.common.email.label")}
+          邮箱
         </label>
         <div
           className={cn(
@@ -72,7 +69,7 @@ export const AuthEmailForm = observer(function AuthEmailForm(props: TAuthEmailFo
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder={t("auth.common.email.placeholder")}
+            placeholder="name@studio.com"
             className={`h-10 w-full border-0 disable-autofill-style placeholder:text-placeholder autofill:bg-danger-primary focus:bg-none active:bg-transparent`}
             autoComplete="off"
             autoFocus
@@ -86,7 +83,7 @@ export const AuthEmailForm = observer(function AuthEmailForm(props: TAuthEmailFo
                 inputRef.current?.focus();
               }}
               className="absolute right-3 grid size-5 place-items-center"
-              aria-label={t("aria_labels.auth_forms.clear_email")}
+              aria-label="清空邮箱"
               tabIndex={-1}
             >
               <XCircle className="size-5 stroke-placeholder" />
@@ -96,12 +93,12 @@ export const AuthEmailForm = observer(function AuthEmailForm(props: TAuthEmailFo
         {emailError?.email && !isFocused && (
           <p className="flex items-center gap-1 px-0.5 text-11 text-danger-primary">
             <CircleAlert height={12} width={12} />
-            {t(emailError.email)}
+            请输入有效的邮箱地址
           </p>
         )}
       </div>
       <Button type="submit" variant="primary" className="w-full" size="xl" disabled={isButtonDisabled}>
-        {isSubmitting ? <Spinner height="20px" width="20px" /> : t("common.continue")}
+        {isSubmitting ? <Spinner height="20px" width="20px" /> : "继续"}
       </Button>
     </form>
   );

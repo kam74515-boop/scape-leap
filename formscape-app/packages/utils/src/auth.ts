@@ -7,7 +7,7 @@
 import type { ReactNode } from "react";
 // plane imports
 import type { TAuthErrorInfo } from "@plane/constants";
-import { E_PASSWORD_STRENGTH, EErrorAlertType, EAuthErrorCodes } from "@plane/constants";
+import { E_PASSWORD_STRENGTH, EErrorAlertType, EAuthErrorCodes, PASSWORD_MIN_LENGTH } from "@plane/constants";
 
 /**
  * @description Password strength levels
@@ -28,7 +28,7 @@ export const getPasswordStrength = (password: string): E_PASSWORD_STRENGTH => {
     return E_PASSWORD_STRENGTH.EMPTY;
   }
 
-  if (password.length < 8) {
+  if (password.length < PASSWORD_MIN_LENGTH) {
     return E_PASSWORD_STRENGTH.LENGTH_NOT_VALID;
   }
 
@@ -57,27 +57,27 @@ export type PasswordCriteria = {
 export const getPasswordCriteria = (password: string): PasswordCriteria[] => [
   {
     key: "length",
-    label: "Min 8 characters",
-    isValid: password.length >= 8,
+    label: "至少 12 个字符",
+    isValid: password.length >= PASSWORD_MIN_LENGTH,
   },
   {
     key: "uppercase",
-    label: "Min 1 upper-case letter",
+    label: "至少 1 个大写字母",
     isValid: /[A-Z]/.test(password),
   },
   {
     key: "lowercase",
-    label: "Min 1 lower-case letter",
+    label: "至少 1 个小写字母",
     isValid: /[a-z]/.test(password),
   },
   {
     key: "number",
-    label: "Min 1 number",
+    label: "至少 1 个数字",
     isValid: /[0-9]/.test(password),
   },
   {
     key: "special",
-    label: "Min 1 special character",
+    label: "至少 1 个特殊字符",
     isValid: /[!@#$%^&*()\-_+=\[\]{}|;:'",.<>?/]/.test(password),
   },
 ];

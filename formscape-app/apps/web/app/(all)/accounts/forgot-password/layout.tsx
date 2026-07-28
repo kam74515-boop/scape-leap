@@ -11,4 +11,4 @@ export default function ForgotPasswordLayout() {
   return <Outlet />;
 }
 
-export const meta: Route.MetaFunction = () => [{ title: "Forgot Password - Plane" }];
+export const meta: Route.MetaFunction = () => [{ title: "找回密码 · 构境AI" }];

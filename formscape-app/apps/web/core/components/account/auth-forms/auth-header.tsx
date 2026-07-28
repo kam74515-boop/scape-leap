@@ -27,30 +27,30 @@ type TAuthHeader = {
 const Titles = {
   [EAuthModes.SIGN_IN]: {
     [EAuthSteps.EMAIL]: {
-      header: "Work in all dimensions.",
-      subHeader: "Welcome back to Plane.",
+      header: "让灵感走向交付。",
+      subHeader: "登录构境AI，继续你的设计项目。",
     },
     [EAuthSteps.PASSWORD]: {
-      header: "Work in all dimensions.",
-      subHeader: "Welcome back to Plane.",
+      header: "欢迎回来。",
+      subHeader: "使用密码安全登录你的工作台。",
     },
     [EAuthSteps.UNIQUE_CODE]: {
-      header: "Work in all dimensions.",
-      subHeader: "Welcome back to Plane.",
+      header: "验证你的身份。",
+      subHeader: "输入发送到邮箱的一次性验证码。",
     },
   },
   [EAuthModes.SIGN_UP]: {
     [EAuthSteps.EMAIL]: {
-      header: "Work in all dimensions.",
-      subHeader: "Create your Plane account.",
+      header: "建立你的设计工作台。",
+      subHeader: "创建构境AI账号，开始协同设计。",
     },
     [EAuthSteps.PASSWORD]: {
-      header: "Work in all dimensions.",
-      subHeader: "Create your Plane account.",
+      header: "设置安全密码。",
+      subHeader: "完成账号创建后即可进入工作台。",
     },
     [EAuthSteps.UNIQUE_CODE]: {
-      header: "Work in all dimensions.",
-      subHeader: "Create your Plane account.",
+      header: "验证你的邮箱。",
+      subHeader: "输入一次性验证码完成账号创建。",
     },
   },
 };

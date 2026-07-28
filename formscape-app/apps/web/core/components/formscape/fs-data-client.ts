@@ -1,7 +1,7 @@
 /**
- * 构境数据 API client — 业务数据唯一真源 = 服务端 SQLite（/api/fs/*）。
+ * 构境数据 API client — 业务数据唯一真源 = 服务端数据库（/api/fs/*）。
  *
- * 架构：服务端 SQLite（mock-api.mjs → fs-routes.mjs → fs-db.mjs）
+ * 架构：生产 PostgreSQL、本地/测试 SQLite（mock-api.mjs → fs-routes.mjs → data-store.mjs）
  *   ↑ 本模块（薄 client：内存缓存 + 乐观写 + change 事件）
  *   ↑ 各 *-store（保持原有同步 API 与事件契约，UI 组件零改动）
  *
@@ -42,6 +42,11 @@ export type FsEntity = (typeof FS_ENTITIES)[number];
 const cache = new Map<FsEntity, unknown[]>();
 const entityEvents = new Map<string, string>();
 const hydrateState = new Map<FsEntity, Promise<void> | "done">();
+const pendingHydration = new Set<FsEntity>();
+let dataAccess: "unknown" | "authenticated" | "unauthenticated" = (globalThis as { __FS_API_BASE?: string })
+  .__FS_API_BASE
+  ? "authenticated"
+  : "unknown";
 
 /** store 注册实体 → 变更事件名（沿用各 store 既有 CustomEvent，跨组件契约不变） */
 export function registerFsEntity(entity: FsEntity, changeEvent: string) {
@@ -86,6 +91,11 @@ export function isFsHydrated(entity: FsEntity): boolean {
 
 /** 后台 hydrate（幂等）；完成后发射各实体 change 事件 */
 export function ensureFsHydrated(entities: FsEntity[]) {
+  if (dataAccess !== "authenticated") {
+    entities.forEach((entity) => pendingHydration.add(entity));
+    return;
+  }
+
   for (const entity of entities) {
     if (hydrateState.has(entity)) continue;
     const p = api<unknown[]>(`/${entity}`)
@@ -93,6 +103,7 @@ export function ensureFsHydrated(entities: FsEntity[]) {
         cache.set(entity, docs);
         hydrateState.set(entity, "done");
         emit(entity);
+        return undefined;
       })
       .catch((e) => {
         // 服务未起时静默降级为空缓存（可后续重试）；不阻断 UI
@@ -101,6 +112,18 @@ export function ensureFsHydrated(entities: FsEntity[]) {
       });
     hydrateState.set(entity, p);
   }
+}
+
+/**
+ * 由登录态边界在用户查询完成后调用。这样公共页面不会抢跑 20+ 个需要会话的业务请求，
+ * 已登录用户则会一次性补齐此前各 store 登记的实体。
+ */
+export function setFsDataAccess(authenticated: boolean) {
+  dataAccess = authenticated ? "authenticated" : "unauthenticated";
+  if (!authenticated || pendingHydration.size === 0) return;
+  const entities = [...pendingHydration];
+  pendingHydration.clear();
+  ensureFsHydrated(entities);
 }
 
 /* ---------- 写（乐观缓存 + 服务端持久化） ---------- */
@@ -114,7 +137,7 @@ function trackWrite(p: Promise<unknown>) {
 
 /** 等待所有进行中的乐观写落库（测试断言服务端状态前调用） */
 export async function flushFsWrites() {
-  await Promise.allSettled([...pendingWrites]);
+  await Promise.allSettled(pendingWrites);
 }
 
 /** upsert 单条：缓存先改 → PUT 落库；失败回滚缓存 */
@@ -138,7 +161,10 @@ export function putFsDoc<T extends { id: string }>(entity: FsEntity, doc: T): T 
 /** 删除单条（乐观） */
 export function removeFsDoc(entity: FsEntity, id: string) {
   const prev = readFsCache<{ id: string }>(entity);
-  cache.set(entity, prev.filter((d) => d.id !== id));
+  cache.set(
+    entity,
+    prev.filter((d) => d.id !== id)
+  );
   emit(entity);
   trackWrite(
     api(`/${entity}/${encodeURIComponent(id)}`, { method: "DELETE" }).catch((e) => {
@@ -174,9 +200,11 @@ export async function flushFsHydration() {
 
 /** 测试专用：服务端重播种子 + 清客户端缓存 + 全量重新 hydrate（确定性起点） */
 export async function resetFsDataForTests() {
+  dataAccess = "authenticated";
   await api("/_reseed", { method: "POST" });
   cache.clear();
   hydrateState.clear();
+  pendingHydration.clear();
   ensureFsHydrated([...FS_ENTITIES]);
   await flushFsHydration();
 }

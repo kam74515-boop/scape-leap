@@ -1,0 +1,15 @@
+[Unit]
+Description=Back up the ScapeLeap PostgreSQL database
+After=postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/scapeleap/production.env
+User=karld74515_gmail_com
+ExecStart=/usr/local/sbin/scapeleap-backup
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/scapeleap/backups

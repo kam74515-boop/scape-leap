@@ -12,6 +12,7 @@
     "dev:web": "pnpm --filter=web dev",
     "dev:local": "bash scripts/start-local.sh",
     "mock-api": "node scripts/mock-api.mjs",
+    "test:auth-integration": "node scripts/auth-integration.mjs",
     "start": "turbo run start",
     "start:web": "pnpm --filter=web start",
     "clean": "turbo run clean && rm -rf .turbo && rm -rf .next && rm -rf node_modules && rm -rf dist",
@@ -24,6 +25,10 @@
     "check:types": "turbo run check:types",
     "prepare": "husky",
     "doctor": "npx react-doctor@latest"
+  },
+  "dependencies": {
+    "nodemailer": "catalog:",
+    "pg": "catalog:"
   },
   "devDependencies": {
     "husky": "catalog:",

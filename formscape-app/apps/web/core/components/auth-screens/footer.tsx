@@ -4,40 +4,20 @@
  * See the LICENSE file for details.
  */
 
-import React from "react";
-import { AccentureLogo, DolbyLogo, SonyLogo, ZerodhaLogo } from "@plane/propel/icons";
-
-const BRAND_LOGOS: {
-  id: string;
-  icon: React.ReactNode;
-}[] = [
-  {
-    id: "zerodha",
-    icon: <ZerodhaLogo className="h-7 w-24 text-[#387ED1]" />,
-  },
-  {
-    id: "sony",
-    icon: <SonyLogo className="h-7 w-16 dark:text-on-color" />,
-  },
-  {
-    id: "dolby",
-    icon: <DolbyLogo className="h-7 w-16 dark:text-on-color" />,
-  },
-  {
-    id: "accenture",
-    icon: <AccentureLogo className="h-7 w-24 dark:text-on-color" />,
-  },
-];
+const CAPABILITIES = ["AI 设计协同", "项目全流程", "客户交付 Portal"];
 
 export function AuthFooter() {
   return (
-    <div className="flex flex-col items-center gap-6">
-      <span className="text-13 whitespace-nowrap text-tertiary">Join 10,000+ teams building with Plane</span>
-      <div className="flex w-full flex-wrap items-center justify-center gap-x-10 gap-y-4">
-        {BRAND_LOGOS.map((brand) => (
-          <div className="flex h-7 flex-1 items-center justify-center" key={brand.id}>
-            {brand.icon}
-          </div>
+    <div className="flex flex-col items-center gap-3">
+      <span className="text-12 text-tertiary">为室内设计工作室打造的 Studio OS</span>
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        {CAPABILITIES.map((capability) => (
+          <span
+            key={capability}
+            className="rounded-full border border-subtle bg-surface-1 px-3 py-1 text-11 text-secondary"
+          >
+            {capability}
+          </span>
         ))}
       </div>
     </div>

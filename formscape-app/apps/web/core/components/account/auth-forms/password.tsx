@@ -42,6 +42,7 @@ type TPasswordFormValues = {
 const defaultValues: TPasswordFormValues = {
   email: "",
   password: "",
+  confirm_password: "",
 };
 
 const authService = new AuthService();
@@ -90,7 +91,7 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
             href={`/accounts/forgot-password?email=${encodeURIComponent(email)}`}
             className="text-11 font-medium text-accent-primary"
           >
-            {t("auth.common.forgot_password")}
+            忘记密码？
           </Link>
         ) : (
           <ForgotPasswordPopover />
@@ -105,11 +106,9 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
 
   const isButtonDisabled = useMemo(
     () =>
-      !isSubmitting &&
-      !!passwordFormData.password &&
-      (mode === EAuthModes.SIGN_UP ? passwordFormData.password === passwordFormData.confirm_password : true)
-        ? false
-        : true,
+      isSubmitting ||
+      !passwordFormData.password ||
+      (mode === EAuthModes.SIGN_UP && passwordFormData.password !== passwordFormData.confirm_password),
     [isSubmitting, mode, passwordFormData.confirm_password, passwordFormData.password]
   );
 
@@ -172,7 +171,7 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
         {nextPath && <input type="hidden" value={nextPath} name="next_path" />}
         <div className="space-y-1">
           <label htmlFor="email" className="text-13 font-medium text-tertiary">
-            {t("auth.common.email.label")}
+            邮箱
           </label>
           <div className={`relative flex items-center rounded-md border border-strong bg-surface-1`}>
             <Input
@@ -181,7 +180,7 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
               type="email"
               value={passwordFormData.email}
               onChange={(e) => handleFormChange("email", e.target.value)}
-              placeholder={t("auth.common.email.placeholder")}
+              placeholder="name@studio.com"
               className={`h-10 w-full border-0 disable-autofill-style placeholder:text-placeholder`}
               disabled
             />
@@ -190,7 +189,7 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
                 type="button"
                 className="absolute right-3 size-5"
                 onClick={handleEmailClear}
-                aria-label={t("aria_labels.auth_forms.clear_email")}
+                aria-label="清空邮箱"
               >
                 <XCircle className="size-5 stroke-placeholder" />
               </button>
@@ -200,7 +199,7 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
 
         <div className="space-y-1">
           <label htmlFor="password" className="text-13 font-medium text-tertiary">
-            {mode === EAuthModes.SIGN_IN ? t("auth.common.password.label") : t("auth.common.password.set_password")}
+            {mode === EAuthModes.SIGN_IN ? "密码" : "设置密码"}
           </label>
           <div className="relative flex items-center rounded-md bg-surface-1">
             <Input
@@ -209,20 +208,18 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
               name="password"
               value={passwordFormData.password}
               onChange={(e) => handleFormChange("password", e.target.value)}
-              placeholder={t("auth.common.password.placeholder")}
+              placeholder="请输入密码"
               className="h-10 w-full border border-strong !bg-surface-1 pr-12 disable-autofill-style placeholder:text-placeholder"
               onFocus={() => setIsPasswordInputFocused(true)}
               onBlur={() => setIsPasswordInputFocused(false)}
-              autoComplete="off"
-              autoFocus
+              autoComplete={mode === EAuthModes.SIGN_IN ? "current-password" : "new-password"}
+              minLength={mode === EAuthModes.SIGN_UP ? 12 : undefined}
             />
             <button
               type="button"
               onClick={() => handleShowPassword("password")}
               className="absolute right-3 grid size-5 place-items-center"
-              aria-label={t(
-                showPassword?.password ? "aria_labels.auth_forms.hide_password" : "aria_labels.auth_forms.show_password"
-              )}
+              aria-label={showPassword?.password ? "隐藏密码" : "显示密码"}
             >
               {showPassword?.password ? (
                 <EyeOff className="size-5 stroke-placeholder" />
@@ -237,29 +234,26 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
         {mode === EAuthModes.SIGN_UP && (
           <div className="space-y-1">
             <label htmlFor="confirm-password" className="text-13 font-medium text-tertiary">
-              {t("auth.common.password.confirm_password.label")}
+              确认密码
             </label>
             <div className="relative flex items-center rounded-md bg-surface-1">
               <Input
                 type={showPassword?.retypePassword ? "text" : "password"}
                 id="confirm-password"
                 name="confirm_password"
-                value={passwordFormData.confirm_password}
+                value={passwordFormData.confirm_password ?? ""}
                 onChange={(e) => handleFormChange("confirm_password", e.target.value)}
-                placeholder={t("auth.common.password.confirm_password.placeholder")}
+                placeholder="再次输入密码"
                 className="h-10 w-full border border-strong !bg-surface-1 pr-12 disable-autofill-style placeholder:text-placeholder"
                 onFocus={() => setIsRetryPasswordInputFocused(true)}
                 onBlur={() => setIsRetryPasswordInputFocused(false)}
-                autoComplete="off"
+                autoComplete="new-password"
+                minLength={12}
               />
               <button
                 type="button"
                 className="absolute right-3 grid size-5 place-items-center"
-                aria-label={t(
-                  showPassword?.retypePassword
-                    ? "aria_labels.auth_forms.hide_password"
-                    : "aria_labels.auth_forms.show_password"
-                )}
+                aria-label={showPassword?.retypePassword ? "隐藏确认密码" : "显示确认密码"}
                 onClick={() => handleShowPassword("retypePassword")}
               >
                 {showPassword?.retypePassword ? (
@@ -271,9 +265,7 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
             </div>
             {!!passwordFormData.confirm_password &&
               passwordFormData.password !== passwordFormData.confirm_password &&
-              renderPasswordMatchError && (
-                <span className="text-13 text-danger-primary">{t("auth.common.password.errors.match")}</span>
-              )}
+              renderPasswordMatchError && <span className="text-13 text-danger-primary">两次输入的密码不一致</span>}
           </div>
         )}
 
@@ -281,13 +273,7 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
           {mode === EAuthModes.SIGN_IN ? (
             <>
               <Button type="submit" variant="primary" className="w-full" size="xl" disabled={isButtonDisabled}>
-                {isSubmitting ? (
-                  <Spinner height="20px" width="20px" />
-                ) : isSMTPConfigured ? (
-                  t("common.continue")
-                ) : (
-                  t("common.go_to_workspace")
-                )}
+                {isSubmitting ? <Spinner height="20px" width="20px" /> : isSMTPConfigured ? "登录" : "登录"}
               </Button>
               {isSMTPConfigured && (
                 <Button
@@ -298,13 +284,13 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
                   className="w-full"
                   size="xl"
                 >
-                  {t("auth.common.sign_in_with_unique_code")}
+                  使用邮箱验证码登录
                 </Button>
               )}
             </>
           ) : (
             <Button type="submit" variant="primary" className="w-full" size="xl" disabled={isButtonDisabled}>
-              {isSubmitting ? <Spinner height="20px" width="20px" /> : "Create account"}
+              {isSubmitting ? <Spinner height="20px" width="20px" /> : "创建账号"}
             </Button>
           )}
         </div>
