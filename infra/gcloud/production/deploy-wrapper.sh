@@ -13,8 +13,9 @@ readonly deploy_home="$(getent passwd "${SCAPELEAP_DEPLOY_USER}" | cut -d: -f6)"
 before_revision="$(tr -d '\n' <"${revision_file}" 2>/dev/null || true)"
 
 runuser -u "${SCAPELEAP_DEPLOY_USER}" -- \
-  env \
+  env -i \
   HOME="${deploy_home}" \
+  LANG="C.UTF-8" \
   PATH="/usr/local/bin:/usr/bin:/bin" \
   SCAPELEAP_DEPLOY_BRANCH="${SCAPELEAP_DEPLOY_BRANCH}" \
   SCAPELEAP_REPO_URL="${SCAPELEAP_REPO_URL}" \

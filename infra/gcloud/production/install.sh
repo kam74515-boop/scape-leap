@@ -94,6 +94,21 @@ systemctl daemon-reload
 systemctl enable caddy.service postgresql.service scapeleap-api.service scapeleap-backup.timer scapeleap-deploy.timer
 systemctl start scapeleap-deploy.service
 systemctl restart scapeleap-api.service caddy.service
+
+database_ready=false
+for readiness_attempt in {1..30}; do
+  if [[ "$(runuser -u postgres -- psql -At -d "${db_name}" -c \
+    "SELECT to_regclass('public.entities') IS NOT NULL AND to_regclass('public.users') IS NOT NULL")" == "t" ]]; then
+    database_ready=true
+    break
+  fi
+  sleep 1
+done
+if [[ "${database_ready}" != "true" ]]; then
+  echo "Database schema was not ready before the initial backup." >&2
+  exit 1
+fi
+
 systemctl start scapeleap-backup.timer scapeleap-deploy.timer
 systemctl start scapeleap-backup.service
 
